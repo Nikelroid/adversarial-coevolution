@@ -51,40 +51,40 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.reset()
     
-        def reset(self, seed=None, options=None):
-            """Reset the environment."""
-            if seed is not None:
-                self.env.reset(seed=seed)
-            else:
-                self.env.reset()
+    def reset(self, seed=None, options=None):
+        """Reset the environment."""
+        if seed is not None:
+            self.env.reset(seed=seed)
+        else:
+            self.env.reset()
 
-            self.isit_first_round = True
-            self.starting_score = -1
+        self.isit_first_round = True
+        self.starting_score = -1
 
-            # Randomly assign training agent position each episode
-            if self.randomize_position and random.random() < 0.5:
-                self.training_agent = 'player_1'
-                self.opponent_agent = 'player_0'
-                self.opponent_policy.set_player('player_0')
+        # Randomly assign training agent position each episode
+        if self.randomize_position and random.random() < 0.5:
+            self.training_agent = 'player_1'
+            self.opponent_agent = 'player_0'
+            self.opponent_policy.set_player('player_0')
+        else:
+            self.training_agent = 'player_0'
+            self.opponent_agent = 'player_1'
+            self.opponent_policy.set_player('player_1')
+        
+        # Play until it's the training agent's turn
+        while True:
+            agent = self.env.agent_selection
+            if agent == self.training_agent:
+                obs, _, _, _, _ = self.env.last()
+                player_hand = obs['observation'][0]
+                if self.isit_first_round and sum(player_hand) == 10:           
+                    self.starting_score = score_gin_rummy_hand(player_hand)
+                    print(f'Score for starting this hand: {self.starting_score}')
+                    self.isit_first_round = False
+                return obs, {}
             else:
-                self.training_agent = 'player_0'
-                self.opponent_agent = 'player_1'
-                self.opponent_policy.set_player('player_1')
-            
-            # Play until it's the training agent's turn
-            while True:
-                agent = self.env.agent_selection
-                if agent == self.training_agent:
-                    obs, _, _, _, _ = self.env.last()
-                    player_hand = obs['observation'][0]
-                    if self.isit_first_round and sum(player_hand) == 10:           
-                        self.starting_score = score_gin_rummy_hand(player_hand)
-                        print(f'Score for starting this hand: {self.starting_score}')
-                        self.isit_first_round = False
-                    return obs, {}
-                else:
-                    # Opponent plays
-                    self._opponent_step()
+                # Opponent plays
+                self._opponent_step()
     
     
     def _opponent_step(self):
