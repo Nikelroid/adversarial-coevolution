@@ -42,17 +42,24 @@ import torch as th
 import torch.nn as nn
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
-class CardFormerXL(BaseFeaturesExtractor):
-    def __init__(self, observation_space, features_dim=512):
-        super(CardFormerXL, self).__init__(observation_space, features_dim)
+class CardFormerXXL(BaseFeaturesExtractor):
+    """
+    Transformer-based feature extractor for Gin Rummy.
+    Observation dict -> extract 'observation' tensor (5x52) -> Transformer + deep MLP.
+    """
 
-        self.seq_len = 5  # from 5x52
+    def __init__(self, observation_space, features_dim=512):
+        super(CardFormerXXL, self).__init__(observation_space, features_dim)
+
+        # Shape: (5 x 52)
+        self.seq_len = 5
         self.card_dim = 52
 
         embed_dim = 128
         n_heads = 8
         n_layers = 3
 
+        # Embedding for each 52-dim row
         self.embed = nn.Linear(self.card_dim, embed_dim)
 
         encoder_layer = nn.TransformerEncoderLayer(
@@ -64,23 +71,39 @@ class CardFormerXL(BaseFeaturesExtractor):
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
 
-        # Aggregate all tokens
-        self.pool = nn.AdaptiveAvgPool1d(1)
-
-        # MLP head
+        # 💪 Deep MLP head with two 512 layers
         self.fc = nn.Sequential(
             nn.Linear(embed_dim, 512),
             nn.GELU(),
             nn.LayerNorm(512),
+
+            nn.Linear(512, 512),
+            nn.GELU(),
+            nn.LayerNorm(512),
+
             nn.Linear(512, features_dim),
             nn.GELU(),
         )
 
     def forward(self, observations):
-        x = observations.view(-1, self.seq_len, self.card_dim)  # [B, 5, 52]
+        # Extract observation tensor
+        if isinstance(observations, dict):
+            x = observations["observation"]
+        else:
+            x = observations
+
+        if not isinstance(x, th.Tensor):
+            x = th.tensor(x, dtype=th.float32)
+
+        # Shape [B, 5, 52]
+        x = x.view(-1, self.seq_len, self.card_dim)
+
+        # Transformer pipeline
         x = self.embed(x)
-        x = self.transformer(x)  # [B, 5, 128]
-        x = x.mean(dim=1)  # average over sequence
+        x = self.transformer(x)
+        x = x.mean(dim=1)
+
+        # Deep MLP head
         x = self.fc(x)
         return x
 
@@ -312,12 +335,12 @@ def train_ppo(
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
 
-    policy_kwargs_net = dict(
-    features_extractor_class=CardFormerXL,
+    policy_kwargs = dict(
+    features_extractor_class=CardFormerXXL,
     features_extractor_kwargs=dict(features_dim=512),
-    net_arch=dict(pi=[512, 256, 128], vf=[512, 256, 128]),
+    net_arch=dict(pi=[512, 512, 256, 128], vf=[512, 512, 256, 128]),
     activation_fn=nn.GELU,
-    ortho_init=False
+    ortho_init=False,
     )
     
     model = PPO(
