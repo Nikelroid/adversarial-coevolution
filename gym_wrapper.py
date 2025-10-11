@@ -58,7 +58,7 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
-        self.TURNS_LIMIT = 2
+        self.TURNS_LIMIT = 5
         self.turn_num = 0
         self.last_score = -1
         print("="*100)
