@@ -58,6 +58,7 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
+        self.turn_num = 0
         self.isit_first_round = True
         self.starting_score = -1
 
