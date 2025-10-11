@@ -78,11 +78,6 @@ class GinRummySB3Wrapper(gym.Env):
             agent = self.env.agent_selection
             if agent == self.training_agent:
                 obs, _, _, _, _ = self.env.last()
-                player_hand = obs['observation'][0]
-                if self.isit_first_round and sum(player_hand) == 10:           
-                    self.starting_score = score_gin_rummy_hand(player_hand)
-                    print(f'Score for starting this hand: {self.starting_score}')
-                    self.isit_first_round = False
                 return obs, {}
             else:
                 # Opponent plays
@@ -104,6 +99,11 @@ class GinRummySB3Wrapper(gym.Env):
         # Training agent takes action
         obs, reward, termination, truncation, info = self.env.last()
 
+        player_hand = obs['observation'][0]
+        if self.isit_first_round and sum(player_hand) == 10:           
+            self.starting_score = score_gin_rummy_hand(player_hand)
+            print(f'Score for starting this hand: {self.starting_score} | It happend in {self.turn_num} turn')
+            self.isit_first_round = False
 
 
         # Check if action is valid
