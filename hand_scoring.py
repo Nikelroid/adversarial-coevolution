@@ -4,14 +4,14 @@ from itertools import combinations
 
 def score_gin_rummy_hand(hand_mask, hand_size=10):
     """
-    Score a gin rummy hand from 0 to 10 based on melds, potential melds, and deadwood.
+    Score a gin rummy hand from -0.5 to 0.5 based on melds, potential melds, and deadwood.
     
     Args:
         hand_mask: 1D array of length 52 with 1s indicating cards in hand
         hand_size: Number of cards in hand (default 10)
     
     Returns:
-        float: Score from 0 to 10
+        float: Score from approximately -0.5 (worst) to 0.5 (best), not clipped
     """
     # Extract card indices from mask
     cards = [i for i, val in enumerate(hand_mask) if val == 1]
@@ -143,7 +143,6 @@ def score_gin_rummy_hand(hand_mask, hand_size=10):
     
     # Scoring components
     num_melded = len(melded_indices)
-    num_unmelded = len(unmelded_indices)
     num_potential = len(potential_melds)
     
     # Score calculation
@@ -153,7 +152,7 @@ def score_gin_rummy_hand(hand_mask, hand_size=10):
     # Bonus for complete melds (sets/runs of 3+): 0.5 per meld
     meld_bonus = len(melds) * 0.5
     
-    # Penalty for deadwood: -0.05 per deadwood point (max penalty ~2.5 for 50 points)
+    # Penalty for deadwood: -0.05 per deadwood point (max penalty ~5 for 100 points)
     deadwood_penalty = deadwood_value * 0.05
     
     # Small bonus for potential melds: 0.15 per potential pair
@@ -162,9 +161,9 @@ def score_gin_rummy_hand(hand_mask, hand_size=10):
     # Combine scores
     raw_score = meld_score + meld_bonus + potential_bonus - deadwood_penalty
     
-    # Normalize to 0-10 range
-    # Best case: 10 melded cards (8.0) + 3 melds (1.5) = 9.5 -> scale to ~10
-    # Worst case: 0 melded (0) + high deadwood (-2.5) = -2.5 -> scale to ~0
-    final_score = np.clip((raw_score + 2.5) / 12.0 * 10.0, 0.0, 10.0)
+    # Normalize to -0.5 to 0.5 range WITHOUT clipping
+    # Theoretical range: worst = -5 (all deadwood, no melds), best = ~9.5 (all melded)
+    # This maps: -5 → -0.5, 9.5 → 0.5, 2.25 → 0
+    normalized_score = (raw_score - 2.25) / 14.5
     
-    return (final_score - 5)/20
+    return normalized_score
