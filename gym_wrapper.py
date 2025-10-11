@@ -58,6 +58,7 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
+        self.TURNS_LIMIT = 3
         self.turn_num = 0
         self.isit_first_round = True
         self.starting_score = -1
@@ -117,7 +118,7 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.step(action)
 
-        if self.turn_num > 3:
+        if self.turn_num > self.TURNS_LIMIT:
             truncation = True
         self.turn_num += 1
         
@@ -135,10 +136,11 @@ class GinRummySB3Wrapper(gym.Env):
                 obs, reward, termination, truncation, info = self.env.last()
                 done = termination or truncation
                 player_hand = obs['observation'][0]
-                if sum(player_hand) == 10:           
-                    r = score_gin_rummy_hand(player_hand)
-                    print (f'Score for this hand: {r} | Overal reward: {reward}')
-                    reward += r
+                if sum(player_hand) == 10 and self.turn_num == self.TURNS_LIMIT:        
+                    r = score_gin_rummy_hand(player_hand)   
+                    reward = r - self.starting_score
+                    print (f'Score for start hand: {self.starting_score} | Score for end hand: {r} | Reward: {reward}')
+                    
                 return obs, reward, done, False, info
             else:
                 self._opponent_step()
