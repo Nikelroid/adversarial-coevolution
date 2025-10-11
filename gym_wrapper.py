@@ -17,7 +17,7 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 5, gin_reward = 10, opponents_hand_visible = False)
+        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 8, gin_reward = 20, opponents_hand_visible = False)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         
@@ -58,9 +58,8 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
-        self.TURNS_LIMIT = 3
+        self.TURNS_LIMIT = 2
         self.turn_num = 0
-        self.isit_first_round = True
         self.starting_score = -1
 
         # Randomly assign training agent position each episode
@@ -99,13 +98,6 @@ class GinRummySB3Wrapper(gym.Env):
         # Training agent takes action
         obs, reward, termination, truncation, info = self.env.last()
 
-        player_hand = obs['observation'][0]
-        if self.isit_first_round and sum(player_hand) == 10:           
-            self.starting_score = score_gin_rummy_hand(player_hand)
-            print(f'Score for starting this hand: {self.starting_score} | It happend in {self.turn_num} turn')
-            self.isit_first_round = False
-
-
         # Check if action is valid
         if not termination and not truncation:
             mask = obs['action_mask']
@@ -117,6 +109,13 @@ class GinRummySB3Wrapper(gym.Env):
                 action = np.random.choice(valid_actions)
         
         self.env.step(action)
+
+        player_hand = obs['observation'][0]
+        if self.turn_num == 0 and sum(player_hand) == 10:
+            self.starting_score = score_gin_rummy_hand(player_hand)
+            print(f'Score for starting this hand: {self.starting_score} | It happend in {self.turn_num} turn')
+            print("="*100)
+            self.turn_num = False
 
         if self.turn_num > self.TURNS_LIMIT:
             truncation = True
