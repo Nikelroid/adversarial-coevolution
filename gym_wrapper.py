@@ -119,6 +119,7 @@ class GinRummySB3Wrapper(gym.Env):
                 r = score_gin_rummy_hand(player_hand)
                 reward += r - self.last_score
                 print(f'Score for last hand: {self.last_score} | Score for this hand: {r} | It happend in {self.turn_num} turn')
+                self.last_score = r
 
         if self.turn_num > self.TURNS_LIMIT:
             truncation = True
