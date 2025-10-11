@@ -335,7 +335,7 @@ def train_ppo(
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
 
-    policy_kwargs = dict(
+    policy_kwargs_net = dict(
     features_extractor_class=CardFormerXXL,
     features_extractor_kwargs=dict(features_dim=512),
     net_arch=dict(pi=[512, 512, 256, 128], vf=[512, 512, 256, 128]),
