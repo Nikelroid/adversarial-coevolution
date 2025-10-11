@@ -38,6 +38,52 @@ WANDB_PROJECT = "Adversarial-CoEvolution"
 # Login to W&B
 wandb.login(key=WANDB_API_KEY)
 
+import torch as th
+import torch.nn as nn
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+class CardFormerXL(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=512):
+        super(CardFormerXL, self).__init__(observation_space, features_dim)
+
+        self.seq_len = 5  # from 5x52
+        self.card_dim = 52
+
+        embed_dim = 128
+        n_heads = 8
+        n_layers = 3
+
+        self.embed = nn.Linear(self.card_dim, embed_dim)
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim,
+            nhead=n_heads,
+            dim_feedforward=512,
+            activation="gelu",
+            batch_first=True,
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+
+        # Aggregate all tokens
+        self.pool = nn.AdaptiveAvgPool1d(1)
+
+        # MLP head
+        self.fc = nn.Sequential(
+            nn.Linear(embed_dim, 512),
+            nn.GELU(),
+            nn.LayerNorm(512),
+            nn.Linear(512, features_dim),
+            nn.GELU(),
+        )
+
+    def forward(self, observations):
+        x = observations.view(-1, self.seq_len, self.card_dim)  # [B, 5, 52]
+        x = self.embed(x)
+        x = self.transformer(x)  # [B, 5, 128]
+        x = x.mean(dim=1)  # average over sequence
+        x = self.fc(x)
+        return x
+
 
 class MaskedGinRummyPolicy(ActorCriticPolicy):
     """
@@ -265,6 +311,16 @@ def train_ppo(
     print("Initializing PPO model...")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
+
+    policy_kwargs_net = dict(
+    features_extractor_class=CardFormerXL,
+    features_extractor_kwargs=dict(features_dim=512),
+    net_arch=dict(pi=[512, 256, 128], vf=[512, 256, 128]),
+    activation_fn=nn.GELU,
+    ortho_init=False,
+    features_extractor_class= CombinedExtractor
+    )
+    
     model = PPO(
         MaskedGinRummyPolicy,
         train_env,
@@ -279,7 +335,7 @@ def train_ppo(
         ent_coef=config["ent_coef"],
         tensorboard_log=None,  # Disabled tensorboard
         device=device,
-        policy_kwargs={'features_extractor_class': CombinedExtractor}
+        policy_kwargs=policy_kwargs_net
     )
     print ('____________MODEL CREATED SUCCESSFULLY______________')
     

@@ -164,6 +164,6 @@ def score_gin_rummy_hand(hand_mask, hand_size=10):
     # Normalize to -0.5 to 0.5 range WITHOUT clipping
     # Theoretical range: worst = -5 (all deadwood, no melds), best = ~9.5 (all melded)
     # This maps: -5 → -0.5, 9.5 → 0.5, 2.25 → 0
-    normalized_score = (raw_score - 2.25) / 14.5
+    normalized_score = 2 * (raw_score - 2.25) / 14.5
     
     return normalized_score
