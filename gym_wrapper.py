@@ -118,7 +118,8 @@ class GinRummySB3Wrapper(gym.Env):
             else:
                 r = score_gin_rummy_hand(player_hand)
                 reward += r - self.last_score
-                print(f'Score for last hand: {self.last_score} | Score for this hand: {r} | It happend in {self.turn_num} turn')
+                print(f'Score for last hand: {self.last_score} | Score for this hand: {r} ')
+                print(f'Reward for this round: {reward} | It happend in {self.turn_num} turn')
                 self.last_score = r
 
         if self.turn_num > self.TURNS_LIMIT:
