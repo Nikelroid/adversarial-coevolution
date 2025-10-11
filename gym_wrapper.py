@@ -113,7 +113,7 @@ class GinRummySB3Wrapper(gym.Env):
 
         player_hand = obs['observation'][0]
         if  sum(player_hand) == 10:
-            if  self.turn_num == 0:
+            if  self.last_score == -1:
                 self.last_score = score_gin_rummy_hand(player_hand)
             else:
                 r = score_gin_rummy_hand(player_hand)
@@ -137,8 +137,7 @@ class GinRummySB3Wrapper(gym.Env):
             
             if agent == self.training_agent:
                 obs, reward, termination, truncation, info = self.env.last()
-                done = termination or truncation
-                    
+                done = termination or truncation  
                 return obs, reward, done, False, info
             else:
                 self._opponent_step()
