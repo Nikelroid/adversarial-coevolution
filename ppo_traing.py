@@ -92,10 +92,10 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         Forward pass with action masking applied to logits, not latent features.
         """
         # Extract observation and mask
-        obs_tensor, action_mask = self._extract_obs_and_mask(obs)
+        _, action_mask = self._extract_obs_and_mask(obs)
         
         # Get features and latent representations
-        features = self.extract_features(obs_tensor)
+        features = self.extract_features(obs)
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
         else:
