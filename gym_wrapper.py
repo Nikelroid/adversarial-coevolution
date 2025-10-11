@@ -17,7 +17,7 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 8, gin_reward = 20, opponents_hand_visible = False)
+        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = False)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         
@@ -60,7 +60,8 @@ class GinRummySB3Wrapper(gym.Env):
 
         self.TURNS_LIMIT = 2
         self.turn_num = 0
-        self.starting_score = -1
+        self.last_score = -1
+        print("="*100)
 
         # Randomly assign training agent position each episode
         if self.randomize_position and random.random() < 0.5:
@@ -111,11 +112,13 @@ class GinRummySB3Wrapper(gym.Env):
         self.env.step(action)
 
         player_hand = obs['observation'][0]
-        if self.turn_num == 0 and sum(player_hand) == 10:
-            self.starting_score = score_gin_rummy_hand(player_hand)
-            print(f'Score for starting this hand: {self.starting_score} | It happend in {self.turn_num} turn')
-            print("="*100)
-            self.turn_num = False
+        if  sum(player_hand) == 10:
+            if  self.turn_num == 0:
+                self.last_score = score_gin_rummy_hand(player_hand)
+            else:
+                r = score_gin_rummy_hand(player_hand)
+                reward += r - self.last_score
+                print(f'Score for last hand: {self.last_score} | Score for this hand: {r} | It happend in {self.turn_num} turn')
 
         if self.turn_num > self.TURNS_LIMIT:
             truncation = True
@@ -134,11 +137,6 @@ class GinRummySB3Wrapper(gym.Env):
             if agent == self.training_agent:
                 obs, reward, termination, truncation, info = self.env.last()
                 done = termination or truncation
-                player_hand = obs['observation'][0]
-                if sum(player_hand) == 10 and self.turn_num == self.TURNS_LIMIT:        
-                    r = score_gin_rummy_hand(player_hand)   
-                    reward = r - self.starting_score
-                    print (f'Score for start hand: {self.starting_score} | Score for end hand: {r} | Reward: {reward}')
                     
                 return obs, reward, done, False, info
             else:

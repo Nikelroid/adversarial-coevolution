@@ -167,4 +167,4 @@ def score_gin_rummy_hand(hand_mask, hand_size=10):
     # Worst case: 0 melded (0) + high deadwood (-2.5) = -2.5 -> scale to ~0
     final_score = np.clip((raw_score + 2.5) / 12.0 * 10.0, 0.0, 10.0)
     
-    return final_score - 5
+    return (final_score - 5)/20
