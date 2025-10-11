@@ -102,9 +102,9 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         else:
             pi_features, vf_features = features
             latent_pi = self.mlp_extractor.forward_actor(pi_features)
-            latent_pi = self._apply_action_mask(latent_pi, obs['action_mask'])
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
         # Evaluate the values for the given observations
+        latent_pi = self._apply_action_mask(latent_pi, obs['action_mask'])
         values = self.value_net(latent_vf)
         distribution = self._get_action_dist_from_latent(latent_pi)
         actions = distribution.get_actions(deterministic=deterministic)
