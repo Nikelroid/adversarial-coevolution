@@ -317,8 +317,7 @@ def train_ppo(
     features_extractor_kwargs=dict(features_dim=512),
     net_arch=dict(pi=[512, 256, 128], vf=[512, 256, 128]),
     activation_fn=nn.GELU,
-    ortho_init=False,
-    features_extractor_class= CombinedExtractor
+    ortho_init=False
     )
     
     model = PPO(
