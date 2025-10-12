@@ -127,6 +127,7 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
             self.last_entropy1 = entropy.mean().item()
         else:
             self.last_entropy2 = entropy.mean().item()
+        self.counter += 1
         
         # Get values
         values = self.value_net(latent_vf)
