@@ -17,7 +17,7 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 3, gin_reward = 8, opponents_hand_visible = True)
+        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         
