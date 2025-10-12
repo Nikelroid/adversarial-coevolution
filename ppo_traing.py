@@ -243,7 +243,7 @@ def train_ppo(
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 5e-3,
+        "ent_coef": 5e-6,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,

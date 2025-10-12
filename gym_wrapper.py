@@ -19,7 +19,7 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
-        self.randomize_position = randomize_position
+        self.randomize_position = False
         
         # Get a sample observation to determine spaces
         self.env.reset()
