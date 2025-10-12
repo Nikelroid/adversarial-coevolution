@@ -41,6 +41,42 @@ wandb.login(key=WANDB_API_KEY)
 
 
 
+#TEMP
+class GinRummyFeatureExtractor(BaseFeaturesExtractor):
+    """
+    Custom feature extractor that only processes 'observation' and ignores 'action_mask'.
+    Action masks should be handled by the policy, not the feature extractor.
+    """
+    
+    def __init__(self, observation_space, features_dim=256):
+        # Only process the 'observation' part, not the action_mask
+        super().__init__(observation_space, features_dim)
+        
+        # Get observation shape (5x52 = 260)
+        obs_shape = observation_space['observation'].shape
+        n_input = int(np.prod(obs_shape))  # 5 * 52 = 260
+        
+        # Simple MLP feature extractor
+        self.linear = nn.Sequential(
+            nn.Linear(n_input, 256),
+            nn.Tanh(),
+            nn.Linear(256, features_dim),
+            nn.Tanh(),
+        )
+    
+    def forward(self, observations):
+        # Extract only the 'observation' part, ignore 'action_mask'
+        if isinstance(observations, dict):
+            obs = observations['observation']
+        else:
+            obs = observations
+        
+        # Flatten observation (batch_size, 5, 52) -> (batch_size, 260)
+        obs_flat = obs.reshape(obs.shape[0], -1)
+        
+        return self.linear(obs_flat)
+
+
 class MaskedGinRummyPolicy(ActorCriticPolicy):
     """
     PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
@@ -334,7 +370,7 @@ def train_ppo(
     
 
     policy_kwargs_net = dict(
-    features_extractor_class=CombinedExtractor,
+    features_extractor_class=GinRummyFeatureExtractor,
     net_arch=dict(pi=[256, 256], vf=[256,256]),
     activation_fn=torch.nn.Tanh,
     ortho_init=True
