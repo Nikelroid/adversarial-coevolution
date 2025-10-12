@@ -6,6 +6,40 @@ from agents import Agent
 import random
 
 
+#TEMP
+class SelfPlayOpponent:
+    """Simple wrapper for self-play using current training model"""
+    
+    def __init__(self, model, env):
+        """
+        Args:
+            model: The SB3 PPO model to use for predictions
+            env: The PettingZoo environment
+        """
+        self.model = model
+        self.env = env
+        self.player = None
+    
+    def set_player(self, player):
+        """Set which player this agent controls"""
+        self.player = player
+    
+    def do_action(self):
+        """Get action from the model"""
+        obs, _, _, _, _ = self.env.last()
+        
+        # Use the model's predict method directly
+        action, _ = self.model.predict(obs, deterministic=True)
+        
+        # Verify action is valid
+        action_mask = obs['action_mask']
+        if not action_mask[action]:
+            # Fallback to random valid action
+            valid_actions = np.where(action_mask)[0]
+            action = np.random.choice(valid_actions)
+        
+        return int(action)
+
 
 class GinRummySB3Wrapper(gym.Env):
     """
@@ -113,12 +147,12 @@ class GinRummySB3Wrapper(gym.Env):
             
             elif opponent_type == 'self':
                 # Use frozen copy of current model
-                from agents.ppo_agent import PPOAgent
-                import copy
-                frozen_agent = PPOAgent(model_path=None, env=self.env)
-                frozen_agent.model = copy.deepcopy(self.current_model)
-                self.opponent_policy = frozen_agent
-            
+                if self.current_model is not None:
+                    self.opponent_policy = SelfPlayOpponent(self.current_model, self.env)
+                else:
+                    print("[Warning] Current model not set for self-play, falling back to random")
+                    self.opponent_policy = self.opponent_policy_class(self.env)
+                
             else:
                 # Fallback
                 self.opponent_policy = self.opponent_policy_class(self.env)
