@@ -293,9 +293,9 @@ def train_ppo(
     print("Creating training environment with curriculum learning...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
     print("Curriculum phases:")
-    print("  Phase 1 (0-100k):     100% Random")
-    print("  Phase 2 (100k-500k):  50% Random, 50% Pool")
-    print("  Phase 3 (500k+):      70% Pool, 20% Random, 10% Self")
+    print("  Phase 1 (0-10k):     100% Random")
+    print("  Phase 2 (10k-50k):  50% Random, 50% Pool")
+    print("  Phase 3 (50k+):      70% Pool, 20% Random, 10% Self")
     train_env = DummyVecEnv([lambda: make_env(curriculum_manager)])
     
     # Create evaluation environment

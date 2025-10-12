@@ -61,9 +61,9 @@ class CurriculumManager:
     
     def _get_current_phase(self) -> int:
         """Determine current training phase"""
-        if self.total_steps < 100_000:
+        if self.total_steps < 10_000:
             return 1
-        elif self.total_steps < 500_000:
+        elif self.total_steps < 50_000:
             return 2
         else:
             return 3
