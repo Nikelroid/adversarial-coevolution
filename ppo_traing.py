@@ -41,6 +41,10 @@ wandb.login(key=WANDB_API_KEY)
 
 
 class MaskedGinRummyPolicy(ActorCriticPolicy):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_entropy = None  # ADD THIS LINE
     """
     PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
     Works with dict observation: {'observation': ..., 'action_mask': ...}
@@ -106,12 +110,21 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         
         # Get action logits from latent features
         logits = self.action_net(latent_pi)  # This gives you [batch, 110]
+
         
         # NOW apply the mask to logits
         masked_logits = self._apply_action_mask(logits, action_mask)
+
+        # Create distribution from masked logits
+        distribution = Categorical(logits=masked_logits)
+
         
         # Create distribution from masked logits
         distribution = Categorical(logits=masked_logits)
+
+                # ADD THESE 2 LINES:
+        entropy = distribution.entropy()
+        self.last_entropy = entropy.mean().item()
         
         # Get values
         values = self.value_net(latent_vf)
@@ -133,6 +146,12 @@ class WandbCallback(BaseCallback):
         self.episode_lengths = []
         
     def _on_step(self) -> bool:
+
+        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
+            wandb.log({
+                "train/policy_entropy": self.model.policy.last_entropy,
+                "train/timesteps": self.num_timesteps
+            })
         # Log episode data when episodes end
         if len(self.model.ep_info_buffer) > 0:
             for info in self.model.ep_info_buffer:
@@ -216,7 +235,7 @@ def train_ppo(
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.0,
+        "ent_coef": 0.001,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
