@@ -101,6 +101,8 @@ class CurriculumManager:
     def update_steps(self, steps: int = 1):
         """Update step counter"""
         self.total_steps += steps
+        if self.total_steps % 1000 == 0:
+            print (f'Current Step: {self.total_steps}')
     
     def episode_complete(self):
         """Mark episode as complete"""
