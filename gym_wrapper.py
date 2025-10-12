@@ -95,7 +95,7 @@ class GinRummySB3Wrapper(gym.Env):
         self.TURNS_LIMIT = 10
         self.turn_num = 0
         self.last_score = -1
-        print("="*100)
+        
 
         # SELECT OPPONENT BASED ON CURRICULUM
         if self.curriculum_manager is not None:
