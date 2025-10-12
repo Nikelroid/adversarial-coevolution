@@ -118,11 +118,8 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         # Create distribution from masked logits
         distribution = Categorical(logits=masked_logits)
 
-        
-        # Create distribution from masked logits
-        distribution = Categorical(logits=masked_logits)
 
-                # ADD THESE 2 LINES:
+        # ADD THESE 2 LINES:
         entropy = distribution.entropy()
         self.last_entropy = entropy.mean().item()
         
@@ -228,14 +225,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 3e-4,
+        "learning_rate": 3e-5,
         "n_steps": 1024,          
         "batch_size": 512,
         "n_epochs": 5,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.001,
+        "ent_coef": 0.0001,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
