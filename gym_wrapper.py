@@ -19,7 +19,7 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
-        self.randomize_position = False
+        self.randomize_position = randomize_position
         
         # Get a sample observation to determine spaces
         self.env.reset()
@@ -68,10 +68,12 @@ class GinRummySB3Wrapper(gym.Env):
             self.training_agent = 'player_1'
             self.opponent_agent = 'player_0'
             self.opponent_policy.set_player('player_0')
+            print('2ND TURN')
         else:
             self.training_agent = 'player_0'
             self.opponent_agent = 'player_1'
             self.opponent_policy.set_player('player_1')
+            print('1ST TURN')
         
         # Play until it's the training agent's turn
         while True:
