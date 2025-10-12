@@ -290,7 +290,7 @@ def train_ppo(
         device=device,
         policy_kwargs=policy_kwargs_net
     )
-    print ('____________MODEL CREATED SUCCESSFULLY______________')
+    print ('____________MODEL_CREATED_SUCCESSFULLY______________')
     
     # Log model architecture to W&B
     wandb.watch(model.policy, log="all", log_freq=1000)

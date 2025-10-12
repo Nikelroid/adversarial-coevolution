@@ -4,7 +4,7 @@ from gymnasium import spaces
 from pettingzoo.classic import gin_rummy_v4
 from agents import Agent
 import random
-from hand_scoring import score_gin_rummy_hand
+
 
 
 class GinRummySB3Wrapper(gym.Env):
@@ -17,7 +17,7 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 3, gin_reward = 8, opponents_hand_visible = True)
+        self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         
@@ -111,17 +111,6 @@ class GinRummySB3Wrapper(gym.Env):
                 action = np.random.choice(valid_actions)
         
         self.env.step(action)
-
-        player_hand = obs['observation'][0]
-        if  sum(player_hand) == 10:
-            if  self.last_score == -1:
-                self.last_score = score_gin_rummy_hand(player_hand)
-            else:
-                r = score_gin_rummy_hand(player_hand)
-                reward += r - self.last_score
-                print(f'Score for last hand: {self.last_score} | Score for this hand: {r} ')
-                print(f'Reward for this round: {reward} | It happend in {self.turn_num} turn')
-                self.last_score = r
 
         if self.turn_num > self.TURNS_LIMIT:
             truncation = True
