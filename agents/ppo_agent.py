@@ -30,9 +30,21 @@ class PPOAgent(Agent):
         self.model = PPO.load(model_path)
         print(f"Loaded PPO model from {model_path}")
     
+    # def get_observation(self):
+    #     """Get the current observation for this agent."""
+    #     obs, _, _, _, _ = self.env.get_current_state()
+    #     return obs
+
+    #TEMP
     def get_observation(self):
         """Get the current observation for this agent."""
-        obs, _, _, _, _ = self.env.get_current_state()
+        # Handle both GinRummyEnvAPI and raw PettingZoo env
+        if hasattr(self.env, 'get_current_state'):
+            # Using GinRummyEnvAPI wrapper
+            obs, _, _, _, _ = self.env.get_current_state()
+        else:
+            # Using raw PettingZoo environment
+            obs, _, _, _, _ = self.env.last()
         return obs
     
     def do_action(self) -> int:
