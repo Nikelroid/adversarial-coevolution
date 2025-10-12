@@ -14,12 +14,21 @@ class GinRummySB3Wrapper(gym.Env):
     Training agent position is randomized each episode for fair learning.
     """
     
-    def __init__(self, opponent_policy, randomize_position=True):
+    def __init__(self, opponent_policy, randomize_position=True,curriculum_manager=None):
         super().__init__()
         
         self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
-        self.opponent_policy: Agent = opponent_policy(self.env)
+        # self.opponent_policy: Agent = opponent_policy(self.env)
+        # self.randomize_position = randomize_position
+
+        self.opponent_policy_class = opponent_policy  # Store class, not instance
+        self.opponent_policy = None  # Will be created in reset()
         self.randomize_position = randomize_position
+        
+        # Curriculum learning support
+        self.curriculum_manager = curriculum_manager
+        self.current_model = None  # Reference to training model
+        self.current_opponent_type = 'random'
         
         # Get a sample observation to determine spaces
         self.env.reset()
@@ -49,8 +58,33 @@ class GinRummySB3Wrapper(gym.Env):
         self.training_agent = None
         self.opponent_agent = None
         
-        self.env.reset()
+        self.env.reset()\
+        
+    def set_current_model(self, model):
+        """Set reference to current training model for self-play"""
+        self.current_model = model
     
+    # def reset(self, seed=None, options=None):
+    #     """Reset the environment."""
+    #     if seed is not None:
+    #         self.env.reset(seed=seed)
+    #     else:
+    #         self.env.reset()
+
+    #     self.TURNS_LIMIT = 100
+    #     self.turn_num = 0
+    #     self.last_score = -1
+
+    #     # Randomly assign training agent position each episode
+    #     if self.randomize_position and random.random() < 0.5:
+    #         self.training_agent = 'player_1'
+    #         self.opponent_agent = 'player_0'
+    #         self.opponent_policy.set_player('player_0')
+    #     else:
+    #         self.training_agent = 'player_0'
+    #         self.opponent_agent = 'player_1'
+    #         self.opponent_policy.set_player('player_1')
+
     def reset(self, seed=None, options=None):
         """Reset the environment."""
         if seed is not None:
@@ -58,10 +92,39 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
-        self.TURNS_LIMIT = 100
+        self.TURNS_LIMIT = 10
         self.turn_num = 0
         self.last_score = -1
         print("="*100)
+
+        # SELECT OPPONENT BASED ON CURRICULUM
+        if self.curriculum_manager is not None:
+            opponent_type = self.curriculum_manager.get_opponent_type()
+            self.current_opponent_type = opponent_type
+            
+            if opponent_type == 'random':
+                self.opponent_policy = self.opponent_policy_class(self.env)
+            
+            elif opponent_type == 'pool':
+                # Load opponent from policy pool
+                from agents.ppo_agent import PPOAgent
+                policy_path = self.curriculum_manager.sample_policy_path(recent_n=10)
+                self.opponent_policy = PPOAgent(model_path=policy_path, env=self.env)
+            
+            elif opponent_type == 'self':
+                # Use frozen copy of current model
+                from agents.ppo_agent import PPOAgent
+                import copy
+                frozen_agent = PPOAgent(model_path=None, env=self.env)
+                frozen_agent.model = copy.deepcopy(self.current_model)
+                self.opponent_policy = frozen_agent
+            
+            else:
+                # Fallback
+                self.opponent_policy = self.opponent_policy_class(self.env)
+        else:
+            # No curriculum - use default opponent
+            self.opponent_policy = self.opponent_policy_class(self.env)
 
         # Randomly assign training agent position each episode
         if self.randomize_position and random.random() < 0.5:
@@ -83,7 +146,8 @@ class GinRummySB3Wrapper(gym.Env):
                 # Opponent plays
                 self._opponent_step()
     
-    
+
+
     def _opponent_step(self):
         """Have the opponent take an action."""
         obs, reward, termination, truncation, info = self.env.last()
@@ -95,6 +159,18 @@ class GinRummySB3Wrapper(gym.Env):
             self.env.step(action)
     
     def step(self, action):
+
+    #     player_hand = obs['observation'][0]
+    #     if  sum(player_hand) == 10:
+    #         if  self.last_score == -1:
+    #             self.last_score = score_gin_rummy_hand(player_hand)
+    #         else:
+    #             r = score_gin_rummy_hand(player_hand)
+    #             reward += r - self.last_score
+    #             print(f'Score for last hand: {self.last_score} | Score for this hand: {r} ')
+    #             print(f'Reward for this round: {reward} | It happend in {self.turn_num} turn')
+    #             self.last_score = r
+
         """Take a step in the environment."""
         # Training agent takes action
         obs, reward, termination, truncation, info = self.env.last()
@@ -112,14 +188,27 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.step(action)
 
-        if self.turn_num > self.TURNS_LIMIT:
-            truncation = True
-        self.turn_num += 1
+        #TEMP
+        if self.curriculum_manager is not None:
+            self.curriculum_manager.update_steps(1)
+
+        # if self.turn_num > self.TURNS_LIMIT:
+        #     truncation = True
+        # self.turn_num += 1
         
 
         # Check if game ended
+        # if termination or truncation:
+        #     next_obs, _, _, _, _ = self.env.last()
+        #     return next_obs, reward, True, False, info
+
         if termination or truncation:
             next_obs, _, _, _, _ = self.env.last()
+            
+            # Update curriculum on episode completion
+            if self.curriculum_manager is not None:
+                self.curriculum_manager.episode_complete()
+            
             return next_obs, reward, True, False, info
         
         # Opponent's turn(s) until it's training agent's turn again
@@ -134,9 +223,19 @@ class GinRummySB3Wrapper(gym.Env):
                 self._opponent_step()
                 
                 # Check if game ended during opponent's turn
+                # _, _, termination, truncation, _ = self.env.last()
+                # if termination or truncation:
+                #     obs, reward, _, _, info = self.env.last()
+                #     return obs, reward, True, False, info
+
                 _, _, termination, truncation, _ = self.env.last()
                 if termination or truncation:
                     obs, reward, _, _, info = self.env.last()
+                    
+                    # Update curriculum on episode completion
+                    if self.curriculum_manager is not None:
+                        self.curriculum_manager.episode_complete()
+                    
                     return obs, reward, True, False, info
     
     def render(self, mode='human'):
