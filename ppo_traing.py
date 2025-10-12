@@ -147,7 +147,7 @@ class WandbCallback(BaseCallback):
 
         if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
             wandb.log({
-                "train/policy_entropy1": self.model.policy.last_entropy,
+                "train/policy_entropy": self.model.policy.last_entropy,
                 "train/timesteps": self.num_timesteps
             })
         
@@ -234,7 +234,7 @@ def train_ppo(
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 5e-4,
+        "ent_coef": 0.02,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
