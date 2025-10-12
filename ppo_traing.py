@@ -44,8 +44,8 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.last_entropy_1 = None
-        self.last_entropy_2 = None
+        self.last_entropy1 = None
+        self.last_entropy2 = None
         self.counter = 0
     """
     PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
@@ -236,14 +236,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 8e-4,
+        "learning_rate": 1e-3,
         "n_steps": 1024,          
         "batch_size": 512,
         "n_epochs": 5,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.005,
+        "ent_coef": 5e-3,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
