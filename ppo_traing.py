@@ -44,9 +44,7 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.last_entropy1 = None
-        self.last_entropy2 = None
-        self.counter = 0
+        self.last_entropy = None
     """
     PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
     Works with dict observation: {'observation': ..., 'action_mask': ...}
@@ -123,11 +121,8 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
 
         # ADD THESE 2 LINES:
         entropy = distribution.entropy()
-        if self.counter % 2 == 0:
-            self.last_entropy1 = entropy.mean().item()
-        else:
-            self.last_entropy2 = entropy.mean().item()
-        self.counter += 1
+        self.last_entropy = entropy.mean().item()
+
         
         # Get values
         values = self.value_net(latent_vf)
@@ -150,16 +145,12 @@ class WandbCallback(BaseCallback):
         
     def _on_step(self) -> bool:
 
-        if hasattr(self.model.policy, 'last_entropy1') and self.model.policy.last_entropy1 is not None:
+        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
             wandb.log({
-                "train/policy_entropy1": self.model.policy.last_entropy1,
+                "train/policy_entropy1": self.model.policy.last_entropy,
                 "train/timesteps": self.num_timesteps
             })
-        if hasattr(self.model.policy, 'last_entropy2') and self.model.policy.last_entropy2 is not None:
-            wandb.log({
-                "train/policy_entropy2": self.model.policy.last_entropy2,
-                "train/timesteps": self.num_timesteps
-            })
+        
         # Log episode data when episodes end
         if len(self.model.ep_info_buffer) > 0:
             for info in self.model.ep_info_buffer:

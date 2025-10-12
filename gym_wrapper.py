@@ -53,77 +53,37 @@ class GinRummySB3Wrapper(gym.Env):
     
     def reset(self, seed=None, options=None):
         """Reset the environment."""
-        self.TURNS_LIMIT = 10
+        if seed is not None:
+            self.env.reset(seed=seed)
+        else:
+            self.env.reset()
+
+        self.TURNS_LIMIT = 2
         self.turn_num = 0
         self.last_score = -1
         print("="*100)
 
-        # Force training agent to be player_1 (second player)
-        self.training_agent = 'player_1'
-        self.opponent_agent = 'player_0'
-        self.opponent_policy.set_player('player_0')
-        
-        # Keep resetting until player_0 (opponent) starts
-        max_resets = 100  # Safety limit
-        for attempt in range(max_resets):
-            if seed is not None:
-                self.env.reset(seed=seed)
-            else:
-                self.env.reset()
-            
-            first_agent = self.env.agent_selection
-            print(f'DEBUG: Reset attempt {attempt+1}, first agent: {first_agent}')
-            
-            if first_agent == self.opponent_agent:
-                # Perfect! Opponent goes first
-                break
+        # Randomly assign training agent position each episode
+        if self.randomize_position and random.random() < 0.5:
+            self.training_agent = 'player_1'
+            self.opponent_agent = 'player_0'
+            self.opponent_policy.set_player('player_0')
+            print('2ND TURN')
         else:
-            raise RuntimeError("Could not reset environment with opponent starting first")
+            self.training_agent = 'player_0'
+            self.opponent_agent = 'player_1'
+            self.opponent_policy.set_player('player_1')
+            print('1ST TURN')
         
-        print(f'2ND TURN - Training agent is {self.training_agent}')
-        
-        # Now make opponent play until it's training agent's turn
+        # Play until it's the training agent's turn
         while True:
             agent = self.env.agent_selection
-            
             if agent == self.training_agent:
                 obs, _, _, _, _ = self.env.last()
                 return obs, {}
             else:
+                # Opponent plays
                 self._opponent_step()
-
-        # """Reset the environment."""
-        # if seed is not None:
-        #     self.env.reset(seed=seed)
-        # else:
-        #     self.env.reset()
-
-        # self.TURNS_LIMIT = 2
-        # self.turn_num = 0
-        # self.last_score = -1
-        # print("="*100)
-
-        # # Randomly assign training agent position each episode
-        # if self.randomize_position and random.random() < 2:
-        #     self.training_agent = 'player_1'
-        #     self.opponent_agent = 'player_0'
-        #     self.opponent_policy.set_player('player_0')
-        #     print('2ND TURN')
-        # else:
-        #     self.training_agent = 'player_0'
-        #     self.opponent_agent = 'player_1'
-        #     self.opponent_policy.set_player('player_1')
-        #     print('1ST TURN')
-        
-        # # Play until it's the training agent's turn
-        # while True:
-        #     agent = self.env.agent_selection
-        #     if agent == self.training_agent:
-        #         obs, _, _, _, _ = self.env.last()
-        #         return obs, {}
-        #     else:
-        #         # Opponent plays
-        #         self._opponent_step()
     
     
     def _opponent_step(self):
