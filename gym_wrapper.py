@@ -76,14 +76,32 @@ class GinRummySB3Wrapper(gym.Env):
             print('1ST TURN')
         
         # Play until it's the training agent's turn
+        # while True:
+        #     agent = self.env.agent_selection
+        #     if agent == self.training_agent:
+        #         obs, _, _, _, _ = self.env.last()
+        #         return obs, {}
+        #     else:
+        #         # Opponent plays
+        #         self._opponent_step()
+
         while True:
             agent = self.env.agent_selection
+            
             if agent == self.training_agent:
+                # It's our turn, return observation
                 obs, _, _, _, _ = self.env.last()
                 return obs, {}
             else:
-                # Opponent plays
+                # Opponent's turn, make them play
                 self._opponent_step()
+                
+                # Check if game ended during opponent's move
+                _, _, term, trunc, _ = self.env.last()
+                if term or trunc:
+                    # Game ended before training agent could move, reset again
+                    self.env.reset(seed=seed)
+                    continue
     
     
     def _opponent_step(self):
