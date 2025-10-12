@@ -109,7 +109,9 @@ class GinRummySB3Wrapper(gym.Env):
                 reward = -1.0
                 valid_actions = np.where(mask)[0]
                 action = np.random.choice(valid_actions)
-        
+
+        print(f'Action for this hand: {action}')
+        print('='*60)
         self.env.step(action)
 
         player_hand = obs['observation'][0]
@@ -119,8 +121,6 @@ class GinRummySB3Wrapper(gym.Env):
             else:
                 r = score_gin_rummy_hand(player_hand)
                 reward += r - self.last_score
-                print(f'Score for last hand: {self.last_score} | Score for this hand: {r} ')
-                print(f'Reward for this round: {reward} | It happend in {self.turn_num} turn')
                 self.last_score = r
 
         if self.turn_num > self.TURNS_LIMIT:

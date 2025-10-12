@@ -44,7 +44,9 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.last_entropy = None  # ADD THIS LINE
+        self.last_entropy_1 = None
+        self.last_entropy_2 = None
+        self.counter = 0
     """
     PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
     Works with dict observation: {'observation': ..., 'action_mask': ...}
@@ -121,7 +123,10 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
 
         # ADD THESE 2 LINES:
         entropy = distribution.entropy()
-        self.last_entropy = entropy.mean().item()
+        if self.counter % 2 == 0:
+            self.last_entropy1 = entropy.mean().item()
+        else:
+            self.last_entropy2 = entropy.mean().item()
         
         # Get values
         values = self.value_net(latent_vf)
@@ -144,9 +149,14 @@ class WandbCallback(BaseCallback):
         
     def _on_step(self) -> bool:
 
-        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
+        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy1 is not None:
             wandb.log({
-                "train/policy_entropy": self.model.policy.last_entropy,
+                "train/policy_entropy1": self.model.policy.last_entropy1,
+                "train/timesteps": self.num_timesteps
+            })
+        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy2 is not None:
+            wandb.log({
+                "train/policy_entropy2": self.model.policy.last_entropy2,
                 "train/timesteps": self.num_timesteps
             })
         # Log episode data when episodes end
@@ -225,14 +235,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 1e-3,
+        "learning_rate": 8e-4,
         "n_steps": 1024,          
         "batch_size": 512,
         "n_epochs": 5,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.0001,
+        "ent_coef": 0.005,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
