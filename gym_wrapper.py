@@ -110,8 +110,8 @@ class GinRummySB3Wrapper(gym.Env):
                 valid_actions = np.where(mask)[0]
                 action = np.random.choice(valid_actions)
 
-        print(f'Action for this hand: {action}')
-        print('='*60)
+        print(f'Action for this hand: {action} | For Move: {self.turn_num}')
+        
         self.env.step(action)
 
         player_hand = obs['observation'][0]
