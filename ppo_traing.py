@@ -38,70 +38,6 @@ WANDB_PROJECT = "Adversarial-CoEvolution"
 # Login to W&B
 wandb.login(key=WANDB_API_KEY)
 
-class CardFormerXXL(BaseFeaturesExtractor):
-    """
-    Transformer-based feature extractor for Gin Rummy.
-    Observation dict -> extract 'observation' tensor (5x52) -> Transformer + deep MLP.
-    """
-
-    def __init__(self, observation_space, features_dim=512):
-        super(CardFormerXXL, self).__init__(observation_space, features_dim)
-
-        # Shape: (5 x 52)
-        self.seq_len = 5
-        self.card_dim = 52
-
-        embed_dim = 128
-        n_heads = 8
-        n_layers = 3
-
-        # Embedding for each 52-dim row
-        self.embed = nn.Linear(self.card_dim, embed_dim)
-
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embed_dim,
-            nhead=n_heads,
-            dim_feedforward=512,
-            activation="gelu",
-            batch_first=True,
-        )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
-
-        # 💪 Deep MLP head with two 512 layers
-        self.fc = nn.Sequential(
-            nn.Linear(embed_dim, 512),
-            nn.GELU(),
-            nn.LayerNorm(512),
-
-            nn.Linear(512, 512),
-            nn.GELU(),
-            nn.LayerNorm(512),
-
-            nn.Linear(512, features_dim),
-            nn.GELU(),
-        )
-
-    def forward(self, observations):
-        # Extract observation tensor
-        if isinstance(observations, dict):
-            x = observations["observation"]
-        else:
-            x = observations
-
-        if not isinstance(x, th.Tensor):
-            x = th.tensor(x, dtype=th.float32)
-
-        # Shape [B, 5, 52]
-        x = x.view(-1, self.seq_len, self.card_dim)
-
-        # Transformer pipeline
-        x = self.embed(x)
-        x = self.transformer(x)
-        x = x.mean(dim=1)
-
-        # Deep MLP head
-        x = self.fc(x)
-        return x
 
 
 class MaskedGinRummyPolicy(ActorCriticPolicy):
@@ -274,13 +210,13 @@ def train_ppo(
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
         "learning_rate": 3e-4,
-        "n_steps": 1024,          # Reduced
-        "batch_size": 512,        # Increased
-        "n_epochs": 5,            # Reduced slightly
+        "n_steps": 1024,          
+        "batch_size": 512,
+        "n_epochs": 5,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.04,         # Increased for exploration
+        "ent_coef": 0.1,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
@@ -332,11 +268,10 @@ def train_ppo(
     
 
     policy_kwargs_net = dict(
-    features_extractor_class=CardFormerXXL,
-    features_extractor_kwargs=dict(features_dim=512),
-    net_arch=dict(pi=[512, 512, 256, 128], vf=[512, 512, 256, 128]),
-    activation_fn=nn.GELU,
-    ortho_init=False,
+    features_extractor_class=CombinedExtractor,
+    net_arch=dict(pi=[256, 256], vf=[256,256]),
+    activation_fn=torch.nn.Tanh,
+    ortho_init=True
     )
     
     model = PPO(
@@ -351,7 +286,7 @@ def train_ppo(
         gae_lambda=config["gae_lambda"],
         clip_range=config["clip_range"],
         ent_coef=config["ent_coef"],
-        tensorboard_log=None,  # Disabled tensorboard
+        tensorboard_log=None,
         device=device,
         policy_kwargs=policy_kwargs_net
     )
