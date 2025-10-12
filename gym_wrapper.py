@@ -58,13 +58,13 @@ class GinRummySB3Wrapper(gym.Env):
         else:
             self.env.reset()
 
-        self.TURNS_LIMIT = 10
+        self.TURNS_LIMIT = 2
         self.turn_num = 0
         self.last_score = -1
         print("="*100)
 
         # Randomly assign training agent position each episode
-        if self.randomize_position and random.random() < 0.5:
+        if self.randomize_position and random.random() < 2:
             self.training_agent = 'player_1'
             self.opponent_agent = 'player_0'
             self.opponent_policy.set_player('player_0')
