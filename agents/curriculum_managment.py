@@ -38,17 +38,21 @@ class CurriculumManager:
         elif phase == 2:
             # Phase 2 (100k-500k): 50% Random, 50% Pool
             if random.random() < 0.5 and len(self.policy_pool) > 0:
+                print('pool choosed ! | Phase 2')
                 return 'pool'
+                
             return 'random'
         
         else:  # phase == 3
             # Phase 3 (500k+): 70% Pool, 20% Random, 10% Self
             roll = random.random()
             if roll < 0.70 and len(self.policy_pool) > 0:
+                print('pool choosed ! | Phase 3')
                 return 'pool'
             elif roll < 0.90:
                 return 'random'
             else:
+                print('self choosed ! | Phase 3')
                 return 'self'
     
     def sample_policy_path(self, recent_n: int = 10) -> str:
@@ -61,9 +65,9 @@ class CurriculumManager:
     
     def _get_current_phase(self) -> int:
         """Determine current training phase"""
-        if self.total_steps < 10_000:
+        if self.total_steps < 1_000:
             return 1
-        elif self.total_steps < 50_000:
+        elif self.total_steps < 5_000:
             return 2
         else:
             return 3
@@ -71,7 +75,7 @@ class CurriculumManager:
     def should_save_checkpoint(self) -> bool:
         """Check if we should save a checkpoint"""
         phase = self._get_current_phase()
-        save_freq = 50_000 if phase == 1 else (25_000 if phase == 2 else 50_000)
+        save_freq = 5_000 if phase == 1 else (2_000 if phase == 2 else 5_000)
         
         return (self.total_steps - self.last_checkpoint_step) >= save_freq
     

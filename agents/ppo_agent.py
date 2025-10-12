@@ -64,7 +64,7 @@ class PPOAgent(Agent):
         action_mask = obs['action_mask']
         
         # Get action from model
-        action, _ = self.model.predict(obs_array, deterministic=True)
+        action, _ = self.model.predict(obs, deterministic=True)
         
         # Ensure action is valid according to mask
         if not action_mask[action]:
