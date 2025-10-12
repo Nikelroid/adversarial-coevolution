@@ -149,12 +149,12 @@ class WandbCallback(BaseCallback):
         
     def _on_step(self) -> bool:
 
-        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy1 is not None:
+        if hasattr(self.model.policy, 'last_entropy1') and self.model.policy.last_entropy1 is not None:
             wandb.log({
                 "train/policy_entropy1": self.model.policy.last_entropy1,
                 "train/timesteps": self.num_timesteps
             })
-        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy2 is not None:
+        if hasattr(self.model.policy, 'last_entropy2') and self.model.policy.last_entropy2 is not None:
             wandb.log({
                 "train/policy_entropy2": self.model.policy.last_entropy2,
                 "train/timesteps": self.num_timesteps
