@@ -239,14 +239,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedTicTacToePolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 3e-4,  # Higher learning rate for simpler game
+        "learning_rate": 5e-4,  # Higher learning rate for simpler game
         "n_steps": 512,          # Smaller batch size for tic tac toe
         "batch_size": 64,
         "n_epochs": 10,
         "gamma": 0.99,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.003,  # Lower entropy for tic tac toe
+        "ent_coef": 0.007,  # Lower entropy for tic tac toe
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
