@@ -1,4 +1,5 @@
 from .agent import Agent
+import numpy as np
 
 class RandomAgent(Agent):
 
