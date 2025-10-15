@@ -4,8 +4,7 @@ Main script to play Tic Tac Toe: PPO Agent vs Random Agent
 Usage:
 python main.py --player1 ppo --player2 random --model ./models/ppo_tictactoe/ppo_tictactoe_final
 """
-
-from src.tictactoe_api import TicTacToeEnvAPI
+from src.tictoctoe_api import TicTacToeEnvAPI
 from agents.random_agent import RandomAgent
 from agents.ppo_agent import PPOAgent
 import argparse

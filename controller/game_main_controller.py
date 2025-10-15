@@ -1,5 +1,5 @@
 # In your other class:
-from src.tictactoe_api import TicTacToeEnvAPI
+from src.tictoctoe_api import TicTacToeEnvAPI
 from agents.random_agent import RandomAgent
 
 def display_board_state(obs):
