@@ -167,7 +167,7 @@ def main():
                        choices=['random', 'ppo', 'human'], help='Type of player 1')
     parser.add_argument('--player2', type=str, default='random',
                        choices=['random', 'ppo'], help='Type of player 2')
-    parser.add_argument('--model', type=str, default='.artifacts/models/ppo_tictactoe/ppo_tictactoe_final',
+    parser.add_argument('--model', type=str, default='./artifacts/models/ppo_tictactoe/best_model',
                        help='Path to PPO model (if using PPO agent)')
     parser.add_argument('--render', type=str, default='ansi', 
                        choices=['ansi', 'human'], help='Render mode')

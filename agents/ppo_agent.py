@@ -52,7 +52,14 @@ class PPOAgent(Agent):
         action_mask = obs['action_mask']
         
         # Get action from model
-        action, _ = self.model.predict(obs_array, deterministic=True)
+        # Prepare full dict observation for the model
+        obs_input = {
+            "observation": np.array(obs["observation"], dtype=np.float32),
+            "action_mask": np.array(obs["action_mask"], dtype=bool)
+        }
+
+        # Get action from model
+        action, _ = self.model.predict(obs_input, deterministic=True)
         
         # Ensure action is valid according to mask
         if not action_mask[action]:
