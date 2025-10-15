@@ -1,5 +1,5 @@
 """
-Training script for PPO agent on Gin Rummy environment with action masking.
+Training script for PPO agent on Tic Tac Toe environment with action masking.
 
 Requirements:
 pip install stable-baselines3[extra] pettingzoo gymnasium wandb
@@ -18,35 +18,28 @@ from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback,
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.torch_layers import CombinedExtractor
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import torch
 import wandb
-from typing import Union,Optional
-from stable_baselines3.common.type_aliases import PyTorchObs
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from typing import Union, Optional
 
 # Import your custom components
-from gym_wrapper import GinRummySB3Wrapper
+from gym_wrapper import TicTacToeSB3Wrapper
 from agents.random_agent import RandomAgent
 
 # ============================================
 # W&B Configuration - Works on Colab & Local
 # ============================================
 WANDB_API_KEY = "41fe78a601dfc0909950ad6ec7e6c4fb042d032a"  # Replace with your actual API key
-WANDB_PROJECT = "Adversarial-CoEvolution"
+WANDB_PROJECT = "TicTacToe-PPO"
 
 # Login to W&B
 wandb.login(key=WANDB_API_KEY)
 
 
-
-class MaskedGinRummyPolicy(ActorCriticPolicy):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.last_entropy = None
+class MaskedTicTacToePolicy(ActorCriticPolicy):
     """
-    PPO-compatible masked MLP policy for PettingZoo Gin Rummy.
+    PPO-compatible masked MLP policy for PettingZoo Tic Tac Toe.
     Works with dict observation: {'observation': ..., 'action_mask': ...}
     
     FIXES:
@@ -54,6 +47,10 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
     - Overrides evaluate_actions() to apply masks during training
     - Handles batched observations correctly
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_entropy = None
 
     def _extract_obs_and_mask(self, obs):
         """
@@ -109,21 +106,18 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
             latent_vf = self.mlp_extractor.forward_critic(vf_features)
         
         # Get action logits from latent features
-        logits = self.action_net(latent_pi)  # This gives you [batch, 110]
+        logits = self.action_net(latent_pi)  # This gives you [batch, 9] for tic tac toe
 
-        
         # NOW apply the mask to logits
         masked_logits = self._apply_action_mask(logits, action_mask)
 
         # Create distribution from masked logits
         distribution = Categorical(logits=masked_logits)
 
-
         # ADD THESE 2 LINES:
         entropy = distribution.entropy()
         self.last_entropy = entropy.mean().item()
 
-        
         # Get values
         values = self.value_net(latent_vf)
         
@@ -144,7 +138,6 @@ class WandbCallback(BaseCallback):
         self.episode_lengths = []
         
     def _on_step(self) -> bool:
-
         if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
             wandb.log({
                 "train/policy_entropy": self.model.policy.last_entropy,
@@ -186,25 +179,25 @@ class WandbBestModelCallback(BaseCallback):
 
 def make_env():
     """Create and wrap the environment."""
-    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True)
+    env = TicTacToeSB3Wrapper(opponent_policy=RandomAgent, randomize_position=True)
     env = Monitor(env)
     return env
 
 
 def train_ppo(
-    total_timesteps=500_000,
-    save_path='./artifacts/models/ppo_gin_rummy',
+    total_timesteps=100_000,  # Reduced for tic tac toe (simpler game)
+    save_path='./artifacts/models/ppo_tictactoe',
     log_path='./logs/',
-    checkpoint_freq=50_000,
-    eval_freq=10_000,
-    n_eval_episodes=10,
+    checkpoint_freq=10_000,
+    eval_freq=5_000,
+    n_eval_episodes=50,  # More episodes for evaluation since games are quick
     randomize_position=True,
     wandb_project=WANDB_PROJECT,
     wandb_run_name=None,
     wandb_config=None,
 ):
     """
-    Train a PPO agent on Gin Rummy with W&B logging.
+    Train a PPO agent on Tic Tac Toe with W&B logging.
     
     Args:
         total_timesteps: Total number of training steps
@@ -225,16 +218,16 @@ def train_ppo(
     # Initialize Weights & Biases
     config = {
         "algorithm": "PPO",
-        "policy": "MaskedGinRummyPolicy",
+        "policy": "MaskedTicTacToePolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 3e-4,
-        "n_steps": 2048,          
-        "batch_size": 2048,
-        "n_epochs": 5,
-        "gamma": 0.995,
+        "learning_rate": 1e-3,  # Higher learning rate for simpler game
+        "n_steps": 512,          # Smaller batch size for tic tac toe
+        "batch_size": 64,
+        "n_epochs": 10,
+        "gamma": 0.99,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.03,
+        "ent_coef": 0.01,  # Lower entropy for tic tac toe
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
@@ -247,7 +240,7 @@ def train_ppo(
         project=WANDB_PROJECT,
         name=wandb_run_name,
         config=config,
-        sync_tensorboard=False,  # We're not using tensorboard
+        sync_tensorboard=False,
         monitor_gym=True,
     )
     
@@ -264,7 +257,7 @@ def train_ppo(
     checkpoint_callback = CheckpointCallback(
         save_freq=checkpoint_freq,
         save_path=save_path,
-        name_prefix='ppo_gin_rummy_checkpoint'
+        name_prefix='ppo_tictactoe_checkpoint'
     )
     
     eval_callback = EvalCallback(
@@ -284,16 +277,14 @@ def train_ppo(
     print("Initializing PPO model...")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-
-    policy_kwargs_net = dict(
-    features_extractor_class=CombinedExtractor,
-    net_arch=dict(pi=[256, 256], vf=[256,256]),
-    activation_fn=torch.nn.Tanh,
-    ortho_init=True
+    # Simpler network for tic tac toe
+    policy_kwargs = dict(
+        net_arch=dict(pi=[64, 64], vf=[64, 64]),  # Smaller network
+        activation_fn=torch.nn.ReLU,
     )
     
     model = PPO(
-        MaskedGinRummyPolicy,
+        MaskedTicTacToePolicy,
         train_env,
         verbose=1,
         learning_rate=config["learning_rate"],
@@ -306,9 +297,9 @@ def train_ppo(
         ent_coef=config["ent_coef"],
         tensorboard_log=None,
         device=device,
-        policy_kwargs=policy_kwargs_net
+        policy_kwargs=policy_kwargs
     )
-    print ('____________MODEL CREATED SUCCESSFULLY______________')
+    print('____________MODEL CREATED SUCCESSFULLY______________')
     
     # Log model architecture to W&B
     wandb.watch(model.policy, log="all", log_freq=1000)
@@ -326,7 +317,7 @@ def train_ppo(
         )
         
         # Save final model
-        final_path = os.path.join(save_path, 'ppo_gin_rummy_final')
+        final_path = os.path.join(save_path, 'ppo_tictactoe_final')
         model.save(final_path)
         print(f"\nTraining complete! Model saved to {final_path}")
         
@@ -335,7 +326,7 @@ def train_ppo(
         
     except KeyboardInterrupt:
         print("\nTraining interrupted by user.")
-        interrupted_path = os.path.join(save_path, 'ppo_gin_rummy_interrupted')
+        interrupted_path = os.path.join(save_path, 'ppo_tictactoe_interrupted')
         model.save(interrupted_path)
         print(f"Model saved to {interrupted_path}")
         wandb.save(interrupted_path + ".zip")
@@ -348,7 +339,7 @@ def train_ppo(
     return model
 
 
-def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
+def test_trained_model(model_path, num_episodes=100, log_to_wandb=False):
     """
     Test a trained model.
     
@@ -370,6 +361,8 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
     
     total_rewards = []
     wins = 0
+    losses = 0
+    draws = 0
     
     for episode in range(num_episodes):
         obs, _ = env.reset()
@@ -387,8 +380,13 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
         total_rewards.append(episode_reward)
         if episode_reward > 0:
             wins += 1
+        elif episode_reward < 0:
+            losses += 1
+        else:
+            draws += 1
         
-        print(f"Episode {episode + 1}: Reward = {episode_reward:.2f}")
+        if episode % 20 == 0:
+            print(f"Episode {episode + 1}: Reward = {episode_reward:.2f}")
         
         if log_to_wandb:
             wandb.log({
@@ -400,59 +398,38 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
     
     avg_reward = sum(total_rewards) / len(total_rewards)
     win_rate = wins / num_episodes * 100
+    loss_rate = losses / num_episodes * 100
+    draw_rate = draws / num_episodes * 100
     
     print(f"\n=== Test Results ===")
     print(f"Episodes: {num_episodes}")
-    print(f"Average Reward: {avg_reward:.2f}")
+    print(f"Average Reward: {avg_reward:.3f}")
     print(f"Win Rate: {win_rate:.1f}%")
-    print(f"Max Reward: {max(total_rewards):.2f}")
-    print(f"Min Reward: {min(total_rewards):.2f}")
+    print(f"Loss Rate: {loss_rate:.1f}%")
+    print(f"Draw Rate: {draw_rate:.1f}%")
     
     if log_to_wandb:
         wandb.log({
             "test/avg_reward": avg_reward,
             "test/win_rate": win_rate,
-            "test/max_reward": max(total_rewards),
-            "test/min_reward": min(total_rewards),
+            "test/loss_rate": loss_rate,
+            "test/draw_rate": draw_rate,
         })
         wandb.finish()
-
-
-def setup_wandb_colab(api_key=None):
-    """
-    Setup W&B for Google Colab environment.
-    
-    Args:
-        api_key: Your W&B API key (optional, will check environment variable)
-    """
-    if api_key:
-        wandb.login(key=api_key)
-    else:
-        # Try to get from environment
-        api_key = os.environ.get('WANDB_API_KEY')
-        if api_key:
-            wandb.login(key=api_key)
-        else:
-            print("⚠️  W&B API key not found!")
-            print("Please provide your API key:")
-            print("1. Set environment variable: os.environ['WANDB_API_KEY'] = 'your_key_here'")
-            print("2. Or call: setup_wandb_colab(api_key='your_key_here')")
-            print("3. Or use: wandb.login()")
-            raise ValueError("W&B API key required")
 
 
 if __name__ == '__main__':
     import argparse
     
-    parser = argparse.ArgumentParser(description='Train PPO on Gin Rummy')
+    parser = argparse.ArgumentParser(description='Train PPO on Tic Tac Toe')
     parser.add_argument('--train', action='store_true', help='Train a new model')
     parser.add_argument('--test', type=str, help='Test a trained model (provide path)')
-    parser.add_argument('--timesteps', type=int, default=500_000, help='Training timesteps')
-    parser.add_argument('--save-path', type=str, default='./artifacts/models/ppo_gin_rummy', 
+    parser.add_argument('--timesteps', type=int, default=100_000, help='Training timesteps')
+    parser.add_argument('--save-path', type=str, default='./artifacts/models/ppo_tictactoe', 
                        help='Path to save models')
     parser.add_argument('--no-randomize', action='store_true',
                        help='Disable position randomization during training')
-    parser.add_argument('--wandb-project', type=str, default='gin-rummy-ppo',
+    parser.add_argument('--wandb-project', type=str, default='TicTacToe-PPO',
                        help='Weights & Biases project name')
     parser.add_argument('--wandb-run-name', type=str, default=None,
                        help='Weights & Biases run name')
@@ -463,7 +440,7 @@ if __name__ == '__main__':
     
     # Setup W&B login if key provided
     if args.wandb_key:
-        setup_wandb_colab(api_key=args.wandb_key)
+        wandb.login(key=args.wandb_key)
     
     if args.train:
         # Train model
@@ -476,19 +453,17 @@ if __name__ == '__main__':
         )
         
         # Test the trained model
-        final_model = os.path.join(args.save_path, 'ppo_gin_rummy_final')
+        final_model = os.path.join(args.save_path, 'ppo_tictactoe_final')
         if os.path.exists(final_model + '.zip'):
-            test_trained_model(final_model, num_episodes=10, log_to_wandb=True)
+            test_trained_model(final_model, num_episodes=100, log_to_wandb=True)
     
     elif args.test:
         # Test existing model
-        test_trained_model(args.test, num_episodes=20, log_to_wandb=True)
+        test_trained_model(args.test, num_episodes=100, log_to_wandb=True)
     
     else:
         print("Please specify --train or --test <model_path>")
         print("\nExamples:")
         print("  python train_ppo.py --train")
-        print("  python train_ppo.py --train --timesteps 1000000")
-        print("  python train_ppo.py --train --no-randomize")
-        print("  python train_ppo.py --train --wandb-run-name experiment-1")
-        print("  python train_ppo.py --test ./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final")
+        print("  python train_ppo.py --train --timesteps 50000")
+        print("  python train_ppo.py --test ./artifacts/models/ppo_tictactoe/ppo_tictactoe_final")
