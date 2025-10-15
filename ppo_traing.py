@@ -21,7 +21,8 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import torch
 import wandb
-from typing import Union, Optional
+from typing import Union, Optional, Dict as TypingDict
+from gymnasium import spaces
 
 # Import your custom components
 from gym_wrapper import TicTacToeSB3Wrapper
@@ -37,43 +38,64 @@ WANDB_PROJECT = "TicTacToe-PPO"
 wandb.login(key=WANDB_API_KEY)
 
 
+class DictObservationExtractor(BaseFeaturesExtractor):
+    """
+    Custom feature extractor for dict observations with observation and action_mask.
+    """
+    
+    def __init__(self, observation_space: spaces.Dict):
+        # We'll only use the observation part, not the mask for features
+        obs_shape = observation_space['observation'].shape
+        super().__init__(observation_space, features_dim=obs_shape[0])
+        
+    def forward(self, observations: TypingDict[str, th.Tensor]) -> th.Tensor:
+        """
+        Extract features from dict observation.
+        Only uses the 'observation' part, not the 'action_mask'.
+        """
+        if isinstance(observations, dict):
+            # Extract just the observation tensor
+            obs_tensor = observations['observation']
+            
+            # Ensure it's a tensor on the right device
+            if not isinstance(obs_tensor, th.Tensor):
+                obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
+            
+            return obs_tensor
+        else:
+            # If somehow we get a tensor, just return it
+            return observations
+
+
 class MaskedTicTacToePolicy(ActorCriticPolicy):
     """
     PPO-compatible masked MLP policy for PettingZoo Tic Tac Toe.
     Works with dict observation: {'observation': ..., 'action_mask': ...}
-    
-    FIXES:
-    - Properly extracts action masks from observations
-    - Overrides extract_features to handle dict observations
-    - Handles batched observations correctly
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.last_entropy = None
-        self._action_mask = None  # Store mask for use in forward
 
-    def extract_features(self, obs):
+    def _extract_obs_and_mask(self, obs):
         """
-        Override extract_features to handle dict observations.
-        Extracts the observation tensor and stores the action mask.
+        Extract observation vector and action mask from dict observation.
         """
         if isinstance(obs, dict):
-            # Extract observation tensor and mask
             obs_tensor = obs['observation']
-            self._action_mask = obs.get('action_mask', None)
-            
-            # Ensure tensor is on correct device and type
-            if not isinstance(obs_tensor, th.Tensor):
-                obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
-            if self._action_mask is not None and not isinstance(self._action_mask, th.Tensor):
-                self._action_mask = th.as_tensor(self._action_mask, device=self.device)
+            mask_tensor = obs.get('action_mask', None)
         else:
+            # Should not happen with our setup, but handle it
             obs_tensor = obs
-            # Mask should have been stored already or is None
+            mask_tensor = None
         
-        # Now call parent's extract_features with the tensor
-        return super().extract_features(obs_tensor)
+        # Ensure tensors are on correct device
+        if not isinstance(obs_tensor, th.Tensor):
+            obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
+        if mask_tensor is not None and not isinstance(mask_tensor, th.Tensor):
+            mask_tensor = th.as_tensor(mask_tensor, device=self.device)
+            
+        return obs_tensor, mask_tensor
 
     def _apply_action_mask(self, logits, action_mask):
         """
@@ -94,7 +116,10 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         """
         Forward pass with action masking applied to logits.
         """
-        # Get features (this will also extract and store action mask if obs is dict)
+        # Extract observation and mask from the dict
+        _, action_mask = self._extract_obs_and_mask(obs)
+        
+        # Get features using the parent's extract_features (which will use our custom extractor)
         features = self.extract_features(obs)
         
         # Get latent representations
@@ -109,7 +134,7 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         logits = self.action_net(latent_pi)  # This gives you [batch, 9] for tic tac toe
 
         # Apply the mask to logits
-        masked_logits = self._apply_action_mask(logits, self._action_mask)
+        masked_logits = self._apply_action_mask(logits, action_mask)
 
         # Create distribution from masked logits
         distribution = Categorical(logits=masked_logits)
@@ -124,9 +149,6 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         # Sample actions
         actions = distribution.sample() if not deterministic else th.argmax(masked_logits, dim=1)
         log_prob = distribution.log_prob(actions)
-        
-        # Clear the stored mask for next forward pass
-        self._action_mask = None
         
         return actions, values, log_prob
 
@@ -280,8 +302,9 @@ def train_ppo(
     print("Initializing PPO model...")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    # Simpler network for tic tac toe
+    # Simpler network for tic tac toe with custom feature extractor
     policy_kwargs = dict(
+        features_extractor_class=DictObservationExtractor,
         net_arch=dict(pi=[64, 64], vf=[64, 64]),  # Smaller network
         activation_fn=torch.nn.ReLU,
     )
