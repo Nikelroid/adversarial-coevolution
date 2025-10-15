@@ -41,30 +41,24 @@ wandb.login(key=WANDB_API_KEY)
 class DictObservationExtractor(BaseFeaturesExtractor):
     """
     Custom feature extractor for dict observations with observation and action_mask.
+    Flattens the observation (e.g., 3x3 -> 9).
     """
-    
     def __init__(self, observation_space: spaces.Dict):
-        # We'll only use the observation part, not the mask for features
         obs_shape = observation_space['observation'].shape
-        super().__init__(observation_space, features_dim=obs_shape[0])
+        # Flatten size (e.g., (3,3) -> 9)
+        flattened_dim = int(np.prod(obs_shape))
+        super().__init__(observation_space, features_dim=flattened_dim)
         
     def forward(self, observations: TypingDict[str, th.Tensor]) -> th.Tensor:
-        """
-        Extract features from dict observation.
-        Only uses the 'observation' part, not the 'action_mask'.
-        """
         if isinstance(observations, dict):
-            # Extract just the observation tensor
             obs_tensor = observations['observation']
-            
-            # Ensure it's a tensor on the right device
             if not isinstance(obs_tensor, th.Tensor):
                 obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
-            
-            return obs_tensor
+            # Flatten: (batch, 3, 3) -> (batch, 9)
+            return obs_tensor.view(obs_tensor.shape[0], -1)
         else:
-            # If somehow we get a tensor, just return it
-            return observations
+            # Just flatten any tensor input
+            return observations.view(observations.shape[0], -1)
 
 
 class MaskedTicTacToePolicy(ActorCriticPolicy):
