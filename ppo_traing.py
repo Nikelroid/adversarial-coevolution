@@ -44,35 +44,36 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
     
     FIXES:
     - Properly extracts action masks from observations
-    - Overrides evaluate_actions() to apply masks during training
+    - Overrides extract_features to handle dict observations
     - Handles batched observations correctly
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.last_entropy = None
+        self._action_mask = None  # Store mask for use in forward
 
-    def _extract_obs_and_mask(self, obs):
+    def extract_features(self, obs):
         """
-        Extract observation vector and action mask from dict observation.
-        Handles both single and batched observations.
+        Override extract_features to handle dict observations.
+        Extracts the observation tensor and stores the action mask.
         """
         if isinstance(obs, dict):
-            # Dict observation from environment
+            # Extract observation tensor and mask
             obs_tensor = obs['observation']
-            mask_tensor = obs.get('action_mask', None)
-        else:
-            # Already a tensor (SB3 might flatten dict obs)
-            obs_tensor = obs
-            mask_tensor = None
-        
-        # Ensure tensors are on correct device
-        if not isinstance(obs_tensor, th.Tensor):
-            obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
-        if mask_tensor is not None and not isinstance(mask_tensor, th.Tensor):
-            mask_tensor = th.as_tensor(mask_tensor, device=self.device)
+            self._action_mask = obs.get('action_mask', None)
             
-        return obs_tensor, mask_tensor
+            # Ensure tensor is on correct device and type
+            if not isinstance(obs_tensor, th.Tensor):
+                obs_tensor = th.as_tensor(obs_tensor, device=self.device).float()
+            if self._action_mask is not None and not isinstance(self._action_mask, th.Tensor):
+                self._action_mask = th.as_tensor(self._action_mask, device=self.device)
+        else:
+            obs_tensor = obs
+            # Mask should have been stored already or is None
+        
+        # Now call parent's extract_features with the tensor
+        return super().extract_features(obs_tensor)
 
     def _apply_action_mask(self, logits, action_mask):
         """
@@ -84,20 +85,19 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         # Ensure mask is boolean tensor on same device
         mask = action_mask.to(dtype=th.bool, device=logits.device)
         
-        # Use -inf for invalid actions (safer than finfo.min)
+        # Use -inf for invalid actions
         logits = th.where(mask, logits, th.tensor(float('-inf'), device=logits.device, dtype=logits.dtype))
         
         return logits
 
     def forward(self, obs: th.Tensor, deterministic: bool = False) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
         """
-        Forward pass with action masking applied to logits, not latent features.
+        Forward pass with action masking applied to logits.
         """
-        # Extract observation and mask
-        _, action_mask = self._extract_obs_and_mask(obs)
-        
-        # Get features and latent representations
+        # Get features (this will also extract and store action mask if obs is dict)
         features = self.extract_features(obs)
+        
+        # Get latent representations
         if self.share_features_extractor:
             latent_pi, latent_vf = self.mlp_extractor(features)
         else:
@@ -108,13 +108,13 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         # Get action logits from latent features
         logits = self.action_net(latent_pi)  # This gives you [batch, 9] for tic tac toe
 
-        # NOW apply the mask to logits
-        masked_logits = self._apply_action_mask(logits, action_mask)
+        # Apply the mask to logits
+        masked_logits = self._apply_action_mask(logits, self._action_mask)
 
         # Create distribution from masked logits
         distribution = Categorical(logits=masked_logits)
 
-        # ADD THESE 2 LINES:
+        # Track entropy
         entropy = distribution.entropy()
         self.last_entropy = entropy.mean().item()
 
@@ -124,6 +124,9 @@ class MaskedTicTacToePolicy(ActorCriticPolicy):
         # Sample actions
         actions = distribution.sample() if not deterministic else th.argmax(masked_logits, dim=1)
         log_prob = distribution.log_prob(actions)
+        
+        # Clear the stored mask for next forward pass
+        self._action_mask = None
         
         return actions, values, log_prob
 
