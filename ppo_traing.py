@@ -23,6 +23,8 @@ import torch
 import wandb
 from typing import Union, Optional, Dict as TypingDict
 from gymnasium import spaces
+from curriculum_manager import CurriculumManager
+
 
 # Import your custom components
 from gym_wrapper import TicTacToeSB3Wrapper
@@ -37,6 +39,36 @@ WANDB_PROJECT = "TicTacToe-PPO"
 # Login to W&B
 wandb.login(key=WANDB_API_KEY)
 
+class CurriculumCallback(BaseCallback):
+    """Callback to manage curriculum and save checkpoints"""
+    
+    def __init__(self, curriculum_manager, model_save_path, verbose=0):
+        super(CurriculumCallback, self).__init__(verbose)
+        self.curriculum_manager = curriculum_manager
+        self.model_save_path = model_save_path
+        
+    def _on_step(self) -> bool:
+        # Update model reference in environment wrapper
+        if hasattr(self.training_env, 'envs'):
+            for env in self.training_env.envs:
+                if hasattr(env, 'set_current_model'):
+                    env.set_current_model(self.model)
+        
+        # Check if should save checkpoint to curriculum pool
+        if self.curriculum_manager.should_save_checkpoint():
+            self.curriculum_manager.save_checkpoint(
+                self.model, 
+                self.curriculum_manager.total_steps
+            )
+            
+            # Log to wandb
+            wandb.log({
+                'curriculum/phase': self.curriculum_manager._get_current_phase(),
+                'curriculum/pool_size': len(self.curriculum_manager.policy_pool),
+                'curriculum/total_steps': self.curriculum_manager.total_steps,
+            })
+        
+        return True
 
 class DictObservationExtractor(BaseFeaturesExtractor):
     """
@@ -198,7 +230,7 @@ class WandbBestModelCallback(BaseCallback):
 
 def make_env():
     """Create and wrap the environment."""
-    env = TicTacToeSB3Wrapper(opponent_policy=RandomAgent, randomize_position=True)
+    env = TicTacToeSB3Wrapper(opponent_policy=RandomAgent, randomize_position=True,curriculum_manager=curriculum_manager)
     env = Monitor(env)
     return env
 
@@ -234,6 +266,11 @@ def train_ppo(
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(log_path, exist_ok=True)
     
+    curriculum_manager = CurriculumManager(
+    save_dir=os.path.join(save_path, 'curriculum_pool'),
+    max_pool_size=20
+)
+
     # Initialize Weights & Biases
     config = {
         "algorithm": "PPO",
@@ -264,9 +301,13 @@ def train_ppo(
     )
     
     # Create training environment
-    print("Creating training environment...")
+    print("Creating training environment with curriculum learning...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
-    train_env = DummyVecEnv([make_env])
+    print("Curriculum phases:")
+    print("  Phase 1 (0-10k):     100% Random")
+    print("  Phase 2 (10k-50k):  50% Random, 50% Pool")
+    print("  Phase 3 (50k+):      70% Pool, 20% Random, 10% Self")
+    train_env = DummyVecEnv([lambda: make_env(curriculum_manager)])
     
     # Create evaluation environment
     print("Creating evaluation environment...")
@@ -291,6 +332,11 @@ def train_ppo(
     )
     
     wandb_callback = WandbCallback()
+    
+    curriculum_callback = CurriculumCallback(
+        curriculum_manager=curriculum_manager,
+        model_save_path=save_path
+    )
     
     # Create PPO model
     print("Initializing PPO model...")
@@ -332,7 +378,7 @@ def train_ppo(
     try:
         model.learn(
             total_timesteps=total_timesteps,
-            callback=[checkpoint_callback, eval_callback, wandb_callback],
+            callback=[checkpoint_callback, eval_callback, wandb_callback,curriculum_callback],
             progress_bar=True
         )
         
