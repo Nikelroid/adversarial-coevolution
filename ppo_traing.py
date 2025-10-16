@@ -228,7 +228,7 @@ class WandbBestModelCallback(BaseCallback):
         return True
 
 
-def make_env():
+def make_env(curriculum_manager=None):
     """Create and wrap the environment."""
     env = TicTacToeSB3Wrapper(opponent_policy=RandomAgent, randomize_position=True,curriculum_manager=curriculum_manager)
     env = Monitor(env)
