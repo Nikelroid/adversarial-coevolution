@@ -33,13 +33,7 @@ from agents.random_agent import RandomAgent
 # ============================================
 # W&B Configuration - Works on Colab & Local
 # ============================================
-WANDB_API_KEY = "41fe78a601dfc0909950ad6ec7e6c4fb042d032a"  # Replace with your actual API key
 WANDB_PROJECT = "Adversarial-CoEvolution"
-
-# Login to W&B
-wandb.login(key=WANDB_API_KEY)
-
-
 
 class MaskedGinRummyPolicy(ActorCriticPolicy):
 
@@ -251,6 +245,7 @@ def train_ppo(
         config=config,
         sync_tensorboard=False,  # We're not using tensorboard
         monitor_gym=True,
+        entity="VLAvengers",
     )
     
     # Create training environment
@@ -364,7 +359,7 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
     print(f"\nTesting model: {model_path}")
     
     if log_to_wandb:
-        wandb.init(project=WANDB_PROJECT, name="model_test", job_type="evaluation")
+        wandb.init(project=WANDB_PROJECT, name="model_test", job_type="evaluation", entity="VLAvengers")
     
     # Load model
     model = PPO.load(model_path)
@@ -468,6 +463,8 @@ if __name__ == '__main__':
     # Setup W&B login if key provided
     if args.wandb_key:
         setup_wandb_colab(api_key=args.wandb_key)
+    else:
+        setup_wandb_colab()  # Try environment variable
     
     if args.train:
         # Train model
