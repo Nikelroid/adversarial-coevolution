@@ -228,7 +228,7 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 7e-4,
+        "learning_rate": 2e-4,
         "n_steps": 2048,          
         "batch_size": 64,
         "n_epochs": 10,
