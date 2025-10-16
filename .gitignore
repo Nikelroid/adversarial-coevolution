@@ -3,4 +3,6 @@ Adversarial_CoEvoloution.egg-info/
 .vscode/
 dist/
 *.zip
-*.pyc
+*.py[cod]
+wandb/
+__pycache__/
