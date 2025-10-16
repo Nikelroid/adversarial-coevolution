@@ -121,7 +121,7 @@ class GinRummySB3Wrapper(gym.Env):
             if  self.last_score == -1:
                 self.last_score = score_gin_rummy_hand(player_hand)
             else:
-                r = score_gin_rummy_hand(player_hand)
+                r = score_gin_rummy_hand(player_hand) - self.last_score
                 reward += r
                 self.last_score = r
 

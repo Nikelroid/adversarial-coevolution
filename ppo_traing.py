@@ -232,14 +232,14 @@ def train_ppo(
         "n_steps": 2048,          
         "batch_size": 64,
         "n_epochs": 10,
-        "gamma": 0.995,
+        "gamma": 0.997,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.002,
+        "ent_coef": 0.003,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
-        "weight_decay": 0
+        "weight_decay": 0.0001
     }
     
     if wandb_config:
