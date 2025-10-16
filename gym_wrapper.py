@@ -99,13 +99,13 @@ class TicTacToeSB3Wrapper(gym.Env):
 
         # Randomly assign training agent position each episode
         if self.randomize_position and random.random() < 0.5:
-            self.training_agent = 'player_1'
-            self.opponent_agent = 'player_0'
-            self.opponent_policy.set_player('player_0')
-        else:
-            self.training_agent = 'player_0'
+            self.training_agent = 'player_2'
             self.opponent_agent = 'player_1'
             self.opponent_policy.set_player('player_1')
+        else:
+            self.training_agent = 'player_1'
+            self.opponent_agent = 'player_2'
+            self.opponent_policy.set_player('player_2')
         
         # Play until it's the training agent's turn
         while True:
