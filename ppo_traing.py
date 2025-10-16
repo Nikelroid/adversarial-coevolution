@@ -228,7 +228,7 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 5e-4,
+        "learning_rate": 3e-4,
         "n_steps": 2048,          
         "batch_size": 64,
         "n_epochs": 10,
@@ -239,7 +239,7 @@ def train_ppo(
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
-        "weight_decay": 0.001
+        "weight_decay": 0
     }
     
     if wandb_config:
