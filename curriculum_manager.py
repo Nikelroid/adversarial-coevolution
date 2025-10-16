@@ -38,6 +38,7 @@ class CurriculumManager:
         elif phase == 2:
             # Phase 2 (100k-500k): 50% Random, 50% Pool
             if random.random() < 0.5 and len(self.policy_pool) > 0:
+                print(f'Model loading from Pool in Phase{phase}')
                 return 'pool'
             return 'random'
         
@@ -45,10 +46,12 @@ class CurriculumManager:
             # Phase 3 (500k+): 70% Pool, 20% Random, 10% Self
             roll = random.random()
             if roll < 0.70 and len(self.policy_pool) > 0:
+                print(f'Model loading from Pool in Phase{phase}')
                 return 'pool'
             elif roll < 0.90:
                 return 'random'
             else:
+                print(f'Self play! in Phase{phase}')
                 return 'self'
     
     def sample_policy_path(self, recent_n: int = 10) -> str:

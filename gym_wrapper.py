@@ -147,7 +147,7 @@ class TicTacToeSB3Wrapper(gym.Env):
                     # No valid actions (shouldn't happen)
                     action = None
 
-        print(f'Action: {action} (position {action if action is not None else "None"})')
+        #print(f'Action: {action} (position {action if action is not None else "None"})')
         
         self.env.step(action)
 
