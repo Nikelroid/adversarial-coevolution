@@ -2,3 +2,5 @@
 Adversarial_CoEvoloution.egg-info/
 .vscode/
 dist/
+*.zip
+*.pyc
