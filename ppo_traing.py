@@ -228,17 +228,18 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 2e-4,
+        "learning_rate": 1e-4,
         "n_steps": 2048,          
         "batch_size": 64,
         "n_epochs": 10,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.001,
+        "ent_coef": 0.002,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
+        "weight_decay": 0.001
     }
     
     if wandb_config:
@@ -292,7 +293,7 @@ def train_ppo(
     activation_fn=torch.nn.ReLU,
     ortho_init=True,
     optimizer_class=optim.Adam,
-    optimizer_kwargs=dict(weight_decay=0.0001)
+    optimizer_kwargs=dict(weight_decay=config["weight_decay"])
     )
     
     model = PPO(
