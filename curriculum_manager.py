@@ -64,9 +64,9 @@ class CurriculumManager:
     
     def _get_current_phase(self) -> int:
         """Determine current training phase"""
-        if self.total_steps < 10_000:
+        if self.total_steps < 1_000:
             return 1
-        elif self.total_steps < 50_000:
+        elif self.total_steps < 5_000:
             return 2
         else:
             return 3
@@ -74,7 +74,7 @@ class CurriculumManager:
     def should_save_checkpoint(self) -> bool:
         """Check if we should save a checkpoint"""
         phase = self._get_current_phase()
-        save_freq = 5_000 if phase == 1 else (2_000 if phase == 2 else 5_000)
+        save_freq = 5_00 if phase == 1 else (2_00 if phase == 2 else 5_00)
         
         return (self.total_steps - self.last_checkpoint_step) >= save_freq
     

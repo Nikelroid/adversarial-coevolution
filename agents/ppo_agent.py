@@ -32,7 +32,12 @@ class PPOAgent(Agent):
     
     def get_observation(self):
         """Get the current observation for this agent."""
-        obs, _, _, _, _ = self.env.get_current_state()
+        if hasattr(self.env, 'get_current_state'):
+            # Using GinRummyEnvAPI wrapper
+            obs, _, _, _, _ = self.env.get_current_state()
+        else:
+            # Using raw PettingZoo environment
+            obs, _, _, _, _ = self.env.last()
         return obs
     
     def do_action(self) -> int:
