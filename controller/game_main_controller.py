@@ -7,7 +7,7 @@ import time
 from src.tictoctoe_api import TicTacToeEnvAPI
 from agents.ppo_agent import PPOAgent
 
-MODEL_PATH = './best_model'
+MODEL_PATH = './ppo_tictactoe_final'
 
 # --- REVISED AND CORRECTED FUNCTION ---
 def normalize_board(obs, current_agent):
