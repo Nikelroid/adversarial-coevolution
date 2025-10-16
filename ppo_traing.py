@@ -24,6 +24,7 @@ import wandb
 from typing import Union,Optional
 from stable_baselines3.common.type_aliases import PyTorchObs
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+import torch.optim as optim
 
 # Import your custom components
 from gym_wrapper import GinRummySB3Wrapper
@@ -227,14 +228,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": total_timesteps,
-        "learning_rate": 3e-4,
+        "learning_rate": 7e-4,
         "n_steps": 2048,          
-        "batch_size": 2048,
-        "n_epochs": 5,
+        "batch_size": 64,
+        "n_epochs": 10,
         "gamma": 0.995,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.03,
+        "ent_coef": 0.001,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": randomize_position,
@@ -287,9 +288,11 @@ def train_ppo(
 
     policy_kwargs_net = dict(
     features_extractor_class=CombinedExtractor,
-    net_arch=dict(pi=[256, 256], vf=[256,256]),
-    activation_fn=torch.nn.Tanh,
-    ortho_init=True
+    net_arch=dict(pi=[512, 256], vf=[512,256]),
+    activation_fn=torch.nn.ReLU,
+    ortho_init=True,
+    optimizer_class=optim.Adam,
+    optimizer_kwargs=dict(weight_decay=0.0001)
     )
     
     model = PPO(
