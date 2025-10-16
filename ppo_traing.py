@@ -39,6 +39,30 @@ WANDB_PROJECT = "TicTacToe-PPO"
 # Login to W&B
 wandb.login(key=WANDB_API_KEY)
 
+
+from stable_baselines3.common.callbacks import BaseCallback
+
+class SetModelCallback(BaseCallback):
+    """Updates wrapper's current_model reference for self-play"""
+    
+    def __init__(self, verbose=0):
+        super().__init__(verbose)
+    
+    def _on_training_start(self) -> None:
+        """Called at the beginning of training"""
+        # Set the model reference in all environments
+        for env in self.training_env.envs:
+            if hasattr(env, 'env') and hasattr(env.env, 'set_current_model'):
+                env.env.set_current_model(self.model.policy)
+                print(f"[SetModelCallback] Model reference set in wrapper")
+        return True
+    
+    def _on_step(self) -> bool:
+        """Called after each step (optional refresh)"""
+        # Optionally refresh every N steps if needed
+        return True
+    
+    
 class CurriculumCallback(BaseCallback):
     """Callback to manage curriculum and save checkpoints"""
     
@@ -332,7 +356,7 @@ def train_ppo(
     )
     
     wandb_callback = WandbCallback()
-    
+    set_model_callback = SetModelCallback()
     curriculum_callback = CurriculumCallback(
         curriculum_manager=curriculum_manager,
         model_save_path=save_path
@@ -378,7 +402,7 @@ def train_ppo(
     try:
         model.learn(
             total_timesteps=total_timesteps,
-            callback=[checkpoint_callback, eval_callback, wandb_callback,curriculum_callback],
+            callback=[checkpoint_callback, wandb_callback, set_model_callback],  # ADD set_model_callback
             progress_bar=True
         )
         
