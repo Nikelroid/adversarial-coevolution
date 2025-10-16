@@ -361,6 +361,7 @@ def train_ppo(
         curriculum_manager=curriculum_manager,
         model_save_path=save_path
     )
+
     
     # Create PPO model
     print("Initializing PPO model...")
@@ -402,7 +403,11 @@ def train_ppo(
     try:
         model.learn(
             total_timesteps=total_timesteps,
-            callback=[checkpoint_callback, wandb_callback, set_model_callback],  # ADD set_model_callback
+            callback=[checkpoint_callback,
+                       wandb_callback,
+                       set_model_callback,
+                       curriculum_callback
+                       ],  # ADD set_model_callback
             progress_bar=True
         )
         
