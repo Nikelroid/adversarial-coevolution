@@ -17,7 +17,7 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True, turns_limit=200):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None, knock_reward = 0, gin_reward = 0, opponents_hand_visible = True)
+        self.env = gin_rummy_v4.env(render_mode=None, knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         self.turns_limit = turns_limit
@@ -118,14 +118,14 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.step(action)
 
-        player_hand = obs['observation'][0]
-        if sum(player_hand) == 10:
-            if self.last_score is None:
-                self.last_score = score_gin_rummy_hand(player_hand)
-            else:
-                r = score_gin_rummy_hand(player_hand) - self.last_score
-                reward += r
-                self.last_score = score_gin_rummy_hand(player_hand)
+        # player_hand = obs['observation'][0]
+        # if sum(player_hand) == 10:
+        #     if self.last_score is None:
+        #         self.last_score = score_gin_rummy_hand(player_hand)
+        #     else:
+        #         r = score_gin_rummy_hand(player_hand)
+        #         reward += r - self.last_score
+        #         self.last_score = r
 
         if self.turn_num > self.turns_limit:
             truncation = True

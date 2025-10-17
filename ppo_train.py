@@ -225,7 +225,8 @@ def train_ppo(
     wandb_project=WANDB_PROJECT,
     wandb_run_name=None,
     wandb_config=None,
-    turns_limit=200
+    turns_limit=2000,
+    num_env = 100
 ):
     """
     Train a PPO agent on Gin Rummy with W&B logging.
@@ -267,7 +268,6 @@ def train_ppo(
     config = {
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
-        "num_envs": 50,
         "total_timesteps": int(2e7),       # 20M or more for complex card games
         "learning_rate": 2.5e-4,           # slightly lower since updates are larger
         "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
@@ -300,7 +300,7 @@ def train_ppo(
     print("Creating training environment...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
-    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i) for i in range(100)])
+    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i) for i in range(num_env)])
     
     # Create evaluation environment
     print("Creating evaluation environment...")
@@ -507,8 +507,10 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-key', type=str, default=None,
                        help='Weights & Biases API key')
     
-    parser.add_argument('--turns-limit', type=int, default=20,
+    parser.add_argument('--turns-limit', type=int, default=2000,
                        help='Limit on turns per game')
+    parser.add_argument('--num-env', type=int, default=100,
+                       help='Number of running envs')
     
     args = parser.parse_args()
     
@@ -526,7 +528,8 @@ if __name__ == '__main__':
             randomize_position=not args.no_randomize,
             wandb_project=args.wandb_project,
             wandb_run_name=args.wandb_run_name,
-            turns_limit=args.turns_limit
+            turns_limit=args.turns_limit,
+            num_env = args.num_env
         )
         
         # Test the trained model
