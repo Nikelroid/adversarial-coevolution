@@ -14,12 +14,13 @@ class GinRummySB3Wrapper(gym.Env):
     Training agent position is randomized each episode for fair learning.
     """
     
-    def __init__(self, opponent_policy, randomize_position=True):
+    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200):
         super().__init__()
         
         self.env = gin_rummy_v4.env(render_mode=None,knock_reward = 2, gin_reward = 4, opponents_hand_visible = True)
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
+        self.turns_limit = turns_limit
         
         # Get a sample observation to determine spaces
         self.env.reset()
@@ -55,25 +56,26 @@ class GinRummySB3Wrapper(gym.Env):
         """Reset the environment."""
         if seed is not None:
             self.env.reset(seed=seed)
+            random.seed(seed)
+            np.random.seed(seed)
         else:
             self.env.reset()
 
-        self.TURNS_LIMIT = 200
         self.turn_num = 0
-        self.last_score = -1
-        print("="*100)
+        self.last_score = None
+        # print("="*100)
 
         # Randomly assign training agent position each episode
         if self.randomize_position and random.random() < 0.5:
             self.training_agent = 'player_1'
             self.opponent_agent = 'player_0'
             self.opponent_policy.set_player('player_0')
-            print('2ND TURN')
+            # print('2ND TURN')
         else:
             self.training_agent = 'player_0'
             self.opponent_agent = 'player_1'
             self.opponent_policy.set_player('player_1')
-            print('1ST TURN')
+            # print('1ST TURN')
         
         # Play until it's the training agent's turn
         while True:
@@ -107,25 +109,25 @@ class GinRummySB3Wrapper(gym.Env):
             if not mask[action]:
                 
                 # Invalid action - give negative reward and sample valid action
-                print("[Warning] : Invalid Action Choosed")
+                print("[Warning] : Invalid Action Choosed", " Action: ", action)
                 reward = -1.0
                 valid_actions = np.where(mask)[0]
                 action = np.random.choice(valid_actions)
 
-        print(f'Action for this hand: {action} | For Move: {self.turn_num}')
+        # print(f'Action for this hand: {action} | For Move: {self.turn_num}')
         
         self.env.step(action)
 
         player_hand = obs['observation'][0]
-        if  sum(player_hand) == 10:
-            if  self.last_score == -1:
+        if sum(player_hand) == 10:
+            if self.last_score is None:
                 self.last_score = score_gin_rummy_hand(player_hand)
             else:
                 r = score_gin_rummy_hand(player_hand) - self.last_score
                 reward += r
-                self.last_score = r
+                self.last_score = score_gin_rummy_hand(player_hand)
 
-        if self.turn_num > self.TURNS_LIMIT:
+        if self.turn_num > self.turns_limit:
             truncation = True
         self.turn_num += 1
         
