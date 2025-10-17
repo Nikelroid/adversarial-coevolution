@@ -219,7 +219,7 @@ def train_ppo(
     log_path='./logs/',
     checkpoint_freq=50_000,
     eval_freq=10_000,
-    log_freq=1_000,
+    log_freq=10,
     n_eval_episodes=10,
     randomize_position=True,
     wandb_project=WANDB_PROJECT,
@@ -343,7 +343,7 @@ def train_ppo(
     model = PPO(
         MaskedGinRummyPolicy,
         train_env,
-        verbose=1,
+        verbose=0,
         learning_rate=config["learning_rate"],
         n_steps=config["n_steps"],
         batch_size=config["batch_size"],
