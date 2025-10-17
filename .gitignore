@@ -6,3 +6,4 @@ dist/
 *.py[cod]
 wandb/
 __pycache__/
+logs/
