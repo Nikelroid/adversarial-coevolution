@@ -16,7 +16,7 @@ from stable_baselines3.common.distributions import Distribution, CategoricalDist
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, BaseCallback
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import CombinedExtractor
 import torch
@@ -209,9 +209,10 @@ class WandbBestModelCallback(BaseCallback):
         return True
 
 
-def make_env(turns_limit=200):
+def make_env(turns_limit=200, rank=0):
     """Create and wrap the environment."""
     env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True, turns_limit=turns_limit)
+    env.reset(seed=42 + rank)
     env = Monitor(env)
     return env
 
@@ -250,24 +251,43 @@ def train_ppo(
     os.makedirs(log_path, exist_ok=True)
     
     # Initialize Weights & Biases
+    # config = {
+    #     "algorithm": "PPO",
+    #     "policy": "MaskedGinRummyPolicy",
+    #     "total_timesteps": total_timesteps,
+    #     "learning_rate": 3e-4,
+    #     "n_steps": 2048,          
+    #     "batch_size": 256,
+    #     "n_epochs": 10,
+    #     "gamma": 0.99,
+    #     "gae_lambda": 0.95,
+    #     "clip_range": 0.2,
+    #     "ent_coef": 0.001,
+    #     "vf_coef": 0.5,
+    #     "max_grad_norm": 0.5,
+    #     "randomize_position": randomize_position,
+    #     "weight_decay": 0.0001
+    # }
     config = {
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
-        "total_timesteps": total_timesteps,
-        "learning_rate": 1e-3, #3e-4,
-        "n_steps": 2048,          
-        "batch_size": 256,
-        "n_epochs": 10,
-        "gamma": 0.997,
+        "num_envs": 50,
+        "total_timesteps": int(2e7),       # 20M or more for complex card games
+        "learning_rate": 2.5e-4,           # slightly lower since updates are larger
+        "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
+        "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
+        "n_epochs": 4,                     # fewer epochs to avoid overfitting giant batches
+        "gamma": 0.99,                     # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.001,
+        "ent_coef": 0.005,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
-        "randomize_position": randomize_position,
-        "weight_decay": 0.0001
+        "randomize_position": True,
+        "weight_decay": 0.0,
+        "normalize_advantage": True,       # essential with large batches
+        "normalize_observations": True,    # if supported
     }
-    
     if wandb_config:
         config.update(wandb_config)
     
@@ -283,7 +303,8 @@ def train_ppo(
     # Create training environment
     print("Creating training environment...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
-    train_env = DummyVecEnv([lambda: make_env(turns_limit)])
+    # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
+    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i) for i in range(100)])
     
     # Create evaluation environment
     print("Creating evaluation environment...")
@@ -345,13 +366,13 @@ def train_ppo(
     wandb.watch(model.policy, log="all", log_freq=log_freq)
     
     print(f"Training on device: {model.device}")
-    print(f"Total timesteps: {total_timesteps:,}")
+    print(f"Total timesteps: {config['total_timesteps']}")
     print("Starting training...")
     
     # Train the model
     try:
         model.learn(
-            total_timesteps=total_timesteps,
+            total_timesteps=config['total_timesteps'],
             callback=[checkpoint_callback, eval_callback, wandb_callback],
             progress_bar=True
         )
