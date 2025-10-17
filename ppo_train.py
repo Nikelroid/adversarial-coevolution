@@ -9,21 +9,17 @@ python train_ppo.py --train
 """
 
 import os
-import numpy as np
 import torch as th
-import torch.nn as nn
-from torch.distributions import Categorical
+from stable_baselines3.common.distributions import Distribution, CategoricalDistribution
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, BaseCallback
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import CombinedExtractor
 import torch
 import wandb
-from typing import Union,Optional
 from stable_baselines3.common.type_aliases import PyTorchObs
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import torch.optim as optim
 
 # Import your custom components
@@ -55,14 +51,9 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         Extract observation vector and action mask from dict observation.
         Handles both single and batched observations.
         """
-        if isinstance(obs, dict):
-            # Dict observation from environment
-            obs_tensor = obs['observation']
-            mask_tensor = obs.get('action_mask', None)
-        else:
-            # Already a tensor (SB3 might flatten dict obs)
-            obs_tensor = obs
-            mask_tensor = None
+
+        obs_tensor = obs['observation']
+        mask_tensor = obs.get('action_mask', None)
         
         # Ensure tensors are on correct device
         if not isinstance(obs_tensor, th.Tensor):
@@ -78,7 +69,6 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         """
         if action_mask is None:
             return logits
-        
         # Ensure mask is boolean tensor on same device
         mask = action_mask.to(dtype=th.bool, device=logits.device)
         
@@ -87,7 +77,7 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         
         return logits
 
-    def forward(self, obs: th.Tensor, deterministic: bool = False) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, obs, deterministic: bool = False) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
         """
         Forward pass with action masking applied to logits, not latent features.
         """
@@ -111,7 +101,7 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         masked_logits = self._apply_action_mask(logits, action_mask)
 
         # Create distribution from masked logits
-        distribution = Categorical(logits=masked_logits)
+        distribution = CategoricalDistribution(self.action_space.n).proba_distribution(action_logits=masked_logits)
 
 
         # ADD THESE 2 LINES:
@@ -127,33 +117,70 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
         log_prob = distribution.log_prob(actions)
         
         return actions, values, log_prob
+    
+    def get_distribution(self, obs: th.Tensor) -> Distribution:
+        """
+        Return the masked action distribution for given observations.
+        """
+        _, action_mask = self._extract_obs_and_mask(obs)
+        features = self.extract_features(obs)
+        latent_pi, _ = self.mlp_extractor(features) if self.share_features_extractor else (
+            self.mlp_extractor.forward_actor(features[0]),
+            None,
+        )
+        logits = self.action_net(latent_pi)
+        masked_logits = self._apply_action_mask(logits, action_mask)
+        return CategoricalDistribution(self.action_space.n).proba_distribution(action_logits=masked_logits)
 
+    def evaluate_actions(self, obs: th.Tensor, actions: th.Tensor) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
+        """
+        Evaluate log-prob, entropy, and value for given actions.
+        Used during policy gradient update.
+        """
+        _, action_mask = self._extract_obs_and_mask(obs)
+        features = self.extract_features(obs)
+        
+        if self.share_features_extractor:
+            latent_pi, latent_vf = self.mlp_extractor(features)
+        else:
+            pi_features, vf_features = features
+            latent_pi = self.mlp_extractor.forward_actor(pi_features)
+            latent_vf = self.mlp_extractor.forward_critic(vf_features)
+
+        logits = self.action_net(latent_pi)
+        masked_logits = self._apply_action_mask(logits, action_mask)
+        distribution = CategoricalDistribution(self.action_space.n).proba_distribution(action_logits=masked_logits)
+
+        log_prob = distribution.log_prob(actions)
+        entropy = distribution.entropy()
+        values = self.value_net(latent_vf)
+
+        return values, log_prob, entropy
 
 class WandbCallback(BaseCallback):
     """
     Custom callback for logging to Weights & Biases.
     """
-    def __init__(self, verbose=0):
+    def __init__(self, log_freq=1_000, verbose=0):
         super(WandbCallback, self).__init__(verbose)
         self.episode_rewards = []
         self.episode_lengths = []
+        self.log_freq = log_freq
         
     def _on_step(self) -> bool:
 
-        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None:
+        if hasattr(self.model.policy, 'last_entropy') and self.model.policy.last_entropy is not None and self.num_timesteps % self.log_freq == 0:
             wandb.log({
                 "train/policy_entropy": self.model.policy.last_entropy,
-                "train/timesteps": self.num_timesteps
-            })
+            }, step=self.num_timesteps)
         
         # Log episode data when episodes end
-        if len(self.model.ep_info_buffer) > 0:
+        if len(self.model.ep_info_buffer) > 0 and self.num_timesteps % self.log_freq == 0:
             for info in self.model.ep_info_buffer:
                 wandb.log({
                     "train/episode_reward": info['r'],
                     "train/episode_length": info['l'],
-                    "train/timesteps": self.num_timesteps,
-                })
+                }, step=self.num_timesteps)
         
         return True
     
@@ -161,9 +188,8 @@ class WandbCallback(BaseCallback):
         # Log training metrics after each rollout
         if hasattr(self.model, 'logger') and self.model.logger is not None:
             wandb.log({
-                "train/timesteps": self.num_timesteps,
                 "train/fps": self.model.logger.name_to_value.get("time/fps", 0),
-            })
+            }, step=self.num_timesteps)
         return True
 
 
@@ -179,9 +205,10 @@ class WandbBestModelCallback(BaseCallback):
         return True
 
 
-def make_env():
+def make_env(turns_limit=200, rank=0):
     """Create and wrap the environment."""
-    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True)
+    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True, turns_limit=turns_limit)
+    env.reset(seed=42 + rank)
     env = Monitor(env)
     return env
 
@@ -192,11 +219,14 @@ def train_ppo(
     log_path='./logs/',
     checkpoint_freq=50_000,
     eval_freq=10_000,
+    log_freq=1_000,
     n_eval_episodes=10,
     randomize_position=True,
     wandb_project=WANDB_PROJECT,
     wandb_run_name=None,
     wandb_config=None,
+    turns_limit=2000,
+    num_env = 100
 ):
     """
     Train a PPO agent on Gin Rummy with W&B logging.
@@ -218,24 +248,42 @@ def train_ppo(
     os.makedirs(log_path, exist_ok=True)
     
     # Initialize Weights & Biases
+    # config = {
+    #     "algorithm": "PPO",
+    #     "policy": "MaskedGinRummyPolicy",
+    #     "total_timesteps": total_timesteps,
+    #     "learning_rate": 3e-4,
+    #     "n_steps": 2048,          
+    #     "batch_size": 256,
+    #     "n_epochs": 10,
+    #     "gamma": 0.99,
+    #     "gae_lambda": 0.95,
+    #     "clip_range": 0.2,
+    #     "ent_coef": 0.001,
+    #     "vf_coef": 0.5,
+    #     "max_grad_norm": 0.5,
+    #     "randomize_position": randomize_position,
+    #     "weight_decay": 0.0001
+    # }
     config = {
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
-        "total_timesteps": total_timesteps,
-        "learning_rate": 3e-4,
-        "n_steps": 2048,          
-        "batch_size": 64,
-        "n_epochs": 10,
-        "gamma": 0.997,
+        "total_timesteps": int(2e7),       # 20M or more for complex card games
+        "learning_rate": 2.5e-4,           # slightly lower since updates are larger
+        "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
+        "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
+        "n_epochs": 4,                     # fewer epochs to avoid overfitting giant batches
+        "gamma": 0.99,                     # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.001,
+        "ent_coef": 0.005,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
-        "randomize_position": randomize_position,
-        "weight_decay": 0.0001
+        "randomize_position": True,
+        "weight_decay": 0.0,
+        "normalize_advantage": True,       # essential with large batches
+        "normalize_observations": True,    # if supported
     }
-    
     if wandb_config:
         config.update(wandb_config)
     
@@ -251,7 +299,8 @@ def train_ppo(
     # Create training environment
     print("Creating training environment...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
-    train_env = DummyVecEnv([make_env])
+    # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
+    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i) for i in range(num_env)])
     
     # Create evaluation environment
     print("Creating evaluation environment...")
@@ -275,7 +324,7 @@ def train_ppo(
         callback_on_new_best=WandbBestModelCallback()
     )
     
-    wandb_callback = WandbCallback()
+    wandb_callback = WandbCallback(log_freq=log_freq)
     
     # Create PPO model
     print("Initializing PPO model...")
@@ -310,16 +359,16 @@ def train_ppo(
     print ('____________MODEL CREATED SUCCESSFULLY______________')
     
     # Log model architecture to W&B
-    wandb.watch(model.policy, log="all", log_freq=1000)
+    wandb.watch(model.policy, log="all", log_freq=log_freq)
     
     print(f"Training on device: {model.device}")
-    print(f"Total timesteps: {total_timesteps:,}")
+    print(f"Total timesteps: {config['total_timesteps']}")
     print("Starting training...")
     
     # Train the model
     try:
         model.learn(
-            total_timesteps=total_timesteps,
+            total_timesteps=config['total_timesteps'],
             callback=[checkpoint_callback, eval_callback, wandb_callback],
             progress_bar=True
         )
@@ -347,7 +396,7 @@ def train_ppo(
     return model
 
 
-def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
+def test_trained_model(model_path, num_episodes=10, log_to_wandb=False, turns_limit=200):
     """
     Test a trained model.
     
@@ -365,7 +414,7 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False):
     model = PPO.load(model_path)
     
     # Create test environment
-    env = make_env()
+    env = make_env(turns_limit=turns_limit)
     
     total_rewards = []
     wins = 0
@@ -458,6 +507,11 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-key', type=str, default=None,
                        help='Weights & Biases API key')
     
+    parser.add_argument('--turns-limit', type=int, default=2000,
+                       help='Limit on turns per game')
+    parser.add_argument('--num-env', type=int, default=100,
+                       help='Number of running envs')
+    
     args = parser.parse_args()
     
     # Setup W&B login if key provided
@@ -474,16 +528,18 @@ if __name__ == '__main__':
             randomize_position=not args.no_randomize,
             wandb_project=args.wandb_project,
             wandb_run_name=args.wandb_run_name,
+            turns_limit=args.turns_limit,
+            num_env = args.num_env
         )
         
         # Test the trained model
         final_model = os.path.join(args.save_path, 'ppo_gin_rummy_final')
         if os.path.exists(final_model + '.zip'):
-            test_trained_model(final_model, num_episodes=10, log_to_wandb=True)
+            test_trained_model(final_model, num_episodes=10, log_to_wandb=True, turns_limit=args.turns_limit)
     
     elif args.test:
         # Test existing model
-        test_trained_model(args.test, num_episodes=20, log_to_wandb=True)
+        test_trained_model(args.test, num_episodes=20, log_to_wandb=True, turns_limit=args.turns_limit)
     
     else:
         print("Please specify --train or --test <model_path>")
