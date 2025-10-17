@@ -9,9 +9,7 @@ python train_ppo.py --train
 """
 
 import os
-import numpy as np
 import torch as th
-import torch.nn as nn
 from stable_baselines3.common.distributions import Distribution, CategoricalDistribution
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, BaseCallback
@@ -21,9 +19,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import CombinedExtractor
 import torch
 import wandb
-from typing import Union,Optional
 from stable_baselines3.common.type_aliases import PyTorchObs
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import torch.optim as optim
 
 # Import your custom components
