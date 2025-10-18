@@ -30,16 +30,18 @@ def play_game(env, agents_dic, agent_names, verbose=True):
     for agent in env.agent_iter():
         obs, reward, term, trunc, info = env.get_current_state()
         
+        # Check for gin or knock based on reward
+        if reward == 1.5:  # Gin
+            game_info['gin_winner'] = agent
+            reward = 1.0  # Normalize to 1
+        elif reward == 0.5:  # Knock
+            game_info['knock_winner'] = agent
+            reward = 0.5  # Normalize to 0.5
+        
         rewards[agent] += reward
         
         if term or trunc:
             action = None
-            
-            # Check for gin or knock in info
-            if 'gin' in info and info['gin']:
-                game_info['gin_winner'] = agent
-            if 'knock' in info and info['knock']:
-                game_info['knock_winner'] = agent
             
             # Determine winner
             if rewards['player_0'] > rewards['player_1']:
