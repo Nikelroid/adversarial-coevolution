@@ -17,7 +17,8 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True, turns_limit=200):
         super().__init__()
         
-        self.env = gin_rummy_v4.env(render_mode=None, knock_reward = 0.5, gin_reward = 1, opponents_hand_visible = False)
+        self.env = gin_rummy_v4.env(render_mode=None, knock_reward = 0.5, gin_reward = 1.5, opponents_hand_visible = False)
+
         self.opponent_policy: Agent = opponent_policy(self.env)
         self.randomize_position = randomize_position
         self.turns_limit = turns_limit
@@ -137,6 +138,8 @@ class GinRummySB3Wrapper(gym.Env):
             next_obs, reward, _, _, _ = self.env.last()
             if abs(reward - 0.2) < 0.001:
                 reward = 0.5
+            elif abs(reward - 1) < 0.001:
+                reward = 1.5
             return next_obs, reward, True, False, info
         
         # Opponent's turn(s) until it's training agent's turn again
@@ -156,6 +159,8 @@ class GinRummySB3Wrapper(gym.Env):
                     obs, reward, _, _, info = self.env.last()
                     if abs(reward - 0.2) < 0.001:
                         reward = 0.5
+                    elif abs(reward - 1) < 0.001:
+                        reward = 1.5
                     return obs, reward, True, False, info
     
     def render(self, mode='human'):
