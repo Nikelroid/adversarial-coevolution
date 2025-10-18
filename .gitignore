@@ -2,7 +2,6 @@
 Adversarial_CoEvoloution.egg-info/
 .vscode/
 dist/
-*.zip
 *.py[cod]
 wandb/
 __pycache__/
