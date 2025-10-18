@@ -21,6 +21,7 @@ import torch
 import wandb
 from stable_baselines3.common.type_aliases import PyTorchObs
 import torch.optim as optim
+from curriculum_manager import CurriculumManager
 
 # Import your custom components
 from gym_wrapper import GinRummySB3Wrapper
@@ -193,6 +194,37 @@ class WandbCallback(BaseCallback):
         return True
 
 
+class CurriculumCallback(BaseCallback):
+    """Callback to manage curriculum and save checkpoints"""
+    
+    def __init__(self, curriculum_manager, model_save_path, verbose=0):
+        super(CurriculumCallback, self).__init__(verbose)
+        self.curriculum_manager = curriculum_manager
+        self.model_save_path = model_save_path
+        
+    def _on_step(self) -> bool:
+        # Update model reference in environment wrapper
+        if hasattr(self.training_env, 'envs'):
+            for env in self.training_env.envs:
+                if hasattr(env, 'set_current_model'):
+                    env.set_current_model(self.model)
+        
+        # Check if should save checkpoint to curriculum pool
+        if self.curriculum_manager.should_save_checkpoint():
+            self.curriculum_manager.save_checkpoint(
+                self.model, 
+                self.curriculum_manager.total_steps
+            )
+            
+            # Log to wandb
+            wandb.log({
+                'curriculum/phase': self.curriculum_manager._get_current_phase(),
+                'curriculum/pool_size': len(self.curriculum_manager.policy_pool),
+                'curriculum/total_steps': self.curriculum_manager.total_steps,
+            })
+        
+        return True
+    
 class WandbBestModelCallback(BaseCallback):
     """
     Callback to log when a new best model is found during evaluation.
@@ -205,9 +237,9 @@ class WandbBestModelCallback(BaseCallback):
         return True
 
 
-def make_env(turns_limit=200, rank=0):
+def make_env(turns_limit=200, rank=0,curriculum_manager=None):
     """Create and wrap the environment."""
-    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True, turns_limit=turns_limit)
+    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True, turns_limit=turns_limit,curriculum_manager=curriculum_manager)
     env.reset(seed=42 + rank)
     env = Monitor(env)
     return env
@@ -246,6 +278,11 @@ def train_ppo(
     # Create directories
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(log_path, exist_ok=True)
+
+    curriculum_manager = CurriculumManager(
+        save_dir=os.path.join(save_path, 'curriculum_pool'),
+        max_pool_size=20
+    )
     
     # Initialize Weights & Biases
     # config = {
@@ -297,10 +334,14 @@ def train_ppo(
     )
     
     # Create training environment
-    print("Creating training environment...")
+    print("Creating training environment with curriculum learning...")
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
+    print("Curriculum phases:")
+    print("  Phase 1 (0-100k):     100% Random")
+    print("  Phase 2 (100k-500k):  50% Random, 50% Pool")
+    print("  Phase 3 (500k+):      70% Pool, 20% Random, 10% Self")
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
-    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i) for i in range(num_env)])
+    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i,curriculum_manager=curriculum_manager) for i in range(num_env)])
     
     # Create evaluation environment
     print("Creating evaluation environment...")
@@ -325,6 +366,11 @@ def train_ppo(
     )
     
     wandb_callback = WandbCallback(log_freq=log_freq)
+
+    curriculum_callback = CurriculumCallback(
+        curriculum_manager=curriculum_manager,
+        model_save_path=save_path
+    )
     
     # Create PPO model
     print("Initializing PPO model...")
@@ -369,7 +415,7 @@ def train_ppo(
     try:
         model.learn(
             total_timesteps=config['total_timesteps'],
-            callback=[checkpoint_callback, eval_callback, wandb_callback],
+            callback=[checkpoint_callback, eval_callback, wandb_callback,curriculum_callback],
             progress_bar=True
         )
         
