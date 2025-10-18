@@ -14,13 +14,21 @@ class GinRummySB3Wrapper(gym.Env):
     Training agent position is randomized each episode for fair learning.
     """
     
-    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200):
+    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200,curriculum_manager = None):
         super().__init__()
         
         self.env = gin_rummy_v4.env(render_mode=None, knock_reward = 0.5, gin_reward = 1.5, opponents_hand_visible = False)
 
-        self.opponent_policy: Agent = opponent_policy(self.env)
+        self.opponent_policy_class = opponent_policy  # Store class, not instance
+        self.opponent_policy = None  # Will be created in reset()
         self.randomize_position = randomize_position
+        
+        # Curriculum learning support
+        self.curriculum_manager = curriculum_manager
+        self.current_model = None  # Reference to training model
+        self.current_opponent_type = 'random'  # Track opponent type
+
+
         self.turns_limit = turns_limit
         
         # Get a sample observation to determine spaces
@@ -65,6 +73,35 @@ class GinRummySB3Wrapper(gym.Env):
         self.turn_num = 0
         self.last_score = None
         # print("="*100)
+
+        # SELECT OPPONENT BASED ON CURRICULUM
+        if self.curriculum_manager is not None:
+            opponent_type = self.curriculum_manager.get_opponent_type()
+            self.current_opponent_type = opponent_type
+            
+            if opponent_type == 'random':
+                self.opponent_policy = self.opponent_policy_class(self.env)
+            
+            elif opponent_type == 'pool':
+                # Load opponent from policy pool
+                from agents.ppo_agent import PPOAgent
+                policy_path = self.curriculum_manager.sample_policy_path(recent_n=10)
+                self.opponent_policy = PPOAgent(model_path=policy_path, env=self.env)
+            
+            elif opponent_type == 'self':
+                # Use frozen copy of current model
+                from agents.ppo_agent import PPOAgent
+                import copy
+                frozen_agent = PPOAgent(model_path=None, env=self.env)
+                frozen_agent.model = copy.deepcopy(self.current_model)
+                self.opponent_policy = frozen_agent
+            
+            else:
+                # Fallback
+                self.opponent_policy = self.opponent_policy_class(self.env)
+        else:
+            # No curriculum - use default opponent
+            self.opponent_policy = self.opponent_policy_class(self.env)
 
         # Randomly assign training agent position each episode
         if self.randomize_position and random.random() < 0.5:
@@ -119,6 +156,9 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.step(action)
 
+        if self.curriculum_manager is not None:
+            self.curriculum_manager.update_steps(1)
+
         # player_hand = obs['observation'][0]
         # if sum(player_hand) == 10:
         #     if self.last_score is None:
@@ -136,10 +176,15 @@ class GinRummySB3Wrapper(gym.Env):
         # Check if game ended
         if termination or truncation:
             next_obs, reward, _, _, _ = self.env.last()
+
             if abs(reward - 0.2) < 0.001:
                 reward = 0.5
             elif abs(reward - 1) < 0.001:
                 reward = 1.5
+
+            if self.curriculum_manager is not None:
+                self.curriculum_manager.episode_complete()
+
             return next_obs, reward, True, False, info
         
         # Opponent's turn(s) until it's training agent's turn again
@@ -157,10 +202,15 @@ class GinRummySB3Wrapper(gym.Env):
                 _, _, termination, truncation, _ = self.env.last()
                 if termination or truncation:
                     obs, reward, _, _, info = self.env.last()
+                    
                     if abs(reward - 0.2) < 0.001:
                         reward = 0.5
                     elif abs(reward - 1) < 0.001:
                         reward = 1.5
+
+                    if self.curriculum_manager is not None:
+                        self.curriculum_manager.episode_complete()
+
                     return obs, reward, True, False, info
     
     def render(self, mode='human'):
