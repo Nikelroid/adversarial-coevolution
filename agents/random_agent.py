@@ -13,7 +13,6 @@ class RandomAgent(Agent):
             return self.env.action_space(self.player).sample(mask)
         else:
             obs, _, _, _, _ = self.env.get_current_state()
-            obs_array = obs['observation']
             action_mask = obs['action_mask']
 
             # Choose from valid actions
