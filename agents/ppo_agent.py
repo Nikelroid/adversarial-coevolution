@@ -53,12 +53,11 @@ class PPOAgent(Agent):
         
         obs = self.get_observation()
         
-        # Extract observation array and action mask
-        obs_array = obs['observation']
-        action_mask = obs['action_mask']
+        # Get action from model using the *entire* observation dictionary
+        action, _ = self.model.predict(obs, deterministic=True)
         
-        # Get action from model
-        action, _ = self.model.predict(obs_array, deterministic=True)
+        # Extract action mask *after* prediction to validate the action
+        action_mask = obs['action_mask']
         
         # Ensure action is valid according to mask
         if not action_mask[action]:
