@@ -134,7 +134,9 @@ class GinRummySB3Wrapper(gym.Env):
 
         # Check if game ended
         if termination or truncation:
-            next_obs, _, _, _, _ = self.env.last()
+            next_obs, reward, _, _, _ = self.env.last()
+            if abs(reward - 0.2) < 0.001:
+                reward = 0.5
             return next_obs, reward, True, False, info
         
         # Opponent's turn(s) until it's training agent's turn again
@@ -152,6 +154,8 @@ class GinRummySB3Wrapper(gym.Env):
                 _, _, termination, truncation, _ = self.env.last()
                 if termination or truncation:
                     obs, reward, _, _, info = self.env.last()
+                    if abs(reward - 0.2) < 0.001:
+                        reward = 0.5
                     return obs, reward, True, False, info
     
     def render(self, mode='human'):
