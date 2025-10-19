@@ -14,13 +14,14 @@ class Conditions:
         # --- END OF ADDED LINES ---
 
         # PettingZoo knock condition is deadwood <= 10
-        self.knock_condition = player.deadwood <= 10
+        self.knock_condition = player.deadwood_knock <= 10
 
-        # Gin condition: deadwood is 0
-        self.gin_condition = player.deadwood == 0
-
-        # Super Gin (all 11 cards in melds)
-        self.super_condition = self.in_hand_11 and self.gin_condition # <-- This will now work
-
-        # Update gin_condition to include super_gin
+        # Gin condition is a 10-card score of 0 (for a normal Gin/Knock)
+        self.gin_condition = (player.deadwood_knock == 0)
+        
+        # Super Gin is an 11-card score of 0 (all 11 cards melded)
+        # We check the 11-card score, which is player.deadwood
+        self.super_condition = self.in_hand_11 and (player.deadwood == 0)
+        
+        # The final "Gin" flag is true if it's a normal Gin OR a Super Gin.
         self.gin_condition = self.gin_condition or self.super_condition
