@@ -15,6 +15,7 @@ class Player:
         self.runs = []
         self.score = 0
         self.ready = False # Kept for compatibility with Conditions
+        self.deadwood_knock = 0
 
     def highest_playable_card(self):
         """
@@ -194,6 +195,21 @@ class Player:
             else:
                 self.runs.extend(meld)
 
+        melded_cards = set(self.sets + self.runs)
+        leftovers = [c for c in self.hand if c not in melded_cards]
+        
+        if not leftovers:
+            # No unmelded cards, this is a Gin.
+            self.deadwood_knock = 0
+        else:
+            # Find the highest value leftover card
+            highest_dw_card = max(leftovers, key=lambda x: self._get_deadwood_val(x))
+            highest_dw_val = self._get_deadwood_val(highest_dw_card)
+            
+            # The knock deadwood is the total deadwood minus the card we discard
+            # It must be at least 0.
+            self.deadwood_knock = max(0, self.deadwood - highest_dw_val)
+
     def deal_hand(self, game):
         """
         Deals and sorts the hand of a player
@@ -218,6 +234,7 @@ class Player:
         self.selected_card = None  # stores card and position of card
         self.swap = None
         self.deadwood = 0
+        self.deadwood_knock = 0
         self.hand = game.new_hands[player.pid] # This seems to be from the old network code
         if not self.hand:
             self.hand = self.deal_hand(game) # Fallback
