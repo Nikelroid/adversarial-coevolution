@@ -103,15 +103,20 @@ def display_pass_btn(win):
 
 def display_win_btn(win, player):
     c = Conditions(player.game, player) # Get fresh conditions
-    
-    
+
     if c.in_hand_11:
         win_text = ""
-        if c.gin_condition:
-            win_text = "Gin!"
+
+        # --- SWAPPED LOGIC ---
+        # Check for Knock first
         if c.knock_condition:
             win_text = "Knock!"
-            
+
+        # THEN check for Gin. This will overwrite "Knock!" if it's a Gin hand.
+        if c.gin_condition:
+            win_text = "Gin!"
+        # --- END OF FIX ---
+
         if win_text:
             font = pygame.font.SysFont("None", 40)
             text_render = font.render(win_text, True, "#FFD700")
@@ -336,16 +341,16 @@ def get_human_action(player, game, x, y, card_to_pz_index):
     Checks mouse click against buttons and returns a valid
     PettingZoo action index, or None.
     """
+    # We get the conditions ONCE. This updates all deadwood scores.
     c = Conditions(game, player)
     
     # --- Check Card Selection (Discard) ---
     if c.in_hand_11 and player.selected_card:
-        # Check if click is on the "discard pile" area
         if DISCARD_RECT.collidepoint(x, y):
             card = player.selected_card[0]
             if card in card_to_pz_index:
                 action = 6 + card_to_pz_index[card]
-                player.selected_card = None # Clear selection
+                player.selected_card = None 
                 return action
                 
     # --- Check Button Clicks ---
@@ -353,7 +358,7 @@ def get_human_action(player, game, x, y, card_to_pz_index):
     # Action: Sort
     if SORT_RECT.collidepoint(x, y):
         player.hand = player.sort_hand(player.hand)
-        return None # Not a game action
+        return None 
 
     # Action: Draw from Deck (PZ Action 2)
     if c.in_hand_10 and DECK_RECT.collidepoint(x, y):
@@ -372,21 +377,15 @@ def get_human_action(player, game, x, y, card_to_pz_index):
     # Action: Win Buttons (Gin, Knock)
     if c.in_hand_11 and WIN_BTN_RECT.collidepoint(x, y):
         
-        # We call update_melds_and_deadwood() one more time
-        # to get the *absolute latest* deadwood score.
-        player.update_melds_and_deadwood()
-        
-        # THE FIX:
-        # We manually check the deadwood. If it's 0, we force
-        # a GIN action (5), regardless of what the button said.
-        if player.deadwood == 0:
-            print("Deadwood is 0. Registering as GIN (Action 5).")
+        # We now check c.gin_condition, which is the
+        # exact same variable the button uses!
+        if c.gin_condition:
+            print("Gin condition is True. Registering as GIN (Action 5).")
             player.selected_card = None 
             return 5 # Gin Action
         
-        # If deadwood is > 0, we proceed with a normal KNOCK.
+        # If not Gin, check for Knock
         if c.knock_condition:
-            # Knock (Action 58+) REQUIRES a selected card to discard.
             if not player.selected_card:
                 print("Must select a card to discard for Knock!")
                 return None
@@ -394,7 +393,7 @@ def get_human_action(player, game, x, y, card_to_pz_index):
             card_to_discard = player.selected_card[0]
             if card_to_discard in card_to_pz_index:
                 action = 58 + card_to_pz_index[card_to_discard]
-                player.selected_card = None # Clear selection
+                player.selected_card = None 
                 return action
             else:
                 print("Error: Selected card not found for knock.")
@@ -403,7 +402,6 @@ def get_human_action(player, game, x, y, card_to_pz_index):
     # --- END OF NEW WIN BUTTON LOGIC ---
     
     # --- No valid action clicked ---
-    # Allow card selection/swapping
     allow_selection(player, x, y)
     return None
     
