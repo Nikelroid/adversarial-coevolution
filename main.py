@@ -34,13 +34,13 @@ def play_game(env, agents_dic, agent_names, verbose=True):
         obs, reward, term, trunc, info = env.get_current_state()
         
         # Check for gin or knock based on reward
-        if reward == 1.5 or reward == 1.5:  # Gin
+        if reward == 1.5 or reward == 1:  # Gin
             game_info['gin_winner'] = agent
             reward = 1.0  # Normalize to 1
         elif reward == 0.5:  # Knock
             game_info['knock_winner'] = agent
             reward = 0.5  # Normalize to 0.5
-            
+
         rewards[agent] += reward
         
         if term or trunc:
