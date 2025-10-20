@@ -152,10 +152,6 @@ def draw_end_screen(win, game, human_player, ai_player):
     # --- 1. DEFINE FONTS AND COLORS ---
     font_l = pygame.font.SysFont("comicsans", 40)
     font_m = pygame.font.SysFont("comicsans", 30)
-    font_s = pygame.font.SysFont("comicsans", 25)
-    
-    # New font and colors for the main result message
-    # Make it bigger
     result_font = pygame.font.SysFont("comicsans", 70, bold=True) 
     win_color = (0, 255, 0) # Green
     lose_color = (255, 0, 0) # Red
@@ -169,14 +165,12 @@ def draw_end_screen(win, game, human_player, ai_player):
     p1_obj = human_player if human_player.pid == 0 else ai_player
     p2_obj = ai_player if human_player.pid == 0 else human_player
     
-    # --- 2. GET "You" / "AI" LABELS ---
     p1_label = "You" if p1_obj == human_player else "AI"
     p2_label = "You" if p2_obj == human_player else "AI"
     
     # Find unmelded (deadwood) cards
     p1_melded_cards = set(p1_obj.sets + p1_obj.runs)
     p1_deadwood_cards = [c for c in p1_obj.hand if c not in p1_melded_cards]
-    
     p2_melded_cards = set(p2_obj.sets + p2_obj.runs)
     p2_deadwood_cards = [c for c in p2_obj.hand if c not in p2_melded_cards]
 
@@ -184,11 +178,10 @@ def draw_end_screen(win, game, human_player, ai_player):
     win.blit(font_l.render(p1_label, True, "white"), (150, 50))
     win.blit(font_l.render(p2_label, True, "white"), (650, 50))
     
-    # --- (REMOVED the "VS" text to make room for the new message) ---
-    
     win.blit(font_m.render("Melds", True, "cyan"), (100, 150))
     win.blit(font_m.render("Melds", True, "cyan"), (550, 150))
     
+    # ... (The card drawing loops are all correct, no change here) ...
     # Draw Melds (smaller cards)
     meld_x = 100
     for card in sorted(p1_obj.sets + p1_obj.runs, key=lambda x: (x.suit, int(x.rank))):
@@ -217,6 +210,7 @@ def draw_end_screen(win, game, human_player, ai_player):
         img = pygame.transform.scale(game.get_image(card), (50, 71))
         win.blit(img, (dw_x, 400))
         dw_x += 30
+    # ... (End of card drawing) ...
 
     # Draw Scores
     win.blit(font_m.render(f"Deadwood Score: {p1_obj.deadwood}", True, "white"), (100, 500))
@@ -229,21 +223,24 @@ def draw_end_screen(win, game, human_player, ai_player):
     winner_pid = game.win_round["player"]
     win_type = game.win_round["type"]
     
-    if winner_pid == p1_obj.pid: # Player 1 won
+    # --- THIS IS THE FIX ---
+    # Check for Dead Hand FIRST
+    if win_type == "dead_hand":
+        p1_round_score = 0 
+        p2_round_score = 0
+    elif winner_pid == p1_obj.pid: # Player 1 won
         p1_round_score = p2_obj.deadwood - p1_obj.deadwood
-        if win_type == "gin": p1_round_score += 50 # Using 50 points
+        if win_type == "gin": p1_round_score += 50
         if p1_round_score <= 0: # Undercut
             p2_round_score = abs(p1_round_score) + 25 
             p1_round_score = 0
     elif winner_pid == p2_obj.pid: # Player 2 won
         p2_round_score = p1_obj.deadwood - p2_obj.deadwood
-        if win_type == "gin": p2_round_score += 50 # Using 50 points
+        if win_type == "gin": p2_round_score += 50
         if p2_round_score <= 0: # Undercut
             p1_round_score = abs(p2_round_score) + 25
             p2_round_score = 0
-    elif win_type == "dead_hand":
-        p1_round_score = 0 
-        p2_round_score = 0
+    # --- END OF FIX ---
 
     # --- 3. DETERMINE (Won/Lose/Draw) MESSAGE ---
     result_message = ""
@@ -262,8 +259,6 @@ def draw_end_screen(win, game, human_player, ai_player):
 
     # --- 4. DRAW THE NEW CENTRAL MESSAGE ---
     result_render = result_font.render(result_message, True, result_color)
-    # Center it horizontally, and place it under the player names
-    # (We need the window's WIDTH, so we'll grab it)
     WIN_WIDTH = pygame.display.get_surface().get_width()
     result_rect = result_render.get_rect(center=(WIN_WIDTH / 2, 95)) 
     win.blit(result_render, result_rect)
