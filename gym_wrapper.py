@@ -95,7 +95,6 @@ class GinRummySB3Wrapper(gym.Env):
                 self.opponent_policy = self.opponent_policy_class(self.env)
         else:
             # No curriculum - use default opponent
-            print(f"[DEBUG] THERE IS NO CURRICULUM")
             self.opponent_policy = self.opponent_policy_class(self.env)
     
     def reset(self, seed=None, options=None):
