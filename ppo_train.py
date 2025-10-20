@@ -302,8 +302,10 @@ def train_ppo(
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(log_path, exist_ok=True)
 
+    curriculum_save_dir = os.path.join(save_path, 'curriculum_pool')
+
     curriculum_manager = CurriculumManager(
-        save_dir=os.path.join(save_path, 'curriculum_pool'),
+        save_dir=curriculum_save_dir,
         max_pool_size=20
     )
     
@@ -364,8 +366,8 @@ def train_ppo(
     print("  Phase 2 (100k-500k):  50% Random, 50% Pool")
     print("  Phase 3 (500k+):      70% Pool, 20% Random, 10% Self")
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
-    train_env = SubprocVecEnv([lambda: make_env(turns_limit, rank=i,curriculum_manager=curriculum_manager) for i in range(num_env)])
-    
+    train_env = SubprocVecEnv([lambda rank=i: make_env(turns_limit=turns_limit, rank=rank,curriculum_save_dir=curriculum_save_dir  ) for i in range(num_env)])
+
     # Create evaluation environment
     print("Creating evaluation environment...")
     eval_env = DummyVecEnv([make_env])
