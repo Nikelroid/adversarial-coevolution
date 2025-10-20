@@ -40,22 +40,40 @@ class CurriculumManager:
             'episodes_completed': self.episodes_completed,
             'last_checkpoint_step': self.last_checkpoint_step
         }
-        with open(self.state_file, 'w') as f:
-            json.dump(state, f)
-    
+        # Use a temporary file and atomic rename for safer multiprocessing writes
+        temp_file = self.state_file + '.tmp'
+        try:
+            with open(temp_file, 'w') as f:
+                json.dump(state, f)
+            os.replace(temp_file, self.state_file)
+        except Exception as e:
+            print(f"[CurriculumManager] Error saving state: {e}")
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
     def _load_state(self):
         """Load state from file"""
+        if not os.path.exists(self.state_file):
+            # If file doesn't exist, initialize and return
+            self.total_steps = 0
+            self.episodes_completed = 0
+            self.last_checkpoint_step = 0
+            self._save_state()
+            return
+            
         try:
             with open(self.state_file, 'r') as f:
                 state = json.load(f)
                 self.total_steps = state.get('total_steps', 0)
                 self.episodes_completed = state.get('episodes_completed', 0)
                 self.last_checkpoint_step = state.get('last_checkpoint_step', 0)
-        except Exception as e:
-            print(f"[Curriculum] Warning: Could not load state: {e}")
+        except (json.JSONDecodeError, FileNotFoundError, Exception) as e:
+            print(f"[Curriculum] Warning: Could not load state, re-initializing: {e}")
+            # If file is corrupt or unreadable, reset
             self.total_steps = 0
             self.episodes_completed = 0
             self.last_checkpoint_step = 0
+            self._save_state() # Create a clean one
     
     def _get_available_policies(self):
         """Get list of available policy files from filesystem"""
@@ -76,9 +94,10 @@ class CurriculumManager:
     def get_opponent_type(self) -> str:
         """Decide which type of opponent to use based on curriculum phase"""
         print ("[DEBUG] : GET OPPONENT TYPE EXECUTED")
-        # Always reload state from disk to get latest
-        self._load_state()
-        phase = self._get_current_phase()
+        self._load_state() # Always reload state from disk to get latest
+        
+        # Use the (now correct) total_steps read from the file
+        phase = self._get_current_phase(self.total_steps) 
         available_policies = self._get_available_policies()
         
         # DEBUG: Print what we found
@@ -128,62 +147,65 @@ class CurriculumManager:
         """Get path for self-play model"""
         return os.path.join(self.save_dir, 'current_model_for_selfplay')
     
-    def _get_current_phase(self) -> int:
-        """Determine current training phase"""
-        if self.total_steps < 10_000:
+    def _get_current_phase(self, steps: int) -> int:
+        """Determine current training phase given a step count"""
+        if steps < 10_000:
             return 1
-        elif self.total_steps < 50_000:
+        elif steps < 50_000:
             return 2
         else:
             return 3
     
-    def should_save_checkpoint(self) -> bool:
-        """Check if we should save a checkpoint"""
-        self._load_state()  # Reload to get latest
-        phase = self._get_current_phase()
+    def should_save_checkpoint(self, current_total_steps: int) -> bool:
+        """Check if we should save a checkpoint based on true steps"""
+        self._load_state()  # Reload to get latest last_checkpoint_step
+        phase = self._get_current_phase(current_total_steps)
+        
+        # Use frequency from your original code
         save_freq = 5000 if phase == 1 else (2500 if phase == 2 else 5000)
         
-        return (self.total_steps - self.last_checkpoint_step) >= save_freq
+        # Check against the TRUE step count
+        return (current_total_steps - self.last_checkpoint_step) >= save_freq
     
     def save_checkpoint(self, model, step_count: int):
-        """Save current model to policy pool"""
-        # Save to pool
+        """Save current model to policy pool and update state file"""
         checkpoint_path = os.path.join(self.save_dir, f'policy_step_{step_count}')
         model.save(checkpoint_path)
         print(f"[Curriculum] DEBUG: Saved checkpoint to {checkpoint_path}.zip")
         
-        # Also save current model for self-play
         selfplay_path = os.path.join(self.save_dir, 'current_model_for_selfplay')
         model.save(selfplay_path)
         
-        # Clean up old models if exceeding max size
         available = self._get_available_policies()
         if len(available) > self.max_pool_size:
-            # Remove oldest
             for old_path in available[:len(available)-self.max_pool_size]:
                 if os.path.exists(old_path + '.zip'):
                     os.remove(old_path + '.zip')
                     print(f"[Curriculum] Removed old checkpoint: {os.path.basename(old_path)}")
         
-        self.last_checkpoint_step = self.total_steps
+        # CRITICAL: Update state file with the true step count
+        self._load_state() # Get latest episode count
+        self.last_checkpoint_step = step_count
+        self.total_steps = step_count # Sync total_steps
         self._save_state()
         
-        phase = self._get_current_phase()
+        phase = self._get_current_phase(step_count)
         print(f"\n{'='*70}")
         print(f"✓ Checkpoint saved at {step_count:,} steps (Phase {phase})")
         print(f"  Pool size: {min(len(available)+1, self.max_pool_size)}/{self.max_pool_size}")
         print(f"  Path: {checkpoint_path}")
         print(f"{'='*70}\n")
     
-    def update_steps(self, steps: int = 1):
-        """Update step counter"""
-        self._load_state()  # Load latest state
-        self.total_steps += steps
-        self._save_state()  # Save immediately
-        
-        if self.total_steps % 1000 == 0:
-            phase = self._get_current_phase()
-            print(f'[Curriculum] Steps: {self.total_steps:,} (Phase {phase})')
+    # --- NEW METHOD ---
+    def update_total_steps(self, total_steps: int):
+        """
+        Update the total_steps in the state file.
+        This is the 'writer' method called by the main process callback.
+        """
+        self._load_state() # Load to not clobber episodes_completed or last_step
+        self.total_steps = total_steps
+        self._save_state()
+
     
     def episode_complete(self):
         """Mark episode as complete"""

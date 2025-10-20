@@ -201,34 +201,39 @@ class CurriculumCallback(BaseCallback):
         super(CurriculumCallback, self).__init__(verbose)
         self.curriculum_manager = curriculum_manager
         self.model_save_path = model_save_path
-        self.last_save_step = 0
+        self.last_selfplay_save_step = 0 # Renamed for clarity
         
     def _on_step(self) -> bool:
-        # Update step count (accounts for parallel envs)
-        n_envs = self.training_env.num_envs
-        self.curriculum_manager.update_steps(n_envs)
+        # Get the TRUE total steps from the BaseCallback
+        current_steps = self.num_timesteps
         
-        # Periodically save current model for self-play (every 10k steps)
-        current_steps = self.curriculum_manager.total_steps
-        if current_steps - self.last_save_step >= 10_000:
+        # 1. Update the manager's state file so subprocesses can read it
+        #    (Do this less frequently to avoid filesystem hammering)
+        if current_steps % 100 == 0: # Update JSON file every 100 steps
+             self.curriculum_manager.update_total_steps(current_steps)
+        
+        # 2. Periodically save current model for self-play
+        if current_steps - self.last_selfplay_save_step >= 10_000:
             selfplay_path = self.curriculum_manager.get_selfplay_model_path()
             self.model.save(selfplay_path)
-            self.last_save_step = current_steps
+            self.last_selfplay_save_step = current_steps
             print(f"[Curriculum] Updated self-play model at {current_steps:,} steps")
         
-        # Check if should save checkpoint to curriculum pool
-        if self.curriculum_manager.should_save_checkpoint():
+        # 3. Check if should save checkpoint to curriculum pool
+        #    (Pass the true step count)
+        if self.curriculum_manager.should_save_checkpoint(current_steps):
             self.curriculum_manager.save_checkpoint(
                 self.model, 
-                self.curriculum_manager.total_steps
+                current_steps  # Pass the true step count
             )
             
             # Log to wandb
-            phase = self.curriculum_manager._get_current_phase()
+            # Get phase based on true step count
+            phase = self.curriculum_manager._get_current_phase(current_steps) 
             wandb.log({
                 'curriculum/phase': phase,
                 'curriculum/pool_size': len(self.curriculum_manager._get_available_policies()),
-                'curriculum/total_steps': self.curriculum_manager.total_steps,
+                'curriculum/total_steps': current_steps, # Log the true step count
             })
         
         return True
