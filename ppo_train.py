@@ -201,18 +201,20 @@ class CurriculumCallback(BaseCallback):
         super(CurriculumCallback, self).__init__(verbose)
         self.curriculum_manager = curriculum_manager
         self.model_save_path = model_save_path
+        self.last_save_step = 0
         
     def _on_step(self) -> bool:
-        # UPDATE: Properly count steps from parallel environments
-        # Each call to _on_step represents n_envs steps
+        # Update step count (accounts for parallel envs)
         n_envs = self.training_env.num_envs
         self.curriculum_manager.update_steps(n_envs)
         
-        # Update model reference in environment wrapper
-        if hasattr(self.training_env, 'envs'):
-            for env in self.training_env.envs:
-                if hasattr(env, 'set_current_model'):
-                    env.set_current_model(self.model)
+        # Periodically save current model for self-play (every 10k steps)
+        current_steps = self.curriculum_manager.total_steps
+        if current_steps - self.last_save_step >= 10_000:
+            selfplay_path = self.curriculum_manager.get_selfplay_model_path()
+            self.model.save(selfplay_path)
+            self.last_save_step = current_steps
+            print(f"[Curriculum] Updated self-play model at {current_steps:,} steps")
         
         # Check if should save checkpoint to curriculum pool
         if self.curriculum_manager.should_save_checkpoint():
@@ -222,9 +224,10 @@ class CurriculumCallback(BaseCallback):
             )
             
             # Log to wandb
+            phase = self.curriculum_manager._get_current_phase()
             wandb.log({
-                'curriculum/phase': self.curriculum_manager._get_current_phase(),
-                'curriculum/pool_size': len(self.curriculum_manager.policy_pool),
+                'curriculum/phase': phase,
+                'curriculum/pool_size': len(self.curriculum_manager._get_available_policies()),
                 'curriculum/total_steps': self.curriculum_manager.total_steps,
             })
         
