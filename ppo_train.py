@@ -378,7 +378,7 @@ def train_ppo(
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
 
 
-
+    print ('[CRITICAL]:',curriculum_save_dir)
     train_env = SubprocVecEnv([
         lambda rank=i: make_env(turns_limit, rank=rank, curriculum_save_dir=curriculum_save_dir)  # ← RIGHT!
         for i in range(num_env)
