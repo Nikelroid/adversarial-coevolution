@@ -72,7 +72,6 @@ class GinRummySB3Wrapper(gym.Env):
 
         self.turn_num = 0
         self.last_score = None
-        # print("="*100)
 
         # SELECT OPPONENT BASED ON CURRICULUM
         if self.curriculum_manager is not None:
@@ -89,12 +88,15 @@ class GinRummySB3Wrapper(gym.Env):
                 self.opponent_policy = PPOAgent(model_path=policy_path, env=self.env)
             
             elif opponent_type == 'self':
-                # Use frozen copy of current model
+                # Load the saved self-play model from disk
                 from agents.ppo_agent import PPOAgent
-                import copy
-                frozen_agent = PPOAgent(model_path=None, env=self.env)
-                frozen_agent.model = copy.deepcopy(self.current_model)
-                self.opponent_policy = frozen_agent
+                selfplay_path = self.curriculum_manager.get_selfplay_model_path()
+                try:
+                    self.opponent_policy = PPOAgent(model_path=selfplay_path, env=self.env)
+                    print("[Curriculum] Loaded self-play model successfully")
+                except Exception as e:
+                    print(f"[Curriculum] Failed to load self-play model: {e}, using random")
+                    self.opponent_policy = self.opponent_policy_class(self.env)
             
             else:
                 # Fallback
