@@ -186,6 +186,11 @@ class GinRummyPygameEnv:
                     player.hand.append(card)
                 player.hand = player.sort_hand(player.hand)
                 self.game.next_turn()
+
+                if len(self.game.cards) == 0:
+                    print("Deck is empty. Declaring Dead Hand.")
+                    self._handle_dead_hand(player, opponent)
+                    termination = True
             
             elif action == 3: # Pick from discard
                 card = self.game.middle_card
