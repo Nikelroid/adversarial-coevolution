@@ -233,7 +233,7 @@ class CurriculumCallback(BaseCallback):
             wandb.log({
                 'curriculum/phase': phase,
                 'curriculum/pool_size': len(self.curriculum_manager._get_available_policies()),
-                'curriculum/total_steps': current_steps, # Log the true step count
+                'curriculum/total_steps': current_steps,
             })
         
         return True
@@ -345,7 +345,7 @@ def train_ppo(
     config = {
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
-        "total_timesteps": 20_000_000,       # 20M or more for complex card games
+        "total_timesteps": 40_000_000,       # 20M or more for complex card games
         "learning_rate": 2.5e-4,           # slightly lower since updates are larger
         "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
         "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
@@ -353,7 +353,7 @@ def train_ppo(
         "gamma": 0.99,                     # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.075,                 # slightly higher to encourage exploration
+        "ent_coef": 0.08,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": True,
