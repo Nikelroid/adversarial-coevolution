@@ -10,7 +10,7 @@ class CurriculumManager:
     def __init__(self, save_dir='./curriculum_policies', max_pool_size=20):
         self.save_dir = save_dir
         self.max_pool_size = max_pool_size
-        self.policy_pool = []  # List of saved model paths
+        self.policy_pool = []
         self.total_steps = 0
         self.episodes_completed = 0
         self.last_checkpoint_step = 0
@@ -37,6 +37,7 @@ class CurriculumManager:
         elif phase == 2:
             # Phase 2 (100k-500k): 50% Random, 50% Pool
             if random.random() < 0.5 and len(self.policy_pool) > 0:
+                print ('phase 2: Model selected from pool')
                 return 'pool'
             return 'random'
         
@@ -44,10 +45,12 @@ class CurriculumManager:
             # Phase 3 (500k+): 70% Pool, 20% Random, 10% Self
             roll = random.random()
             if roll < 0.70 and len(self.policy_pool) > 0:
+                print ('phase 3: Model selected from pool')
                 return 'pool'
             elif roll < 0.90:
                 return 'random'
             else:
+                print ('phase 3: Selfplay!')
                 return 'self'
     
     def sample_policy_path(self, recent_n: int = 10) -> str:
@@ -60,9 +63,9 @@ class CurriculumManager:
     
     def _get_current_phase(self) -> int:
         """Determine current training phase"""
-        if self.total_steps < 100_000:
+        if self.total_steps < 1000:
             return 1
-        elif self.total_steps < 500_000:
+        elif self.total_steps < 5000:
             return 2
         else:
             return 3
@@ -70,7 +73,7 @@ class CurriculumManager:
     def should_save_checkpoint(self) -> bool:
         """Check if we should save a checkpoint"""
         phase = self._get_current_phase()
-        save_freq = 50_000 if phase == 1 else (25_000 if phase == 2 else 50_000)
+        save_freq = 500 if phase == 1 else (250 if phase == 2 else 500)
         
         return (self.total_steps - self.last_checkpoint_step) >= save_freq
     
@@ -84,9 +87,8 @@ class CurriculumManager:
         # Remove oldest if exceeding max size
         if len(self.policy_pool) > self.max_pool_size:
             old_path = self.policy_pool.pop(0)
-            # Optionally delete old file
-            # if os.path.exists(old_path + '.zip'):
-            #     os.remove(old_path + '.zip')
+            if os.path.exists(old_path + '.zip'):
+                os.remove(old_path + '.zip')
         
         self.last_checkpoint_step = self.total_steps
         phase = self._get_current_phase()
@@ -100,6 +102,8 @@ class CurriculumManager:
     def update_steps(self, steps: int = 1):
         """Update step counter"""
         self.total_steps += steps
+        if self.total_steps % 100 :
+            print (f'Step: {self.total_steps}')
     
     def episode_complete(self):
         """Mark episode as complete"""
