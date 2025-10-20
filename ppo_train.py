@@ -248,14 +248,21 @@ class WandbBestModelCallback(BaseCallback):
 
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
+    
+    # DEBUG: Print what we received
+    print(f"[DEBUG make_env] rank={rank}, curriculum_save_dir={curriculum_save_dir}")
+    
     # Create a NEW CurriculumManager instance in each subprocess
-    # This ensures each process reads fresh data from disk
     curriculum_manager = None
     if curriculum_save_dir is not None:
+        print(f"[DEBUG make_env] Creating CurriculumManager with save_dir: {curriculum_save_dir}")
         curriculum_manager = CurriculumManager(
             save_dir=curriculum_save_dir,
             max_pool_size=20
         )
+        print(f"[DEBUG make_env] CurriculumManager created: {curriculum_manager is not None}")
+    else:
+        print(f"[DEBUG make_env] curriculum_save_dir is None! Not creating CurriculumManager")
     
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
@@ -263,6 +270,9 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
         turns_limit=turns_limit,
         curriculum_manager=curriculum_manager
     )
+    
+    print(f"[DEBUG make_env] Wrapper created with curriculum_manager: {env.curriculum_manager is not None}")
+    
     env.reset(seed=42 + rank)
     env = Monitor(env)
     return env
@@ -366,7 +376,13 @@ def train_ppo(
     print("  Phase 2 (100k-500k):  50% Random, 50% Pool")
     print("  Phase 3 (500k+):      70% Pool, 20% Random, 10% Self")
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
-    train_env = SubprocVecEnv([lambda rank=i: make_env(turns_limit=turns_limit, rank=rank,curriculum_save_dir=curriculum_save_dir  ) for i in range(num_env)])
+
+
+
+    train_env = SubprocVecEnv([
+        lambda rank=i: make_env(turns_limit, rank=rank, curriculum_save_dir=curriculum_save_dir)  # ← RIGHT!
+        for i in range(num_env)
+    ])
 
     # Create evaluation environment
     print("Creating evaluation environment...")
