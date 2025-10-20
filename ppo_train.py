@@ -203,6 +203,11 @@ class CurriculumCallback(BaseCallback):
         self.model_save_path = model_save_path
         
     def _on_step(self) -> bool:
+        # UPDATE: Properly count steps from parallel environments
+        # Each call to _on_step represents n_envs steps
+        n_envs = self.training_env.num_envs
+        self.curriculum_manager.update_steps(n_envs)
+        
         # Update model reference in environment wrapper
         if hasattr(self.training_env, 'envs'):
             for env in self.training_env.envs:
