@@ -277,31 +277,6 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     env = Monitor(env)
     return env
 
-def make_env_factory(turns_limit, rank, curriculum_save_dir):
-    """
-    Factory function that returns a callable for SubprocVecEnv.
-    This avoids ALL closure/pickling issues.
-    """
-    def _init():
-        print ('[CRITICAL]:',curriculum_save_dir)
-        curriculum_manager = None
-        if curriculum_save_dir is not None:
-            curriculum_manager = CurriculumManager(
-                save_dir=curriculum_save_dir,
-                max_pool_size=20
-            )
-        
-        env = GinRummySB3Wrapper(
-            opponent_policy=RandomAgent, 
-            randomize_position=True, 
-            turns_limit=turns_limit,
-            curriculum_manager=curriculum_manager
-        )
-        env.reset(seed=42 + rank)
-        env = Monitor(env)
-        return env
-    return _init
-
 
 def train_ppo(
     total_timesteps=500_000,
@@ -404,11 +379,10 @@ def train_ppo(
 
 
     
-    env_fns = []
-    for i in range(num_env):
-        env_fns.append(make_env_factory(turns_limit, i, curriculum_save_dir))
-
-    train_env = SubprocVecEnv(env_fns)
+    train_env = SubprocVecEnv([
+        lambda rank=i: make_env(turns_limit, rank=rank, curriculum_save_dir=curriculum_save_dir)  # ← RIGHT!
+        for i in range(num_env)
+    ])
 
     # Create evaluation environment
     print("Creating evaluation environment...")
