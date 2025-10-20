@@ -156,8 +156,8 @@ class GinRummySB3Wrapper(gym.Env):
         
         self.env.step(action)
 
-        if self.curriculum_manager is not None:
-            self.curriculum_manager.update_steps(1)
+        # if self.curriculum_manager is not None:
+        #     self.curriculum_manager.update_steps(1)
 
         # player_hand = obs['observation'][0]
         # if sum(player_hand) == 10:
