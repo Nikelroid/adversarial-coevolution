@@ -67,6 +67,8 @@ class GinRummySB3Wrapper(gym.Env):
         if self.curriculum_manager is not None:
             opponent_type = self.curriculum_manager.get_opponent_type()
             self.current_opponent_type = opponent_type
+
+            print(f"[DEBUG] Episode starting with opponent: {opponent_type}")
             
             if opponent_type == 'random':
                 self.opponent_policy = self.opponent_policy_class(self.env)
