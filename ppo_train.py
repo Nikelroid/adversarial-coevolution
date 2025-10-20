@@ -245,9 +245,24 @@ class WandbBestModelCallback(BaseCallback):
         return True
 
 
-def make_env(turns_limit=200, rank=0,curriculum_manager=None):
+
+def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
-    env = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True, turns_limit=turns_limit,curriculum_manager=curriculum_manager)
+    # Create a NEW CurriculumManager instance in each subprocess
+    # This ensures each process reads fresh data from disk
+    curriculum_manager = None
+    if curriculum_save_dir is not None:
+        curriculum_manager = CurriculumManager(
+            save_dir=curriculum_save_dir,
+            max_pool_size=20
+        )
+    
+    env = GinRummySB3Wrapper(
+        opponent_policy=RandomAgent, 
+        randomize_position=True, 
+        turns_limit=turns_limit,
+        curriculum_manager=curriculum_manager
+    )
     env.reset(seed=42 + rank)
     env = Monitor(env)
     return env

@@ -26,6 +26,11 @@ class CurriculumManager:
         print("Curriculum Learning Manager Initialized")
         print(f"Save directory: {save_dir}")
         print(f"Max pool size: {max_pool_size}")
+        # DEBUG: Print available policies on init
+        available = self._get_available_policies()
+        print(f"Found {len(available)} existing policies in pool")
+        if available:
+            print(f"  Latest: {os.path.basename(available[-1])}")
         print("=" * 70)
     
     def _save_state(self):
@@ -46,7 +51,8 @@ class CurriculumManager:
                 self.total_steps = state.get('total_steps', 0)
                 self.episodes_completed = state.get('episodes_completed', 0)
                 self.last_checkpoint_step = state.get('last_checkpoint_step', 0)
-        except:
+        except Exception as e:
+            print(f"[Curriculum] Warning: Could not load state: {e}")
             self.total_steps = 0
             self.episodes_completed = 0
             self.last_checkpoint_step = 0
@@ -56,9 +62,15 @@ class CurriculumManager:
         import glob
         pattern = os.path.join(self.save_dir, 'policy_step_*.zip')
         policy_files = glob.glob(pattern)
+        
+        # DEBUG logging
+        if len(policy_files) == 0:
+            print(f"[Curriculum] DEBUG: No policies found matching pattern: {pattern}")
+            print(f"[Curriculum] DEBUG: Directory contents: {os.listdir(self.save_dir) if os.path.exists(self.save_dir) else 'DIR NOT FOUND'}")
+        
         # Sort by step number
         policy_files.sort(key=lambda x: int(x.split('_')[-1].replace('.zip', '')))
-        # Remove .zip extension
+        # Remove .zip extension (stable-baselines3 adds it automatically)
         return [f.replace('.zip', '') for f in policy_files]
     
     def get_opponent_type(self) -> str:
@@ -67,6 +79,10 @@ class CurriculumManager:
         self._load_state()
         phase = self._get_current_phase()
         available_policies = self._get_available_policies()
+        
+        # DEBUG: Print what we found
+        if phase == 3:
+            print(f"[Curriculum] DEBUG Phase 3: Found {len(available_policies)} policies in pool")
         
         # Check if self-play model exists
         self_play_path = os.path.join(self.save_dir, 'current_model_for_selfplay.zip')
@@ -133,6 +149,7 @@ class CurriculumManager:
         # Save to pool
         checkpoint_path = os.path.join(self.save_dir, f'policy_step_{step_count}')
         model.save(checkpoint_path)
+        print(f"[Curriculum] DEBUG: Saved checkpoint to {checkpoint_path}.zip")
         
         # Also save current model for self-play
         selfplay_path = os.path.join(self.save_dir, 'current_model_for_selfplay')
@@ -145,6 +162,7 @@ class CurriculumManager:
             for old_path in available[:len(available)-self.max_pool_size]:
                 if os.path.exists(old_path + '.zip'):
                     os.remove(old_path + '.zip')
+                    print(f"[Curriculum] Removed old checkpoint: {os.path.basename(old_path)}")
         
         self.last_checkpoint_step = self.total_steps
         self._save_state()
@@ -152,7 +170,7 @@ class CurriculumManager:
         phase = self._get_current_phase()
         print(f"\n{'='*70}")
         print(f"✓ Checkpoint saved at {step_count:,} steps (Phase {phase})")
-        print(f"  Pool size: {min(len(available), self.max_pool_size)}/{self.max_pool_size}")
+        print(f"  Pool size: {min(len(available)+1, self.max_pool_size)}/{self.max_pool_size}")
         print(f"  Path: {checkpoint_path}")
         print(f"{'='*70}\n")
     
