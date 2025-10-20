@@ -75,6 +75,7 @@ class CurriculumManager:
     
     def get_opponent_type(self) -> str:
         """Decide which type of opponent to use based on curriculum phase"""
+        print ("[DEBUG] : GET OPPONENT TYPE EXECUTED")
         # Always reload state from disk to get latest
         self._load_state()
         phase = self._get_current_phase()
@@ -93,19 +94,19 @@ class CurriculumManager:
         
         elif phase == 2:
             if random.random() < 0.5 and len(available_policies) > 0:
-                print(f'[Curriculum] Phase 2: Pool opponent (found {len(available_policies)} models)')
+                print(f'[MODEL CHOOSED] Phase 2: Pool opponent (found {len(available_policies)} models)')
                 return 'pool'
             return 'random'
         
         else:  # phase == 3
             roll = random.random()
             if roll < 0.70 and len(available_policies) > 0:
-                print(f'[Curriculum] Phase 3: Pool opponent (found {len(available_policies)} models)')
+                print(f'[MODEL CHOOSED] Phase 3: Pool opponent (found {len(available_policies)} models)')
                 return 'pool'
             elif roll < 0.90:
                 return 'random'
             elif has_selfplay_model:
-                print('[Curriculum] Phase 3: SELF-PLAY!')
+                print('[MODEL CHOOSED] Phase 3: SELF-PLAY!')
                 return 'self'
             else:
                 print('[Curriculum] Phase 3: Self-play requested but model not available, using random')
