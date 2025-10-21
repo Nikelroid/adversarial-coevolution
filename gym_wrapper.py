@@ -1,10 +1,10 @@
-import gymnasium as gym
-import numpy as np
-from gymnasium import spaces
 from pettingzoo.classic import gin_rummy_v4
 from agents import Agent
 import random
 from hand_scoring import score_gin_rummy_hand
+# --- ADD IMPORT ---
+from agents.ppo_agent import PPOAgent
+
 
 
 class GinRummySB3Wrapper(gym.Env):
@@ -81,32 +81,42 @@ class GinRummySB3Wrapper(gym.Env):
     def _select_opponent(self):
         """
         Select and initialize opponent policy based on curriculum.
-        Called at the start of each episode.
+        NOW USES THE MODEL CACHE.
         """
         if self.curriculum_manager is not None:
             opponent_type = self.curriculum_manager.get_opponent_type()
             self.current_opponent_type = opponent_type
 
-            #self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type}")
+            self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type}")
             
             if opponent_type == 'random':
                 self.opponent_policy = self.opponent_policy_class(self.env)
             
+            # --- MODIFY 'pool' CASE ---
             elif opponent_type == 'pool':
-                # Load opponent from policy pool
-                from agents.ppo_agent import PPOAgent
-                policy_path = self.curriculum_manager.sample_policy_path(recent_n=10)
-                self.opponent_policy = PPOAgent(model_path=policy_path, env=self.env)
+                # Get a loaded model object from the cache (fast)
+                # or load-and-cache (slow first time)
+                ppo_model = self.curriculum_manager.get_policy_from_pool(recent_n=10)
+                
+                if ppo_model:
+                    # Pass the *model object* directly
+                    self.opponent_policy = PPOAgent(model=ppo_model, env=self.env)
+                else:
+                    # Fallback if pool was empty or failed to load
+                    self.log_buffer.append(f"[Rank {self.rank}] Pool requested, but pool is empty/failed. Using random.")
+                    self.opponent_policy = self.opponent_policy_class(self.env)
             
+            # --- MODIFY 'self' CASE ---
             elif opponent_type == 'self':
-                # Load the saved self-play model from disk
-                from agents.ppo_agent import PPOAgent
-                selfplay_path = self.curriculum_manager.get_selfplay_model_path()
-                try:
-                    self.opponent_policy = PPOAgent(model_path=selfplay_path, env=self.env)
-                    self.log_buffer.append(f"[Rank {self.rank}] Loaded self-play model successfully")
-                except Exception as e:
-                    self.log_buffer.append(f"[Rank {self.rank}] FAILED to load self-play model: {e}, using random")
+                # Get the loaded self-play model from cache
+                ppo_model = self.curriculum_manager.get_selfplay_policy()
+                
+                if ppo_model:
+                    # Pass the *model object* directly
+                    self.opponent_policy = PPOAgent(model=ppo_model, env=self.env)
+                    # self.log_buffer.append(f"[Rank {self.rank}] Loaded self-play model successfully")
+                else:
+                    self.log_buffer.append(f"[Rank {self.rank}] Failed to init PPOAgent with self-play model: , using random")
                     self.opponent_policy = self.opponent_policy_class(self.env)
             
             else:
@@ -116,6 +126,7 @@ class GinRummySB3Wrapper(gym.Env):
             # No curriculum - use default opponent
             self.log_buffer.append(f"[Rank {self.rank}] THERE IS NO CURRICULUM")
             self.opponent_policy = self.opponent_policy_class(self.env)
+
     
     def reset(self, seed=None, options=None):
         """Reset the environment."""
@@ -189,8 +200,7 @@ class GinRummySB3Wrapper(gym.Env):
 
             if abs(reward - 0.2) < 0.001:
                 reward = 0.5
-            elif abs(reward - 1) < 0.001:
-                reward = 1.5
+
 
             if self.curriculum_manager is not None:
                 self.curriculum_manager.episode_complete()
@@ -219,8 +229,6 @@ class GinRummySB3Wrapper(gym.Env):
 
                     if abs(reward - 0.2) < 0.001:
                         reward = 0.5
-                    elif abs(reward - 1) < 0.001:
-                        reward = 1.5
 
                     if self.curriculum_manager is not None:
                         self.curriculum_manager.episode_complete()
