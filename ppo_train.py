@@ -404,7 +404,11 @@ def train_ppo(
 
     
     train_env = SubprocVecEnv([
-        lambda : make_env(turns_limit, rank=i, curriculum_save_dir=curriculum_save_dir)  # ← RIGHT!
+        lambda i=i, csd=curriculum_save_dir: make_env(
+            turns_limit, 
+            rank=i, 
+            curriculum_save_dir=csd
+        )
         for i in range(num_env)
     ])
 
