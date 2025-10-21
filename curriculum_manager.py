@@ -204,6 +204,7 @@ class CurriculumManager:
         """
         self._load_state() # Load to not clobber episodes_completed or last_step
         if total_steps - self.total_steps > 1000:
+            self.total_steps = total_steps
             self._save_state()
 
     
