@@ -111,13 +111,13 @@ class CurriculumManager:
         has_selfplay_model = os.path.exists(self_play_path)
         
         if phase == 1:
-            return 'random'
+            return 'random', phase , self.total_steps
         
         elif phase == 2:
             if random.random() < 0.5 and len(available_policies) > 0:
                 print(f'[MODEL CHOOSED] Phase 2: Pool opponent (found {len(available_policies)} models)')
-                return 'pool'
-            return 'random'
+                return 'pool', phase , self.total_steps
+            return 'random', phase , self.total_steps
         
         else:  # phase == 3
             roll = random.random()
@@ -125,13 +125,13 @@ class CurriculumManager:
                 print(f'[MODEL CHOOSED] Phase 3: Pool opponent (found {len(available_policies)} models)')
                 return 'pool'
             elif roll < 0.90:
-                return 'random'
+                return 'random' , phase , self.total_steps
             elif has_selfplay_model:
                 print('[MODEL CHOOSED] Phase 3: SELF-PLAY!')
-                return 'self'
+                return 'self' , phase , self.total_steps
             else:
                 print('[Curriculum] Phase 3: Self-play requested but model not available, using random')
-                return 'random'
+                return 'random' , phase , self.total_steps
     
     # --- NEW METHOD: _prune_cache ---
     def _prune_cache(self, available_policies_on_disk: list[str]):

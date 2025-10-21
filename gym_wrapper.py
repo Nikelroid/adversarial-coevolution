@@ -87,10 +87,10 @@ class GinRummySB3Wrapper(gym.Env):
         NOW USES THE MODEL CACHE.
         """
         if self.curriculum_manager is not None:
-            opponent_type = self.curriculum_manager.get_opponent_type()
+            opponent_type,phase,step = self.curriculum_manager.get_opponent_type()
             self.current_opponent_type = opponent_type
 
-            self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type}")
+            self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type }, Phase: {phase}, Step: {step}")
             
             if opponent_type == 'random':
                 self.opponent_policy = self.opponent_policy_class(self.env)
