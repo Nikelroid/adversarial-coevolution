@@ -203,12 +203,13 @@ class CurriculumManager:
         This is the 'writer' method called by the main process callback.
         """
         self._load_state() # Load to not clobber episodes_completed or last_step
-        self.total_steps = total_steps
-        self._save_state()
+        if total_steps - self.total_steps > 1000:
+            self._save_state()
 
     
     def episode_complete(self):
         """Mark episode as complete"""
         self._load_state()
         self.episodes_completed += 1
-        self._save_state()
+        if self.episodes_completed % 50 == 0:
+            self._save_state()
