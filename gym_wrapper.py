@@ -203,7 +203,7 @@ class GinRummySB3Wrapper(gym.Env):
 
             if abs(reward - 0.2) < 0.001:
                 reward = 1
-            elif abs(reward - 0.2) < 0.001:
+            elif abs(reward - 1) < 0.001:
                 reward = 2
 
 
@@ -234,7 +234,7 @@ class GinRummySB3Wrapper(gym.Env):
 
                     if abs(reward - 0.2) < 0.001:
                         reward = 1
-                    elif abs(reward - 0.2) < 0.001:
+                    elif abs(reward - 1) < 0.001:
                         reward = 2
 
                     if self.curriculum_manager is not None:
