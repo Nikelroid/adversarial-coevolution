@@ -242,7 +242,10 @@ class CurriculumManager:
     def save_checkpoint(self, model, step_count: int):
         """Save current model to policy pool and update state file"""
         checkpoint_path = os.path.join(self.save_dir, f'policy_step_{step_count}')
-        model.save(checkpoint_path)
+        checkpoint_path_with_zip = checkpoint_path + ".zip"
+        if not os.path.exists(checkpoint_path_with_zip):
+            model.save(checkpoint_path)
+        
         print(f"[Curriculum] DEBUG: Saved checkpoint to {checkpoint_path}.zip")
         
         selfplay_path = os.path.join(self.save_dir, 'current_model_for_selfplay')
