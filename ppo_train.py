@@ -282,67 +282,22 @@ class WandbBestModelCallback(BaseCallback):
 
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
-    
-    log_file_path = f'./debug_env_{rank}.log'
-    
-    # --- STEP 1: LOG WHAT WE RECEIVED ---
-    try:
-        with open(log_file_path, 'w') as f: # 'w' = overwrite
-            f.write(f"--- make_env(rank={rank}) log ---\n")
-            f.write(f"Timestamp: {__import__('datetime').datetime.now()}\n")
-            f.write(f"--- 1. RECEIVED ---\n")
-            f.write(f"Value of curriculum_save_dir: {repr(curriculum_save_dir)}\n")
-            f.write(f"Is it None? {curriculum_save_dir is None}\n")
-    except Exception as e:
-        pass 
 
-    # --- STEP 2: TRY TO CREATE THE OBJECT ---
-    cm_instance = None
-    creation_error = "No error."
-    try:
-        if curriculum_save_dir is not None:
-            cm_instance = CurriculumManager(
-                save_dir=curriculum_save_dir,
-                max_pool_size=20
-            )
-        else:
-            creation_error = "Skipped (curriculum_save_dir was None)."
-            
-    except Exception as e:
-        creation_error = f"CRITICAL ERROR: {e}"
+    curriculum_manager = None
+    if curriculum_save_dir is not None:
+        curriculum_manager = CurriculumManager(
+            save_dir=curriculum_save_dir,
+            max_pool_size=20
+        )
 
-    # --- STEP 3: LOG THE CREATION RESULT ---
-    try:
-        with open(log_file_path, 'a') as f: # 'a' = append
-            f.write(f"\n--- 2. CREATION ATTEMPT ---\n")
-            f.write(f"Error during creation: {creation_error}\n")
-            f.write(f"Variable 'cm_instance' is None? {cm_instance is None}\n")
-            f.write(f"Type of 'cm_instance': {type(cm_instance)}\n")
-    except Exception as e:
-        pass
-
-    # --- STEP 4: PASS THE OBJECT TO THE WRAPPER ---
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
         randomize_position=True, 
         turns_limit=turns_limit,
-        curriculum_manager=cm_instance, # Pass the instance we tried to create
+        curriculum_manager=curriculum_manager,
         rank=rank
     )
 
-    # ---!! NEW STEP 5: LOG THE WRAPPER'S INTERNAL STATE !!---
-    try:
-        with open(log_file_path, 'a') as f: # 'a' = append
-            f.write(f"\n--- 3. WRAPPER STATE ---\n")
-            # We access the wrapper's *actual* internal attribute
-            f.write(f"env.curriculum_manager is None? {env.curriculum_manager is None}\n")
-            f.write(f"Type of env.curriculum_manager: {type(env.curriculum_manager)}\n")
-            f.write(f"Wrapper's log buffer: {env.log_buffer}\n")
-    except Exception as e:
-        with open(log_file_path, 'a') as f:
-            f.write(f"\n--- 3. WRAPPER STATE FAILED --- {e}\n")
-    # ---!! END NEW STEP !!---
-    
     env.reset(seed=42 + rank)
     env = Monitor(env)
     return env
