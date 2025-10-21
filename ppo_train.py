@@ -367,14 +367,14 @@ def train_ppo(
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
         "total_timesteps": 40_000_000,       # 20M or more for complex card games
-        "learning_rate": 3.5e-4,           # slightly lower since updates are larger
+        "learning_rate": 4e-4,           # slightly lower since updates are larger
         "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
         "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
         "n_epochs": 4,                     # fewer epochs to avoid overfitting giant batches
         "gamma": 0.99,                     # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.03,                 # slightly higher to encourage exploration
+        "ent_coef": 0.01,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": True,
@@ -453,8 +453,8 @@ def train_ppo(
 
     policy_kwargs_net = dict(
     features_extractor_class=CombinedExtractor,
-    net_arch=dict(pi=[512, 256], vf=[512,256]),
-    activation_fn=torch.nn.ReLU,
+    net_arch=dict(pi=[512, 256, 256], vf=[512,256,256]),
+    activation_fn=torch.nn.Tanh,
     ortho_init=True,
     optimizer_class=optim.Adam,
     optimizer_kwargs=dict(weight_decay=config["weight_decay"])
