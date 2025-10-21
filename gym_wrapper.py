@@ -21,12 +21,6 @@ class GinRummySB3Wrapper(gym.Env):
         self.rank = rank
         self.log_buffer = [] 
         
-        # Log the info you wanted from make_env
-        self.log_buffer.append(
-            f"[make_env rank={self.rank}] Wrapper initialized. "
-            f"CurriculumManager is {'NOT ' if curriculum_manager is None else ''}None."
-        )
-        
         self.env = gin_rummy_v4.env(render_mode=render_mode, knock_reward=0.5, gin_reward=1.5, opponents_hand_visible=False)
 
         self.opponent_policy_class = opponent_policy  # Store class, not instance
@@ -36,6 +30,12 @@ class GinRummySB3Wrapper(gym.Env):
         # Curriculum learning support
         self.curriculum_manager = curriculum_manager
         self.current_opponent_type = 'random'  # Track opponent type
+
+        self.log_buffer.append(
+            f"[make_env rank={self.rank}] Wrapper initialized. "
+            # This now checks the ATTRIBUTE, not the argument
+            f"CurriculumManager is {'NOT ' if self.curriculum_manager is not None else ''}None."
+        )
 
         self.turns_limit = turns_limit
         
