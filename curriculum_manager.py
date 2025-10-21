@@ -12,7 +12,7 @@ class CurriculumManager:
         self.save_dir = save_dir
         self.max_pool_size = max_pool_size
         self.state_file = os.path.join(save_dir, 'curriculum_state.json')
-        
+        self.policy_cache: dict[str, BaseAlgorithm] = {}
         os.makedirs(save_dir, exist_ok=True)
         
         # Initialize or load state
