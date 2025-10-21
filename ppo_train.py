@@ -278,45 +278,58 @@ class WandbBestModelCallback(BaseCallback):
 
 
 
+# In train_ppo.py
+
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
     
-    # --- ADD THIS DEBUG BLOCK ---
-    # This will write a unique file for each subprocess
+    # This will write/overwrite the debug log file
     log_file_path = f'./debug_env_{rank}.log'
+    
+    # --- STEP 1: LOG WHAT WE RECEIVED ---
     try:
-        with open(log_file_path, 'w') as f:
+        with open(log_file_path, 'w') as f: # 'w' = overwrite
             f.write(f"--- make_env(rank={rank}) log ---\n")
-            f.write(f"Type of curriculum_save_dir: {type(curriculum_save_dir)}\n")
+            f.write(f"Timestamp: {__import__('datetime').datetime.now()}\n")
+            f.write(f"--- 1. RECEIVED ---\n")
             f.write(f"Value of curriculum_save_dir: {repr(curriculum_save_dir)}\n")
-            
-            if curriculum_save_dir is None:
-                f.write("\nRESULT: IT IS NONE.\n")
-            else:
-                f.write("\nRESULT: It is a value.\n")
+            f.write(f"Is it None? {curriculum_save_dir is None}\n")
     except Exception as e:
-        # If this fails, we can't do much, but it's good to have
         pass 
-    # --- END DEBUG BLOCK ---
 
-    
-    # Create a NEW CurriculumManager instance in each subprocess
-    curriculum_manager = None
-    if curriculum_save_dir is not None:
-        # print(f"[DEBUG make_env] Creating CurriculumManager with save_dir: {curriculum_save_dir}")
-        curriculum_manager = CurriculumManager(
-            save_dir=curriculum_save_dir,
-            max_pool_size=20
-        )
-        # print(f"[DEBUG make_env] CurriculumManager created: {curriculum_manager is not None}")
-    # else:
-        # print(f"[DEBUG make_env] curriculum_save_dir is None! Not creating CurriculumManager")
-    
+    # --- STEP 2: TRY TO CREATE THE OBJECT ---
+    cm_instance = None
+    creation_error = "No error."
+    try:
+        if curriculum_save_dir is not None:
+            # This line attempts to create the object
+            cm_instance = CurriculumManager(
+                save_dir=curriculum_save_dir,
+                max_pool_size=20
+            )
+        else:
+            creation_error = "Skipped (curriculum_save_dir was None)."
+            
+    except Exception as e:
+        # If the import 'CurriculumManager' failed, this will catch it
+        creation_error = f"CRITICAL ERROR: {e}"
+
+    # --- STEP 3: LOG THE RESULT ---
+    try:
+        with open(log_file_path, 'a') as f: # 'a' = append
+            f.write(f"\n--- 2. CREATION ATTEMPT ---\n")
+            f.write(f"Error during creation: {creation_error}\n")
+            f.write(f"Variable 'cm_instance' is None? {cm_instance is None}\n")
+            f.write(f"Type of 'cm_instance': {type(cm_instance)}\n")
+    except Exception as e:
+        pass
+
+    # --- STEP 4: PASS THE OBJECT TO THE WRAPPER ---
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
         randomize_position=True, 
         turns_limit=turns_limit,
-        curriculum_manager=curriculum_manager,
+        curriculum_manager=cm_instance, # Pass the instance we tried to create
         rank=rank
     )
     
