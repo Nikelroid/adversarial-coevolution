@@ -1,6 +1,9 @@
 from pettingzoo.classic import gin_rummy_v4
 from agents import Agent
 import random
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
 from hand_scoring import score_gin_rummy_hand
 # --- ADD IMPORT ---
 from agents.ppo_agent import PPOAgent
