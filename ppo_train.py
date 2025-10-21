@@ -441,7 +441,7 @@ def train_ppo(
 
     # Create evaluation environment
     print("Creating evaluation environment...")
-    eval_env = DummyVecEnv([make_env])
+    eval_env = DummyVecEnv([lambda: make_env(rank=999)])
     
     # Setup callbacks
     checkpoint_callback = CheckpointCallback(
