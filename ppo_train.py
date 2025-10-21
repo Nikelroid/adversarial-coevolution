@@ -193,6 +193,33 @@ class WandbCallback(BaseCallback):
             }, step=self.num_timesteps)
         return True
 
+class SubprocessLogCallback(BaseCallback):
+    """
+    A callback to pull logs from subprocess environments and print them.
+    W&B will automatically capture these print statements.
+    """
+    def __init__(self, log_freq: int = 1000, verbose: int = 0):
+        super(SubprocessLogCallback, self).__init__(verbose)
+        self.log_freq = log_freq
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps % self.log_freq == 0:
+            
+            # This calls 'get_and_clear_logs' on all 100 envs
+            # and returns a list of lists: [ [logs_env_0], [logs_env_1], ... ]
+            try:
+                all_logs_per_env = self.training_env.env_method("get_and_clear_logs")
+                
+                for env_idx, log_list in enumerate(all_logs_per_env):
+                    if log_list: # Only print if there are logs
+                        for log_msg in log_list:
+                            # Print to main stdout, which W&B captures
+                            print(f"[Env {env_idx}] {log_msg}")
+                            
+            except Exception as e:
+                print(f"[SubprocessLogCallback] Error collecting logs: {e}")
+                
+        return True
 
 class CurriculumCallback(BaseCallback):
     """Callback to manage curriculum and save checkpoints"""
@@ -254,29 +281,20 @@ class WandbBestModelCallback(BaseCallback):
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
     
-    # DEBUG: Print what we received
-    print(f"[DEBUG make_env] rank={rank}, curriculum_save_dir={curriculum_save_dir}")
-    
-    # Create a NEW CurriculumManager instance in each subprocess
     curriculum_manager = None
     if curriculum_save_dir is not None:
-        print(f"[DEBUG make_env] Creating CurriculumManager with save_dir: {curriculum_save_dir}")
         curriculum_manager = CurriculumManager(
             save_dir=curriculum_save_dir,
             max_pool_size=20
         )
-        print(f"[DEBUG make_env] CurriculumManager created: {curriculum_manager is not None}")
-    else:
-        print(f"[DEBUG make_env] curriculum_save_dir is None! Not creating CurriculumManager")
     
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
         randomize_position=True, 
         turns_limit=turns_limit,
-        curriculum_manager=curriculum_manager
+        curriculum_manager=curriculum_manager,
+        rank=rank  # --- PASS THE RANK TO THE WRAPPER ---
     )
-    
-    print(f"[DEBUG make_env] Wrapper created with curriculum_manager: {env.curriculum_manager is not None}")
     
     env.reset(seed=42 + rank)
     env = Monitor(env)
@@ -323,6 +341,7 @@ def train_ppo(
         save_dir=curriculum_save_dir,
         max_pool_size=20
     )
+
     
     # Initialize Weights & Biases
     # config = {
@@ -391,7 +410,7 @@ def train_ppo(
 
     # Create evaluation environment
     print("Creating evaluation environment...")
-    eval_env = DummyVecEnv([make_env])
+    eval_env = DummyVecEnv([make_env(rank=999)])
     
     # Setup callbacks
     checkpoint_callback = CheckpointCallback(
@@ -417,6 +436,9 @@ def train_ppo(
         curriculum_manager=curriculum_manager,
         model_save_path=save_path
     )
+
+    log_collector_callback = SubprocessLogCallback(log_freq=1000) # Poll logs every 1000 steps
+
     
     # Create PPO model
     print("Initializing PPO model...")
@@ -461,7 +483,7 @@ def train_ppo(
     try:
         model.learn(
             total_timesteps=config['total_timesteps'],
-            callback=[checkpoint_callback, eval_callback, wandb_callback,curriculum_callback],
+            callback=[checkpoint_callback, eval_callback, wandb_callback,curriculum_callback,log_collector_callback],
             progress_bar=True
         )
         

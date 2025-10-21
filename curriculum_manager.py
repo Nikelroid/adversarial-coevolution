@@ -149,9 +149,9 @@ class CurriculumManager:
     
     def _get_current_phase(self, steps: int) -> int:
         """Determine current training phase given a step count"""
-        if steps < 5_000_000:
+        if steps < 5_000:
             return 1
-        elif steps < 15_000_000:
+        elif steps < 15_000:
             return 2
         else:
             return 3
@@ -162,7 +162,7 @@ class CurriculumManager:
         phase = self._get_current_phase(current_total_steps)
         
         # Use frequency from your original code
-        save_freq = 2_000_000 if phase == 1 else (500_000 if phase == 2 else 1_000_000)
+        save_freq = 2_000 if phase == 1 else (500 if phase == 2 else 1_000)
         
         # Check against the TRUE step count
         return (current_total_steps - self.last_checkpoint_step) >= save_freq
