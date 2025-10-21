@@ -14,8 +14,18 @@ class GinRummySB3Wrapper(gym.Env):
     Training agent position is randomized each episode for fair learning.
     """
     
-    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200, curriculum_manager=None, render_mode=None):
+    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200, curriculum_manager=None, render_mode=None, rank=0):
         super().__init__()
+        
+        # --- ADD THESE LINES ---
+        self.rank = rank
+        self.log_buffer = [] 
+        
+        # Log the info you wanted from make_env
+        self.log_buffer.append(
+            f"[make_env rank={self.rank}] Wrapper initialized. "
+            f"CurriculumManager is {'NOT ' if curriculum_manager is None else ''}None."
+        )
         
         self.env = gin_rummy_v4.env(render_mode=render_mode, knock_reward=0.5, gin_reward=1.5, opponents_hand_visible=False)
 
@@ -58,6 +68,15 @@ class GinRummySB3Wrapper(gym.Env):
         self.opponent_agent = None
         
         self.env.reset()
+
+    def get_and_clear_logs(self):
+        """Return the log buffer and clear it."""
+        if not self.log_buffer:
+            return []
+        # Return a copy and clear the original
+        logs_to_return = list(self.log_buffer)
+        self.log_buffer.clear()
+        return logs_to_return
     
     def _select_opponent(self):
         """
@@ -68,7 +87,7 @@ class GinRummySB3Wrapper(gym.Env):
             opponent_type = self.curriculum_manager.get_opponent_type()
             self.current_opponent_type = opponent_type
 
-            print(f"[DEBUG] Episode starting with opponent: {opponent_type}")
+            self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type}")
             
             if opponent_type == 'random':
                 self.opponent_policy = self.opponent_policy_class(self.env)
@@ -85,9 +104,9 @@ class GinRummySB3Wrapper(gym.Env):
                 selfplay_path = self.curriculum_manager.get_selfplay_model_path()
                 try:
                     self.opponent_policy = PPOAgent(model_path=selfplay_path, env=self.env)
-                    print("[Curriculum] Loaded self-play model successfully")
+                    self.log_buffer.append(f"[Rank {self.rank}] Loaded self-play model successfully")
                 except Exception as e:
-                    print(f"[Curriculum] Failed to load self-play model: {e}, using random")
+                    self.log_buffer.append(f"[Rank {self.rank}] FAILED to load self-play model: {e}, using random")
                     self.opponent_policy = self.opponent_policy_class(self.env)
             
             else:
@@ -95,6 +114,7 @@ class GinRummySB3Wrapper(gym.Env):
                 self.opponent_policy = self.opponent_policy_class(self.env)
         else:
             # No curriculum - use default opponent
+            self.log_buffer.append(f"[Rank {self.rank}] THERE IS NO CURRICULUM")
             self.opponent_policy = self.opponent_policy_class(self.env)
     
     def reset(self, seed=None, options=None):
@@ -152,7 +172,7 @@ class GinRummySB3Wrapper(gym.Env):
             mask = obs['action_mask']
             if not mask[action]:
                 # Invalid action - give negative reward and sample valid action
-                print("[Warning] : Invalid Action Choosed", " Action: ", action)
+                self.log_buffer.append(f"[Rank {self.rank}][Warning] Invalid Action Chosen: {action}")
                 reward = -1.0
                 valid_actions = np.where(mask)[0]
                 action = np.random.choice(valid_actions)
