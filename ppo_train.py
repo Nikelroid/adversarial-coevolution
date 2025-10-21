@@ -402,7 +402,10 @@ def train_ppo(
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
 
 
-    
+    print(f"--- DEBUG: Passing this path to envs: {curriculum_save_dir} ---")
+    if curriculum_save_dir is None:
+        print("--- WARNING: curriculum_save_dir IS NONE! THIS IS THE PROBLEM! ---")
+
     train_env = SubprocVecEnv([
         lambda i=i, csd=curriculum_save_dir: make_env(
             turns_limit, 
