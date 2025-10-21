@@ -123,7 +123,7 @@ class CurriculumManager:
             roll = random.random()
             if roll < 0.70 and len(available_policies) > 0:
                 print(f'[MODEL CHOOSED] Phase 3: Pool opponent (found {len(available_policies)} models)')
-                return 'pool'
+                return 'pool', phase , self.total_steps
             elif roll < 0.90:
                 return 'random' , phase , self.total_steps
             elif has_selfplay_model:
