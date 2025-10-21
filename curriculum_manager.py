@@ -52,6 +52,41 @@ class CurriculumManager:
                 print(f"[Curriculum Cache] Pruning {os.path.basename(path_zip)} from RAM.")
                 del self.policy_cache[path_zip]
 
+    def get_opponent_type(self) -> str:
+        """Decide which type of opponent to use based on curriculum phase"""
+        # Always reload state from disk to get latest
+        self._load_state()
+        
+        # Get phase based on the total_steps read from the state file
+        phase = self._get_current_phase(self.total_steps) 
+        available_policies = self._get_available_policies()
+        
+        # Check if self-play model exists
+        self_play_path = os.path.join(self.save_dir, 'current_model_for_selfplay.zip')
+        has_selfplay_model = os.path.exists(self_play_path)
+        
+        if phase == 1:
+            return 'random'
+        
+        elif phase == 2:
+            # 50% Pool, 50% Random
+            if random.random() < 0.5 and len(available_policies) > 0:
+                return 'pool'
+            return 'random'
+        
+        else:  # phase == 3
+            # 70% Pool, 20% Random, 10% Self
+            roll = random.random()
+            if roll < 0.70 and len(available_policies) > 0:
+                return 'pool'
+            elif roll < 0.90:
+                return 'random'
+            elif has_selfplay_model:
+                return 'self'
+            else:
+                # Fallback to random if self-play model not ready
+                return 'random'
+
     # --- NEW METHOD: get_policy_from_pool ---
     def get_policy_from_pool(self, recent_n: int = 10) -> Optional[BaseAlgorithm]:
         """
