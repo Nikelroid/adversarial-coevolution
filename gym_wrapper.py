@@ -202,7 +202,9 @@ class GinRummySB3Wrapper(gym.Env):
             next_obs, reward, _, _, _ = self.env.last()
 
             if abs(reward - 0.2) < 0.001:
-                reward = 0.5
+                reward = 1
+            elif abs(reward - 0.2) < 0.001:
+                reward = 2
 
 
             if self.curriculum_manager is not None:
@@ -231,7 +233,9 @@ class GinRummySB3Wrapper(gym.Env):
                     obs, reward, _, _, info = self.env.last()
 
                     if abs(reward - 0.2) < 0.001:
-                        reward = 0.5
+                        reward = 1
+                    elif abs(reward - 0.2) < 0.001:
+                        reward = 2
 
                     if self.curriculum_manager is not None:
                         self.curriculum_manager.episode_complete()
