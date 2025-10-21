@@ -371,10 +371,10 @@ def train_ppo(
         "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
         "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
         "n_epochs": 4,                     # fewer epochs to avoid overfitting giant batches
-        "gamma": 0.99,                     # standard discount
+        "gamma": 0.995,                     # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.01,                 # slightly higher to encourage exploration
+        "ent_coef": 0.03,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": True,
