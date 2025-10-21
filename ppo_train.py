@@ -281,19 +281,43 @@ class WandbBestModelCallback(BaseCallback):
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
     
+    # --- ADD THIS DEBUG BLOCK ---
+    # This will write a unique file for each subprocess
+    log_file_path = f'./debug_env_{rank}.log'
+    try:
+        with open(log_file_path, 'w') as f:
+            f.write(f"--- make_env(rank={rank}) log ---\n")
+            f.write(f"Type of curriculum_save_dir: {type(curriculum_save_dir)}\n")
+            f.write(f"Value of curriculum_save_dir: {repr(curriculum_save_dir)}\n")
+            
+            if curriculum_save_dir is None:
+                f.write("\nRESULT: IT IS NONE.\n")
+            else:
+                f.write("\nRESULT: It is a value.\n")
+    except Exception as e:
+        # If this fails, we can't do much, but it's good to have
+        pass 
+    # --- END DEBUG BLOCK ---
+
+    
+    # Create a NEW CurriculumManager instance in each subprocess
     curriculum_manager = None
     if curriculum_save_dir is not None:
+        # print(f"[DEBUG make_env] Creating CurriculumManager with save_dir: {curriculum_save_dir}")
         curriculum_manager = CurriculumManager(
             save_dir=curriculum_save_dir,
             max_pool_size=20
         )
+        # print(f"[DEBUG make_env] CurriculumManager created: {curriculum_manager is not None}")
+    # else:
+        # print(f"[DEBUG make_env] curriculum_save_dir is None! Not creating CurriculumManager")
     
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
         randomize_position=True, 
         turns_limit=turns_limit,
         curriculum_manager=curriculum_manager,
-        rank=rank  # --- PASS THE RANK TO THE WRAPPER ---
+        rank=rank
     )
     
     env.reset(seed=42 + rank)
