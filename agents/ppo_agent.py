@@ -2,31 +2,44 @@ import numpy as np
 from typing import Optional
 from agents import Agent
 import torch
-
+from stable_baselines3 import PPO
 
 class PPOAgent(Agent):
     """
     PPO Agent wrapper for playing Gin Rummy using a trained model.
+    Can be initialized with a path (for loading) or a model object (for caching).
     """
     
-    def __init__(self, model_path: Optional[str] = None, env=None):
+    # --- MODIFY __init__ ---
+    def __init__(self, 
+                 model_path: Optional[str] = None, 
+                 env=None, 
+                 model: Optional[PPO] = None  # Add 'model' argument
+                 ):
         """
         Initialize PPO Agent.
         
         Args:
-            model_path: Path to the trained PPO model
+            model_path: Path to the trained PPO model (if 'model' is not provided)
             env: GinRummyEnvAPI instance
+            model: An already-loaded PPO model object (preferred)
         """
         self.env = env
         self.player = None
-        self.model = None
+        self.model = model  # Assign pre-loaded model first
         
-        if model_path:
+        if self.model is None and model_path is not None:
+            # Fallback: load from path if no model was given
             self.load_model(model_path)
+        elif self.model is None:
+            # Error: we were given neither
+            raise ValueError("PPOAgent must be initialized with either a 'model' object or a 'model_path'.")
+        # else:
+            # print("PPOAgent initialized with pre-loaded model.") # (Optional debug)
     
     def load_model(self, model_path: str):
         """Load a trained PPO model."""
-        from stable_baselines3 import PPO
+        # from stable_baselines3 import PPO # (Already imported at top)
         self.model = PPO.load(model_path)
         print(f"Loaded PPO model from {model_path}")
     
