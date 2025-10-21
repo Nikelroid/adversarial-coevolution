@@ -138,7 +138,7 @@ class CurriculumManager:
         phase = self._get_current_phase(current_total_steps)
         
         # Use frequency from your original code
-        save_freq = 2_000_0 if phase == 1 else (500_0 if phase == 2 else 1_000_0)
+        save_freq = 2_000_000 if phase == 1 else (500_0 if phase == 2 else 1_000_0)
         
         # Check against the TRUE step count
         return (current_total_steps - self.last_checkpoint_step) >= save_freq
