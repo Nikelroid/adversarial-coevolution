@@ -437,7 +437,7 @@ def train_ppo(
         model_save_path=save_path
     )
 
-    log_collector_callback = SubprocessLogCallback(log_freq=1) # Poll logs every 1000 steps
+    log_collector_callback = SubprocessLogCallback(log_freq=100) # Poll logs every 1000 steps
 
     
     # Create PPO model
