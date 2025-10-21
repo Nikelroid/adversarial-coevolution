@@ -410,7 +410,7 @@ def train_ppo(
 
     # Create evaluation environment
     print("Creating evaluation environment...")
-    eval_env = DummyVecEnv([make_env(rank=999)])
+    eval_env = DummyVecEnv([make_env()])
     
     # Setup callbacks
     checkpoint_callback = CheckpointCallback(
@@ -437,7 +437,7 @@ def train_ppo(
         model_save_path=save_path
     )
 
-    log_collector_callback = SubprocessLogCallback(log_freq=1000) # Poll logs every 1000 steps
+    log_collector_callback = SubprocessLogCallback(log_freq=1) # Poll logs every 1000 steps
 
     
     # Create PPO model
