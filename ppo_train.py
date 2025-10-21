@@ -283,7 +283,6 @@ class WandbBestModelCallback(BaseCallback):
 def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     """Create and wrap the environment."""
     
-    # This will write/overwrite the debug log file
     log_file_path = f'./debug_env_{rank}.log'
     
     # --- STEP 1: LOG WHAT WE RECEIVED ---
@@ -302,7 +301,6 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
     creation_error = "No error."
     try:
         if curriculum_save_dir is not None:
-            # This line attempts to create the object
             cm_instance = CurriculumManager(
                 save_dir=curriculum_save_dir,
                 max_pool_size=20
@@ -311,10 +309,9 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
             creation_error = "Skipped (curriculum_save_dir was None)."
             
     except Exception as e:
-        # If the import 'CurriculumManager' failed, this will catch it
         creation_error = f"CRITICAL ERROR: {e}"
 
-    # --- STEP 3: LOG THE RESULT ---
+    # --- STEP 3: LOG THE CREATION RESULT ---
     try:
         with open(log_file_path, 'a') as f: # 'a' = append
             f.write(f"\n--- 2. CREATION ATTEMPT ---\n")
@@ -332,6 +329,19 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
         curriculum_manager=cm_instance, # Pass the instance we tried to create
         rank=rank
     )
+
+    # ---!! NEW STEP 5: LOG THE WRAPPER'S INTERNAL STATE !!---
+    try:
+        with open(log_file_path, 'a') as f: # 'a' = append
+            f.write(f"\n--- 3. WRAPPER STATE ---\n")
+            # We access the wrapper's *actual* internal attribute
+            f.write(f"env.curriculum_manager is None? {env.curriculum_manager is None}\n")
+            f.write(f"Type of env.curriculum_manager: {type(env.curriculum_manager)}\n")
+            f.write(f"Wrapper's log buffer: {env.log_buffer}\n")
+    except Exception as e:
+        with open(log_file_path, 'a') as f:
+            f.write(f"\n--- 3. WRAPPER STATE FAILED --- {e}\n")
+    # ---!! END NEW STEP !!---
     
     env.reset(seed=42 + rank)
     env = Monitor(env)
@@ -439,10 +449,7 @@ def train_ppo(
     # train_env = DummyVecEnv([lambda: make_env(turns_limit) for _ in range(50)])
 
 
-    print(f"--- DEBUG: Passing this path to envs: {curriculum_save_dir} ---")
-    if curriculum_save_dir is None:
-        print("--- WARNING: curriculum_save_dir IS NONE! THIS IS THE PROBLEM! ---")
-
+    
     train_env = SubprocVecEnv([
         lambda i=i, csd=curriculum_save_dir: make_env(
             turns_limit, 
