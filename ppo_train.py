@@ -236,7 +236,7 @@ class CurriculumCallback(BaseCallback):
         
         # 1. Update the manager's state file so subprocesses can read it
         #    (Do this less frequently to avoid filesystem hammering)
-        if current_steps % 10000 == 0: # Update JSON file every 100 steps
+        if current_steps % 1000 == 0: # Update JSON file every 100 steps
              self.curriculum_manager.update_total_steps(current_steps)
         
         # 2. Periodically save current model for self-play
