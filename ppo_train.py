@@ -315,7 +315,7 @@ def train_ppo(
     wandb_project=WANDB_PROJECT,
     wandb_run_name=None,
     wandb_config=None,
-    turns_limit=2000,
+    turns_limit=200,
     num_env = 100
 ):
     """
@@ -627,9 +627,9 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-key', type=str, default=None,
                        help='Weights & Biases API key')
     
-    parser.add_argument('--turns-limit', type=int, default=2000,
+    parser.add_argument('--turns-limit', type=int, default=100,
                        help='Limit on turns per game')
-    parser.add_argument('--num-env', type=int, default=100,
+    parser.add_argument('--num-env', type=int, default=96,
                        help='Number of running envs')
     
     args = parser.parse_args()
