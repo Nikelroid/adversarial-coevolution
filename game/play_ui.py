@@ -534,7 +534,7 @@ def play_game(human_player_id=0, model_path="path/to/your/model.zip"):
 if __name__ == "__main__":
     # !!! IMPORTANT !!!
     # Change this path to point to your trained PPO model
-    MODEL_PATH = "./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final" 
+    MODEL_PATH = "./artifacts/models/ppo_gin_rummy/gin_rummy_best" 
     
     # This will initialize, run, and quit Pygame cleanly one time.
     play_game(human_player_id=0, model_path=MODEL_PATH)
