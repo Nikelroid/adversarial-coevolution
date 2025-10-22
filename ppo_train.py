@@ -453,7 +453,7 @@ def train_ppo(
 
     policy_kwargs_net = dict(
     features_extractor_class=CombinedExtractor,
-    net_arch=dict(pi=[512, 512, 256], vf=[512,512,256]),
+    net_arch=dict(pi=[512, 512, 256,128], vf=[512,512,256,128]),
     activation_fn=torch.nn.Tanh,
     ortho_init=True,
     optimizer_class=optim.Adam,
