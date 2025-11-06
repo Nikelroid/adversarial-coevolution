@@ -82,7 +82,7 @@ class LLMPlayerHandler:
         
         # Get prompt
         prompt = self.prompts.get(prompt_name, self.prompts.get('default_prompt', 
-                                                                 "You are playing Gin_Rummy. Choose the best move from."))
+                                                                 "You are playing Tic Tac Toe. Choose the best move."))
         
         # Get action from LLM
         try:
