@@ -71,10 +71,10 @@ class OllamaAPI:
         """
         # Format the full prompt with observation and valid actions
         full_prompt = self._format_prompt(prompt, observation, valid_actions)
-        print(full_prompt)
+        
         # Get LLM response
         response = self.generate(full_prompt, temperature=0.3, max_tokens=50)
-        print(response)
+        
         # Parse action from response
         action = self._parse_action(response, valid_actions)
         
@@ -114,7 +114,6 @@ Your action (respond with ONLY a single number from the valid actions):"""
         return full_prompt
     
     def _board_to_string(self, board) -> str:
-        board = board[0]
         """
         Convert Gin Rummy observation to readable string.
         
