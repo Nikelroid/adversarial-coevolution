@@ -71,10 +71,10 @@ class OllamaAPI:
         """
         # Format the full prompt with observation and valid actions
         full_prompt = self._format_prompt(prompt, observation, valid_actions)
-        
+        print('fullprompt: ',full_prompt)
         # Get LLM response
-        response = self.generate(full_prompt, temperature=0.3, max_tokens=50)
-        
+        response = self.generate(full_prompt, temperature=0.3, max_tokens=3072)
+        print(response)
         # Parse action from response
         action = self._parse_action(response, valid_actions)
         
@@ -114,6 +114,7 @@ Your action (respond with ONLY a single number from the valid actions):"""
         return full_prompt
     
     def _board_to_string(self, board) -> str:
+        board = board[0]
         """
         Convert Gin Rummy observation to readable string.
         
@@ -153,16 +154,19 @@ Your action (respond with ONLY a single number from the valid actions):"""
         import re
         
         # Find all numbers in the response
-        numbers = re.findall(r'\b\d+\b', response)
+        # numbers = re.findall(r'\b\d+\b', response)
+        match = re.search(r'\\boxed\{(\d+)\}', response)
+        if match:  final_answer = match.group(1)
         
         # Try each number to see if it's a valid action
-        for num_str in numbers:
-            try:
-                action = int(num_str)
-                if action in valid_actions:
-                    return action
-            except ValueError:
-                continue
+        return int(final_answer)
+        # for num_str in numbers:
+        #     try:
+        #         action = int(num_str)
+        #         if action in valid_actions:
+        #             return action
+        #     except ValueError:
+        #         continue
         
         # If no valid action found, return None
         print(f"[WARNING] Could not parse valid action from response: {response}")

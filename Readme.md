@@ -134,7 +134,7 @@ agents/
 └── llm_agent.py         # Main LLM agent class
 
 config/
-└── prompts.yaml         # Strategy prompts for Gin Rummy
+└── prompt.txt         # Strategy prompts for Gin Rummy
 ```
 
 ### Components
@@ -164,7 +164,7 @@ config/
 
 ## Gin Rummy Prompts
 
-Edit `config/prompts.yaml` to customize agent behavior. Available prompts:
+Edit `config/prompt.txt` to customize agent behavior. Available prompts:
 
 ### default_prompt
 Balanced strategy that builds melds and reduces deadwood. Good for general play.
@@ -291,7 +291,7 @@ ollama pull llama3.2:1b
 
 If the LLM often returns invalid actions:
 - **Upgrade model**: Try `phi3:mini` or `llama3.2:3b` for better parsing
-- **Adjust prompt**: Make output format more explicit in prompts.yaml
+- **Adjust prompt**: Make output format more explicit in prompt.txt
 - **Check temperature**: Lower temperature in api.py (currently 0.3) for more deterministic output
 - **Fallback handles it**: ActionValidator automatically falls back to valid random actions
 
@@ -307,11 +307,11 @@ If the LLM often returns invalid actions:
 - Try different prompts (aggressive/defensive/balanced)
 - Use larger models (phi3:mini, llama3.2:3b)
 - Enhance prompts with more specific Gin Rummy strategies
-- Add few-shot examples in prompts.yaml
+- Add few-shot examples in prompt.txt
 
 ## Advanced: Custom Prompts
 
-Add custom prompts to `config/prompts.yaml`:
+Add custom prompts to `config/prompt.txt`:
 
 ```yaml
 prompts:

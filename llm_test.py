@@ -8,42 +8,39 @@ Make sure Ollama is running: ollama serve
 from agents.llm_agent import LLMAgent
 from agents.random_agent import RandomAgent
 #Import your Gin Rummy environment API
-from src.gin_rummy_api import GinRummyEnvAPI
+from gym_wrapper import GinRummySB3Wrapper
 
 
 def example_1_basic_usage():
     """Example 1: Basic LLM agent usage"""
     print("\n=== Example 1: Basic LLM Agent ===\n")
     
-    env = GinRummyEnvAPI(render_mode="ansi")
-    env.reset(seed=42)
+    env = GinRummySB3Wrapper(opponent_policy=RandomAgent)
+    # env.reset(seed=42)
     
     # Create LLM agent
-    llm_agent = LLMAgent(env, model="gemma3:12b", prompt_name="default_prompt")
-    llm_agent.set_player("player_0")
+    llm_agent = LLMAgent(env.env, model="deepseek-r1:14b", prompt_name="default_prompt")
+    # llm_agent.set_player("player_0")
     
     # Create random opponent
-    random_agent = RandomAgent(env)
-    random_agent.set_player("player_1")
-    
+    # random_agent = RandomAgent(env)
+    # random_agent.set_player("player_1")
+    obs, info = env.reset(seed=42)
+    termination, truncation = False, False
     # Play one game 
-    for step_data in env.play_game():
-        agent_name, obs, reward, termination, truncation, info = step_data 
-        
+    while 1:
+
         if termination or truncation:
             print(f"Game over! Final reward: {reward}")
             break
         
-        if agent_name == "player_0":
-            print("Valid Moves:", obs["action_mask"])
-            print("Observations:",obs["observation"])
-            
-            action = llm_agent.do_action()
-            print(f"LLM chose action: {action}")
-        else:
-            action = random_agent.do_action()
+        # print("Valid Moves:", obs["action_mask"])
+        # print("Observations:",obs["observation"])
         
-        env.step(action)
+        action = llm_agent.do_action()
+        print(f"LLM chose action: {action}")
+
+        obs, reward, termination, truncation, info = env.step(action)
     
     # Check statistics
     llm_agent.print_statistics()
@@ -61,7 +58,7 @@ def example_2_different_strategies():
         env = GinRummyEnvAPI(render_mode="ansi")
         env.reset(seed=42)
         
-        llm_agent = LLMAgent(env, model="gemma3:12b", prompt_name=strategy)
+        llm_agent = LLMAgent(env, model="deepseek-r1:14b", prompt_name=strategy)
         llm_agent.set_player("player_0")
         
         random_agent = RandomAgent(env)
@@ -99,7 +96,7 @@ def example_3_llm_vs_random():
     env = GinRummyEnvAPI(render_mode="ansi")
     
     # Create agents
-    llm_agent = LLMAgent(env, model="gemma3:12b", prompt_name="balanced_prompt")
+    llm_agent = LLMAgent(env, model="deepseek-r1:14b", prompt_name="balanced_prompt")
     llm_agent.set_player("player_0")
     
     random_agent = RandomAgent(env)
@@ -162,7 +159,7 @@ def example_4_ppo_training():
     # Create LLM opponent
     llm_opponent = LLMAgent(
         env_api, 
-        model="gemma3:12b", 
+        model="deepseek-r1:14b", 
         prompt_name="balanced_prompt"
     )
     
@@ -190,7 +187,7 @@ def example_5_test_connection():
     from llm.api import OllamaAPI
     
     # Create API instance
-    api = OllamaAPI(model="gemma3:12b")
+    api = OllamaAPI(model="deepseek-r1:14b")
     
     # Check connection
     if api.check_connection():
@@ -210,7 +207,7 @@ def example_5_test_connection():
         print("\nMake sure:")
         print("1. Ollama is installed")
         print("2. Run 'ollama serve' in terminal")
-        print("3. Run 'ollama pull gemma3:12b'")
+        print("3. Run 'ollama pull deepseek-r1:14b'")
 
 
 if __name__ == "__main__":
