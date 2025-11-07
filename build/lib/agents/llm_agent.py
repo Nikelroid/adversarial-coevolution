@@ -20,7 +20,7 @@ class LLMAgent(Agent):
         Args:
             env: Gin Rummy game environment
             model: Ollama model name (default: llama3.2:1b - lightweight and fast)
-            prompt_name: Name of prompt to use from config/prompts.yaml
+            prompt_name: Name of prompt to use from config/prompt.txt
         """
         self.env = env
         self.model = model
@@ -28,7 +28,7 @@ class LLMAgent(Agent):
         
         # Initialize player handler (coordinates API and validation)
         self.player_handler = LLMPlayerHandler(
-            config_path="config/prompts.yaml",
+            config_path="config/prompt.txt",
             model=model,
             fallback_strategy="random"
         )

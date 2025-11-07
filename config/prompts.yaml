@@ -25,6 +25,8 @@ prompts:
     - Declaring Gin (when deadwood = 0)
     
     Think strategically and choose the action that best improves your position in the game.
+    
+
   
   # Aggressive Gin-focused strategy
   aggressive_prompt: |
