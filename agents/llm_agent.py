@@ -20,7 +20,7 @@ class LLMAgent(Agent):
         Args:
             env: Gin Rummy game environment
             model: Ollama model name (default: llama3.2:1b - lightweight and fast)
-            prompt_name: Name of prompt to use from config/prompts.yaml
+            prompt_name: Name of prompt to use from config/prompt.txt
         """
         super().__init__(env)  # Call parent class __init__
         self.model = model
@@ -28,7 +28,7 @@ class LLMAgent(Agent):
         
         # Initialize player handler (coordinates API and validation)
         self.player_handler = LLMPlayerHandler(
-            config_path="config/prompts.yaml",
+            config_path="config/prompt.txt",
             model=model,
             fallback_strategy="random"
         )
@@ -36,6 +36,17 @@ class LLMAgent(Agent):
         print(f"[INFO] LLM Agent initialized for Gin Rummy with model: {model}")
         print(f"[INFO] Using prompt: {prompt_name}")
 
+    def get_observation(self):
+        """Get the current observation for this agent."""
+        # Handle both GinRummyEnvAPI and raw PettingZoo env
+        if hasattr(self.env, 'get_current_state'):
+            # Using GinRummyEnvAPI wrapper
+            obs, _, _, _, _ = self.env.get_current_state()
+        else:
+            # Using raw PettingZoo environment
+            obs, _, _, _, _ = self.env.last()
+        return obs 
+    
     def do_action(self):
         """
         Get action from LLM based on current Gin Rummy observation.
@@ -44,14 +55,12 @@ class LLMAgent(Agent):
             Valid action index
         """
         # Get current observation
-        if hasattr(self.env, 'last'):
-            observation, _, _, _, _ = self.env.last()
-        else:
-            obs, _, _, _, _ = self.env.get_current_state()
-            observation = obs
+        obs = self.get_observation()
+
+        # print(f"valid moves for test{obs}")
         
         # Get action mask
-        action_mask = observation.get("action_mask")
+        action_mask = obs.get("action_mask")
         
         if action_mask is None:
             raise ValueError("Observation must contain 'action_mask'")
@@ -63,7 +72,8 @@ class LLMAgent(Agent):
         
         # Get action from LLM player handler
         try:
-            action = self.player_handler.get_action(observation, self.prompt_name)
+            print(f"valid moves for test{obs}")
+            action = self.player_handler.get_action(obs, self.prompt_name)
             return action
         except Exception as e:
             print(f"[ERROR] LLM Agent failed to get action: {e}")

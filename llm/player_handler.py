@@ -14,7 +14,7 @@ class LLMPlayerHandler:
     """
     
     def __init__(self, 
-                 config_path: str = "config/prompts.yaml",
+                 config_path: str = "config/prompt.txt",
                  model: str = "llama3.2:1b",
                  fallback_strategy: str = "random"):
         """
@@ -44,19 +44,15 @@ class LLMPlayerHandler:
             Dictionary of prompts
         """
         try:
-            with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-                return config.get('prompts', {})
+            with open(config_path, 'r', encoding='utf-8') as f:
+                prompt_text = f.read().strip()
+                return {'default_prompt': prompt_text}
         except FileNotFoundError:
-            print(f"[WARNING] Prompts file not found at {config_path}. Using default prompt.")
-            return {
-                'default_prompt': "You are playing Tic Tac Toe. Choose the best move."
-            }
+            print(f"[WARNING] Prompt file not found at {config_path}. Using default prompt.")
+            return {'default_prompt': "You are playing Gin_rummy. Choose the best move."}
         except Exception as e:
-            print(f"[ERROR] Error loading prompts: {e}")
-            return {
-                'default_prompt': "You are playing Tic Tac Toe. Choose the best move."
-            }
+            print(f"[ERROR] Error loading prompt file: {e}")
+            return {'default_prompt': "You are playing Gin_rummy. Choose the best move."}
     
     def get_action(self, observation: Dict[str, Any], prompt_name: str = "default_prompt") -> int:
         """
@@ -75,6 +71,7 @@ class LLMPlayerHandler:
             raise ValueError("Observation must contain 'action_mask'")
         
         # Get valid actions
+        
         valid_actions = self.validator.get_valid_actions(action_mask)
         
         if len(valid_actions) == 0:
