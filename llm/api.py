@@ -100,7 +100,7 @@ class OllamaAPI:
         }
 
         try:
-            response = requests.post(self.api_endpoint, json=payload, timeout=120)
+            response = requests.post(self.api_endpoint, json=payload, timeout=1000)
             response.raise_for_status()
             result = response.json()
             return result.get("response", "").strip()
