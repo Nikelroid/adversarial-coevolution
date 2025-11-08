@@ -19,7 +19,7 @@ def example_1_basic_usage():
     # env.reset(seed=42)
     
     # Create LLM agent
-    llm_agent = LLMAgent(env.env, model="deepseek-r1:14b", prompt_name="default_prompt")
+    llm_agent = LLMAgent(env.env, model="qwen3-vl:2b", prompt_name="default_prompt")
     # llm_agent.set_player("player_0")
     
     # Create random opponent
@@ -58,7 +58,7 @@ def example_2_different_strategies():
         env = GinRummyEnvAPI(render_mode="ansi")
         env.reset(seed=42)
         
-        llm_agent = LLMAgent(env, model="deepseek-r1:14b", prompt_name=strategy)
+        llm_agent = LLMAgent(env, model="qwen3-vl:2b", prompt_name=strategy)
         llm_agent.set_player("player_0")
         
         random_agent = RandomAgent(env)
@@ -96,7 +96,7 @@ def example_3_llm_vs_random():
     env = GinRummyEnvAPI(render_mode="ansi")
     
     # Create agents
-    llm_agent = LLMAgent(env, model="deepseek-r1:14b", prompt_name="balanced_prompt")
+    llm_agent = LLMAgent(env, model="qwen3-vl:2b", prompt_name="balanced_prompt")
     llm_agent.set_player("player_0")
     
     random_agent = RandomAgent(env)
@@ -159,7 +159,7 @@ def example_4_ppo_training():
     # Create LLM opponent
     llm_opponent = LLMAgent(
         env_api, 
-        model="deepseek-r1:14b", 
+        model="qwen3-vl:2b", 
         prompt_name="balanced_prompt"
     )
     
@@ -187,7 +187,7 @@ def example_5_test_connection():
     from llm.api import OllamaAPI
     
     # Create API instance
-    api = OllamaAPI(model="deepseek-r1:14b")
+    api = OllamaAPI(model="qwen3-vl:2b")
     
     # Check connection
     if api.check_connection():
@@ -207,7 +207,7 @@ def example_5_test_connection():
         print("\nMake sure:")
         print("1. Ollama is installed")
         print("2. Run 'ollama serve' in terminal")
-        print("3. Run 'ollama pull deepseek-r1:14b'")
+        print("3. Run 'ollama pull qwen3-vl:2b'")
 
 
 if __name__ == "__main__":
