@@ -6,6 +6,7 @@ Make sure Ollama is running: ollama serve
 """
 
 from agents.llm_agent import LLMAgent
+from agents.ppo_agent import PPOAgent
 from agents.random_agent import RandomAgent
 #Import your Gin Rummy environment API
 from gym_wrapper import GinRummySB3Wrapper
@@ -150,57 +151,34 @@ def example_4_llm_vs_rl(model):
     """Example 3: LLM agent vs Random agent"""
     print("\n=== Example 3: LLM vs Random ===\n")
     
-    env = GinRummyEnvAPI(render_mode="ansi")
+    env = GinRummySB3Wrapper(opponent_policy=PPOAgent)
+    # env.reset(seed=42)
     
-    # Create agents
-    llm_agent = LLMAgent(env, model=model, prompt_name="balanced_prompt")
-    llm_agent.set_player("player_0")
+    # Create LLM agent
+    llm_agent = LLMAgent(env.env, model=model, prompt_name="default_prompt")
+    # llm_agent.set_player("player_0")
     
-    random_agent = RandomAgent(env)
-    random_agent.set_player("player_1")
-    
-    # Play 10 games
-    results = {"llm": 0, "random": 0, "draws": 0}
-    
-    for game_num in range(10):
-        env.reset()
-        final_agent = None
-        final_reward = 0
+    # Create random opponent
+    # random_agent = RandomAgent(env)
+    # random_agent.set_player("player_1")
+    obs, info = env.reset(seed=42)
+    termination, truncation = False, False
+    # Play one game 
+    while 1:
+
+        if termination or truncation:
+            print(f"Game over! Final reward: {reward}")
+            break
         
-        for step_data in env.play_game():
-            agent_name, obs, reward, termination, truncation, info = step_data
-            
-            if termination or truncation:
-                final_agent = agent_name
-                final_reward = reward
-                break
-            
-            if agent_name == "player_0":
-                action = llm_agent.do_action()
-            else:
-                action = random_agent.do_action()
-            
-            env.step(action)
+        # print("Valid Moves:", obs["action_mask"])
+        # print("Observations:",obs["observation"])
         
-        # Determine winner
-        if final_reward > 0:
-            if final_agent == "player_0":
-                results["llm"] += 1
-            else:
-                results["random"] += 1
-        elif final_reward == 0:
-            results["draws"] += 1
-        else:
-            if final_agent == "player_0":
-                results["random"] += 1
-            else:
-                results["llm"] += 1
+        action = llm_agent.do_action()
+        print(f"LLM chose action: {action}")
+
+        obs, reward, termination, truncation, info = env.step(action)
     
-    print(f"\nResults after 10 games:")
-    print(f"LLM wins: {results['llm']}")
-    print(f"Random wins: {results['random']}")
-    print(f"Draws: {results['draws']}")
-    
+    # Check statistics
     llm_agent.print_statistics()
 
 def example_5_ppo_training(model):
