@@ -12,9 +12,9 @@ class PPOAgent(Agent):
     
     # --- MODIFY __init__ ---
     def __init__(self, 
-                 model_path: Optional[str] = None, 
+                 model_path: Optional[str] = "./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final", 
                  env=None, 
-                 model: Optional[PPO] = None  # Add 'model' argument
+                 model: Optional[PPO] = None 
                  ):
         """
         Initialize PPO Agent.
