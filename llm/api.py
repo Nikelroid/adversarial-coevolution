@@ -6,6 +6,8 @@ import json
 import re  # ### MODIFIED ###
 from typing import Dict, Any, Optional, List, Tuple  # ### MODIFIED ###
 import numpy as np  # ### MODIFIED ###
+import logging
+
 
 # ### NEW ###
 # Constants for card and action translation
@@ -28,6 +30,7 @@ class OllamaAPI:
             model: Name of the Ollama model to use (default: llama3.2:1b - lightweight)
             base_url: Base URL for Ollama API (default: http://localhost:11434)
         """
+        logging.basicConfig(filename='app.log',level=logging.INFO, format='%(message)s')
         self.model = model
         self.base_url = base_url
         self.api_endpoint = f"{self.base_url}/api/generate"
@@ -125,13 +128,27 @@ class OllamaAPI:
         """
         # Format the full prompt with observation and valid actions
         full_prompt = self._format_prompt(prompt, observation, valid_actions)
-        print('fullprompt: ',full_prompt)
+        logging.info ('='*80)
+        logging.info ('')
+        logging.info ('                    NEW MOVE')
+        logging.info ('')
+        logging.info ('='*80)
+        logging.info ('')
+        logging.info('                     Fullprompt: ')
+        logging.info(full_prompt)
 
         
         # Get LLM response
         # Low temperature to reduce creativity and stick to the requested format
         response = self.generate(full_prompt, temperature=0.7, max_tokens=3072) 
-        print(response)
+        logging.info ('+'*80)
+        logging.info ('')
+        logging.info ('                    Response Recieved')
+        logging.info ('')
+        logging.info ('+'*80)
+        logging.info ('')
+        logging.info('                     Response: ')
+        logging.info(response)
         # Parse action from response
         # ### MODIFIED ### Pass valid_actions for context, though parser uses class map
         action = self._parse_action(response, valid_actions)
