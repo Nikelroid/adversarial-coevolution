@@ -9,7 +9,7 @@ from agents.llm_agent import LLMAgent
 from agents.ppo_agent import PPOAgent
 from agents.random_agent import RandomAgent
 # Import your Gin Rummy environment API and SB3 Wrapper
-from gym_wrapper import GinRummySB3Wrapper, GinRummyEnvAPI
+from gym_wrapper import GinRummySB3Wrapper
 
 
 def test_1_single_game_random(model):
@@ -185,7 +185,7 @@ def test_5_ppo_training(model):
     
     # Create the base PettingZoo environment
     # Note: Use render_mode=None for training, "ansi" is for debugging
-    env_api = GinRummyEnvAPI(render_mode=None)
+    env_api = GinRummySB3Wrapper(render_mode=None)
     
     # Create LLM opponent
     llm_opponent = LLMAgent(
