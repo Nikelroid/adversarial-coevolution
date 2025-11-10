@@ -76,7 +76,7 @@ class LLMAgent(Agent):
             action = self.player_handler.get_action(obs, self.prompt_name)
             return action
         except Exception as e:
-            #print(f"[ERROR] LLM Agent failed to get action: {e}")
+            print(f"[ERROR] LLM Agent failed to get action: {e}")
             # Fallback to random valid action
             print("[INFO] Using random fallback action")
             return np.random.choice(valid_actions)
