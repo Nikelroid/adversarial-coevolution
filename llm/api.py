@@ -80,7 +80,7 @@ class OllamaAPI:
         except ValueError:
             return (99, 99) # Put invalid cards at the end
 
-    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 3072) -> str:
+    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 8192) -> str:
         """
         Generate text using Ollama API.
         
@@ -140,7 +140,7 @@ class OllamaAPI:
         
         # Get LLM response
         # Low temperature to reduce creativity and stick to the requested format
-        response = self.generate(full_prompt, temperature=0.7, max_tokens=3072) 
+        response = self.generate(full_prompt, temperature=0.7, max_tokens=8192) 
         logging.info ('+'*80)
         logging.info ('')
         logging.info ('                    Response Recieved')
