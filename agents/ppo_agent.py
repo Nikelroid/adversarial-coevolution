@@ -13,7 +13,7 @@ class PPOAgent(Agent):
     # --- MODIFY __init__ ---
     def __init__(self, 
                  env, 
-                 model_path: Optional[str] = "./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final", 
+                 model_path: Optional[str] = "./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final_knock", 
                  model: Optional[PPO] = None 
                  ):
         """
