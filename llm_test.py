@@ -278,17 +278,17 @@ if __name__ == "__main__":
     print("LLM Agent Examples for Gin Rummy")
     print("=" * 60)
 
-    if args.testnumber==1:
+    if int(args.testnumber)==1:
         example_1_basic_usage(args.model)
-    elif args.testnumber==2:
+    elif int(args.testnumber)==2:
         example_2_different_strategies(args.model)
-    elif args.testnumber==3:
+    elif int(args.testnumber)==3:
         example_3_llm_vs_random(args.model)
-    elif args.testnumber==4:
+    elif int(args.testnumber)==4:
         example_4_llm_vs_rl(args.model)
-    elif args.testnumber==5:
+    elif int(args.testnumber)==5:
         example_5_ppo_training(args.model)
-    elif args.testnumber==6:
+    elif int(args.testnumber)==6:
         example_6_test_connection(args.model)
 
 
