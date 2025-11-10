@@ -11,7 +11,7 @@ from agents.random_agent import RandomAgent
 from gym_wrapper import GinRummySB3Wrapper
 
 
-def example_1_basic_usage():
+def example_1_basic_usage(model):
     """Example 1: Basic LLM agent usage"""
     print("\n=== Example 1: Basic LLM Agent ===\n")
     
@@ -19,7 +19,7 @@ def example_1_basic_usage():
     # env.reset(seed=42)
     
     # Create LLM agent
-    llm_agent = LLMAgent(env.env, model="qwen3:32b", prompt_name="default_prompt")
+    llm_agent = LLMAgent(env.env, model=model, prompt_name="default_prompt")
     # llm_agent.set_player("player_0")
     
     # Create random opponent
@@ -46,7 +46,7 @@ def example_1_basic_usage():
     llm_agent.print_statistics()
 
 
-def example_2_different_strategies():
+def example_2_different_strategies(model):
     """Example 2: Try different prompt strategies"""
     print("\n=== Example 2: Different Strategies ===\n")
     
@@ -58,7 +58,7 @@ def example_2_different_strategies():
         env = GinRummyEnvAPI(render_mode="ansi")
         env.reset(seed=42)
         
-        llm_agent = LLMAgent(env, model="qwen3:32b", prompt_name=strategy)
+        llm_agent = LLMAgent(env, model=model, prompt_name=strategy)
         llm_agent.set_player("player_0")
         
         random_agent = RandomAgent(env)
@@ -89,14 +89,14 @@ def example_2_different_strategies():
         llm_agent.reset_statistics()
 
 
-def example_3_llm_vs_random():
+def example_3_llm_vs_random(model):
     """Example 3: LLM agent vs Random agent"""
     print("\n=== Example 3: LLM vs Random ===\n")
     
     env = GinRummyEnvAPI(render_mode="ansi")
     
     # Create agents
-    llm_agent = LLMAgent(env, model="qwen3:32b", prompt_name="balanced_prompt")
+    llm_agent = LLMAgent(env, model=model, prompt_name="balanced_prompt")
     llm_agent.set_player("player_0")
     
     random_agent = RandomAgent(env)
@@ -146,8 +146,64 @@ def example_3_llm_vs_random():
     
     llm_agent.print_statistics()
 
+def example_4_llm_vs_rl(model):
+    """Example 3: LLM agent vs Random agent"""
+    print("\n=== Example 3: LLM vs Random ===\n")
+    
+    env = GinRummyEnvAPI(render_mode="ansi")
+    
+    # Create agents
+    llm_agent = LLMAgent(env, model=model, prompt_name="balanced_prompt")
+    llm_agent.set_player("player_0")
+    
+    random_agent = RandomAgent(env)
+    random_agent.set_player("player_1")
+    
+    # Play 10 games
+    results = {"llm": 0, "random": 0, "draws": 0}
+    
+    for game_num in range(10):
+        env.reset()
+        final_agent = None
+        final_reward = 0
+        
+        for step_data in env.play_game():
+            agent_name, obs, reward, termination, truncation, info = step_data
+            
+            if termination or truncation:
+                final_agent = agent_name
+                final_reward = reward
+                break
+            
+            if agent_name == "player_0":
+                action = llm_agent.do_action()
+            else:
+                action = random_agent.do_action()
+            
+            env.step(action)
+        
+        # Determine winner
+        if final_reward > 0:
+            if final_agent == "player_0":
+                results["llm"] += 1
+            else:
+                results["random"] += 1
+        elif final_reward == 0:
+            results["draws"] += 1
+        else:
+            if final_agent == "player_0":
+                results["random"] += 1
+            else:
+                results["llm"] += 1
+    
+    print(f"\nResults after 10 games:")
+    print(f"LLM wins: {results['llm']}")
+    print(f"Random wins: {results['random']}")
+    print(f"Draws: {results['draws']}")
+    
+    llm_agent.print_statistics()
 
-def example_4_ppo_training():
+def example_5_ppo_training(model):
     """Example 4: Use LLM agent as opponent during PPO training"""
     print("\n=== Example 4: PPO Training with LLM Opponent ===\n")
     
@@ -159,7 +215,7 @@ def example_4_ppo_training():
     # Create LLM opponent
     llm_opponent = LLMAgent(
         env_api, 
-        model="qwen3:32b", 
+        model=model, 
         prompt_name="balanced_prompt"
     )
     
@@ -180,14 +236,14 @@ def example_4_ppo_training():
     gym_env.close()
 
 
-def example_5_test_connection():
+def example_6_test_connection(model):
     """Example 5: Test Ollama connection"""
     print("\n=== Example 5: Test Ollama Connection ===\n")
     
     from llm.api import OllamaAPI
     
     # Create API instance
-    api = OllamaAPI(model="qwen3:32b")
+    api = OllamaAPI(model=model)
     
     # Check connection
     if api.check_connection():
@@ -207,22 +263,41 @@ def example_5_test_connection():
         print("\nMake sure:")
         print("1. Ollama is installed")
         print("2. Run 'ollama serve' in terminal")
-        print("3. Run 'ollama pull qwen3:32b'")
+        print(f"3. Run 'ollama pull {model}'")
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="The configuration of the test.")
+    parser.add_argument("-t", "--testnumber", help="Specify the test part.")
+    parser.add_argument("-m", "--model", help="Specify the LLM model.")
+    args = parser.parse_args()
+
     print("=" * 60)
     print("LLM Agent Examples for Gin Rummy")
     print("=" * 60)
+
+    if args.testnumber==1:
+        example_1_basic_usage(args.model)
+    elif args.testnumber==2:
+        example_2_different_strategies(args.model)
+    elif args.testnumber==3:
+        example_3_llm_vs_random(args.model)
+    elif args.testnumber==4:
+        example_4_llm_vs_rl(args.model)
+    elif args.testnumber==5:
+        example_5_ppo_training(args.model)
+    elif args.testnumber==6:
+        example_6_test_connection(args.model)
+
+
+
+
     
     # Run the connection test first
-    # example_5_test_connection()
-    
-    # Uncomment to see other examples
-    example_1_basic_usage()
-    # example_2_different_strategies()
-    # example_3_llm_vs_random()
-    # example_4_ppo_training()
+    # 
+
     
     print("\n" + "=" * 60)
     print("Uncomment examples in __main__ to try them!")
