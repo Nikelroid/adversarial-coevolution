@@ -29,7 +29,7 @@ The project consists of three main components:
 
 ## 📂 Project Structure
 
-
+```text
 .
 ├── agents/                 # Agent implementations (PPO, Random, LLM, Human)
 ├── artifacts/              # Trained models and checkpoints
@@ -45,6 +45,7 @@ The project consists of three main components:
 ├── ppo_train.py            # PPO training pipeline script
 ├── environment.yml         # Conda environment definition
 └── requirements.txt        # Python dependencies
+```
 
 
 ## 💻 Installation
