@@ -197,6 +197,7 @@ class GinRummySB3Wrapper(gym.Env):
     
     def step(self, action):
         """Take a step in the environment."""
+        step_reward = 0.0
         # Training agent takes action
         obs, reward, termination, truncation, info = self.env.last()
 
