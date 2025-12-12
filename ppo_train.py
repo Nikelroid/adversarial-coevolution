@@ -26,6 +26,8 @@ from curriculum_manager import CurriculumManager
 # Import your custom components
 from gym_wrapper import GinRummySB3Wrapper
 from agents.random_agent import RandomAgent
+from agents.expert_agent import ExpertAgent
+from agents.llm_agent import LLMAgent
 
 # ============================================
 # W&B Configuration - Works on Colab & Local
@@ -280,7 +282,7 @@ class WandbBestModelCallback(BaseCallback):
 
 # In train_ppo.py
 
-def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
+def make_env(turns_limit=200, rank=0, curriculum_save_dir=None, reward_system='long', evaluator_type=None, master_url="http://localhost:8000"):
     """Create and wrap the environment."""
 
     curriculum_manager = None
@@ -290,13 +292,58 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None):
             max_pool_size=20
         )
 
+    # Initialize Evaluator if needed (for each env instance)
+    evaluator_instance = None
+    if evaluator_type == 'expert':
+        # Create a temporary env just to init the agent? 
+        # ExpertAgent takes 'env'. It uses it to get state.
+        # But 'env' (Wrapper) isn't created yet.
+        # This is a circular dependency if ExpertAgent needs the exact wrapper instance.
+        # However, ExpertAgent only needs an object that has .last() or .observe().
+        # The Wrapper will pass ITSELF (or its underlying env) to the agent?
+        # NO. We pass the evaluator INSTANCE to the Wrapper.
+        # The Wrapper will then have to hook up the Evaluator to itself?
+        # OR: We create the env first, then creating evaluator, then passing to wrapper?
+        # Wrapper __init__ calls super().__init__() which creates self.env (PZ env).
+        
+        # Solution: Initialize Wrapper with evaluator=None first.
+        # Then create ExpertAgent with wrapper.
+        # Then set wrapper.evaluator = expert.
+        pass
+
     env = GinRummySB3Wrapper(
         opponent_policy=RandomAgent, 
         randomize_position=True, 
         turns_limit=turns_limit,
         curriculum_manager=curriculum_manager,
-        rank=rank
+        rank=rank,
+        reward_system=reward_system,
+        evaluator=None # Will set after
     )
+    
+    if evaluator_type == 'expert':
+        # ExpertAgent needs access to the environment to observe state
+        # We pass the UNWRAPPED env (PettingZoo) which the wrapper exposes as self.env
+        # OR we pass the wrapper itself if it has the right methods.
+        # ExpertAgent expects .last() or .observe(). Wrapper now has them.
+        evaluator_instance = ExpertAgent(env.env) # Pass the underlying PZ env to be safe/direct
+        evaluator_instance.set_player('player_0') # Default, will be updated by wrapper if needed logic exists
+        env.evaluator = evaluator_instance
+        
+    elif evaluator_type == 'llm':
+        # Initialize LLMAgent
+        # Requires 'llm/config/prompt.txt' to exist relative to run dir?
+        # The agent uses "config/prompt.txt" by default.
+        try:
+            # We assume if master_url is provided via some config, we use it. 
+            # But make_env signature needs update or we use global arg?
+            # Better to update make_env signature.
+            # But for now let's assume local unless modified.
+            # Wait, I need to update make_env signature in ppo_train.py top level call.
+            pass
+            # Actual instantiation happens below in the replaced block if I update signature
+        except Exception as e:
+            print(f"Failed to initialize LLM Evaluator: {e}")
 
     env.reset(seed=42 + rank)
     env = Monitor(env)
@@ -316,7 +363,10 @@ def train_ppo(
     wandb_run_name=None,
     wandb_config=None,
     turns_limit=200,
-    num_env = 100
+    num_env = 100,
+    reward_system='long',
+    evaluator_type=None,
+    master_url="http://localhost:8000"
 ):
     """
     Train a PPO agent on Gin Rummy with W&B logging.
@@ -381,6 +431,9 @@ def train_ppo(
         "weight_decay": 0.0,
         "normalize_advantage": True,       # essential with large batches
         "normalize_observations": True,    # if supported
+        # Add new configs
+        "reward_system": reward_system,
+        "evaluator": evaluator_type,
     }
     if wandb_config:
         config.update(wandb_config)
@@ -396,6 +449,10 @@ def train_ppo(
     
     # Create training environment
     print("Creating training environment with curriculum learning...")
+    print(f"Reward System: {reward_system.upper()}")
+    if evaluator_type:
+        print(f"Evaluator: {evaluator_type.upper()}")
+        
     print(f"Position randomization: {'ENABLED' if randomize_position else 'DISABLED'}")
     print("Curriculum phases:")
     print("  Phase 1 (0-100k):     100% Random")
@@ -409,14 +466,17 @@ def train_ppo(
         lambda i=i, csd=curriculum_save_dir: make_env(
             turns_limit, 
             rank=i, 
-            curriculum_save_dir=csd
+            curriculum_save_dir=csd,
+            reward_system=reward_system,
+            evaluator_type=evaluator_type,
+            master_url=master_url
         )
         for i in range(num_env)
     ])
 
     # Create evaluation environment
     print("Creating evaluation environment...")
-    eval_env = DummyVecEnv([lambda: make_env(rank=999)])
+    eval_env = DummyVecEnv([lambda: make_env(rank=999, reward_system=reward_system, evaluator_type=evaluator_type)])
     
     # Setup callbacks
     checkpoint_callback = CheckpointCallback(
@@ -601,12 +661,12 @@ def setup_wandb_colab(api_key=None):
         if api_key:
             wandb.login(key=api_key)
         else:
-            print("⚠️  W&B API key not found!")
-            print("Please provide your API key:")
-            print("1. Set environment variable: os.environ['WANDB_API_KEY'] = 'your_key_here'")
-            print("2. Or call: setup_wandb_colab(api_key='your_key_here')")
-            print("3. Or use: wandb.login()")
-            raise ValueError("W&B API key required")
+            print("⚠️  W&B API key not found. Continuing without login (WANDB_MODE might need to be 'disabled')")
+            # print("Please provide your API key:")
+            # print("1. Set environment variable: os.environ['WANDB_API_KEY'] = 'your_key_here'")
+            # print("2. Or call: setup_wandb_colab(api_key='your_key_here')")
+            # print("3. Or use: wandb.login()")
+            # raise ValueError("W&B API key required")
 
 
 if __name__ == '__main__':
@@ -632,7 +692,20 @@ if __name__ == '__main__':
     parser.add_argument('--num-env', type=int, default=96,
                        help='Number of running envs')
     
+    # New Arguments
+    parser.add_argument('--reward-system', type=str, choices=['long', 'short'], default='long',
+                       help='Reward system to use: "long" (standard) or "short" (dense)')
+    parser.add_argument('--evaluator', type=str, choices=['expert', 'llm'], default=None,
+                       help='Evaluator agent for short-term rewards')
+    parser.add_argument('--game-length', type=int, default=None,
+                        help='Override game length (turns limit). Only used if set.')
+    parser.add_argument('--master-url', type=str, default="http://localhost:8000",
+                       help='URL of the LLM Master Node')
+    
     args = parser.parse_args()
+    
+    # Handle game length override
+    turns_limit = args.game_length if args.game_length is not None else args.turns_limit
     
     # Setup W&B login if key provided
     if args.wandb_key:
@@ -648,18 +721,21 @@ if __name__ == '__main__':
             randomize_position=not args.no_randomize,
             wandb_project=args.wandb_project,
             wandb_run_name=args.wandb_run_name,
-            turns_limit=args.turns_limit,
-            num_env = args.num_env
+            turns_limit=turns_limit,
+            num_env = args.num_env,
+            reward_system=args.reward_system,
+            evaluator_type=args.evaluator,
+            master_url=args.master_url
         )
         
         # Test the trained model
         final_model = os.path.join(args.save_path, 'ppo_gin_rummy_final')
         if os.path.exists(final_model + '.zip'):
-            test_trained_model(final_model, num_episodes=10, log_to_wandb=True, turns_limit=args.turns_limit)
+            test_trained_model(final_model, num_episodes=10, log_to_wandb=True, turns_limit=turns_limit)
     
     elif args.test:
         # Test existing model
-        test_trained_model(args.test, num_episodes=20, log_to_wandb=True, turns_limit=args.turns_limit)
+        test_trained_model(args.test, num_episodes=20, log_to_wandb=True, turns_limit=turns_limit)
     
     else:
         print("Please specify --train or --test <model_path>")

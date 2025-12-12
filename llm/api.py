@@ -318,3 +318,78 @@ class OllamaAPI:
             print(f"[ERROR] Cannot connect to Ollama at {self.base_url}: {e}")
             print("[INFO] Make sure Ollama is running (run 'ollama serve' in terminal)")
             return False
+
+
+class DistributedOllamaAPI(OllamaAPI):
+    """
+    Client for the Distributed Master-Worker architecture.
+    """
+    def __init__(self, master_url: str = "http://localhost:8000"):
+        super().__init__(base_url=master_url)
+        self.master_url = master_url
+        self.api_endpoint = f"{self.master_url}/api/generate"
+        print(f"[INFO] Initialized Distributed API Client pointing to Master: {self.master_url}")
+
+    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 8192, job_type: str = "action") -> str:
+        """
+        Generate text via Master Node.
+        """
+        # Master expects: type, prompt, options
+        payload = {
+            "type": job_type,
+            "prompt": prompt,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens
+            },
+            "priority": "slow" if job_type == "enhance" else "fast"
+        }
+
+        try:
+            # We use the same endpoint /api/generate on Master
+            response = requests.post(self.api_endpoint, json=payload, timeout=300) # Long timeout for queue
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", "").strip()
+        except Exception as e:
+            print(f"[ERROR] Distributed API request failed: {e}")
+            raise
+
+    # Override get_action to pass job_type="action"
+    def get_action(self, prompt: str, observation: Dict[str, Any], valid_actions: list) -> Optional[int]:
+        # Format the full prompt with observation and valid actions
+        full_prompt = self._format_prompt(prompt, observation, valid_actions)
+        
+        # Get LLM response via Distributed API
+        try:
+            response = self.generate(full_prompt, temperature=0.7, max_tokens=8192, job_type="action")
+            action = self._parse_action(response, valid_actions)
+            return action
+        except Exception:
+            return None
+
+    def enhance_prompt(self, current_prompt: str, game_stats: Dict[str, Any]) -> str:
+        """
+        Send a request to enhance the prompt.
+        """
+        meta_prompt = f"""
+        You are an expert AI Prompt Engineer.
+        The current prompt used for a Gin Rummy playing agent is:
+        ---
+        {current_prompt}
+        ---
+        
+        The agent's performance stats from the last game are:
+        {json.dumps(game_stats, indent=2)}
+        
+        Please analyze the failure and write a BETTER, IMPROVED prompt. 
+        Return ONLY the new prompt text, nothing else.
+        """
+        
+        try:
+            print("[INFO] Submitting Prompt Enhancement Job...")
+            new_prompt = self.generate(meta_prompt, temperature=0.9, max_tokens=8192, job_type="enhance")
+            return new_prompt
+        except Exception as e:
+            print(f"[ERROR] Prompt enhancement failed: {e}")
+            return current_prompt

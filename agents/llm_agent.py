@@ -1,9 +1,7 @@
-"""
-LLM-based agent for playing Gin Rummy using Ollama.
-"""
 from .agent import Agent
 import numpy as np
-from llm.api import OllamaAPI
+import os
+from llm.api import OllamaAPI, DistributedOllamaAPI
 from llm.player_handler import LLMPlayerHandler
 from llm.validator import ActionValidator
 
@@ -13,89 +11,89 @@ class LLMAgent(Agent):
     Agent that uses a Large Language Model (via Ollama) to make decisions in Gin Rummy.
     """
 
-    def __init__(self, env, model: str = "llama3.2:1b", prompt_name: str = "default_prompt"):
-        """
-        Initialize LLM Agent for Gin Rummy.
-        
-        Args:
-            env: Gin Rummy game environment
-            model: Ollama model name (default: llama3.2:1b - lightweight and fast)
-            prompt_name: Name of prompt to use from config/prompt.txt
-        """
-        super().__init__(env)  # Call parent class __init__
+    def __init__(self, env, model: str = "llama3.2:1b", prompt_name: str = "default_prompt", distributed: bool = False, master_url: str = "http://localhost:8000"):
+        super().__init__(env)
         self.model = model
         self.prompt_name = prompt_name
+        self.config_path = "config/prompt.txt"
         
-        # Initialize player handler (coordinates API and validation)
-        self.player_handler = LLMPlayerHandler(
-            config_path="config/prompt.txt",
-            model=model,
-            fallback_strategy="random"
-        )
+        # Initialize API client
+        if distributed:
+            self.api_client = DistributedOllamaAPI(master_url=master_url)
+        else:
+            self.api_client = OllamaAPI(model=model)
+            
+        # We manually hook the handler to use our custom API client if possible
+        # But LLMPlayerHandler creates its own. We should refactor handler or just use API directly here.
+        # For simplicity, let's inject validatior and use our API client directly in do_action.
+        self.validator = ActionValidator(fallback_strategy="random")
+        self.prompts = self._load_prompts(self.config_path)
         
-        print(f"[INFO] LLM Agent initialized for Gin Rummy with model: {model}")
-        print(f"[INFO] Using prompt: {prompt_name}")
+        print(f"[INFO] LLM Agent initialized (Distributed={distributed})")
+
+    def _load_prompts(self, config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return {'default_prompt': f.read().strip()}
+        except:
+            return {'default_prompt': "You are playing Gin Rummy. Pick the best action."}
+
+    def save_prompt(self, new_prompt):
+        try:
+            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                f.write(new_prompt)
+            self.prompts['default_prompt'] = new_prompt
+            print("[INFO] Saved enhanced prompt to file.")
+        except Exception as e:
+            print(f"[ERROR] Failed to save prompt: {e}")
 
     def get_observation(self):
-        """Get the current observation for this agent."""
-        # Handle both GinRummyEnvAPI and raw PettingZoo env
         if hasattr(self.env, 'get_current_state'):
-            # Using GinRummyEnvAPI wrapper
             obs, _, _, _, _ = self.env.get_current_state()
         else:
-            # Using raw PettingZoo environment
             obs, _, _, _, _ = self.env.last()
         return obs 
     
     def do_action(self):
-        """
-        Get action from LLM based on current Gin Rummy observation.
-        
-        Returns:
-            Valid action index
-        """
-        # Get current observation
         obs = self.get_observation()
-
-        # print(f"valid moves for test{obs}")
-        
-        # Get action mask
         action_mask = obs.get("action_mask")
         
-        if action_mask is None:
-            raise ValueError("Observation must contain 'action_mask'")
+        if action_mask is None: raise ValueError("No action mask")
         
-        # Check if there are valid actions
         valid_actions = np.where(action_mask)[0]
-        if len(valid_actions) == 0:
-            raise ValueError("No valid actions available!")
+        if len(valid_actions) == 0: raise ValueError("No valid actions")
         
-        # Get action from LLM player handler
-        try:
-            #print(f"valid moves for test{obs}")
-            action = self.player_handler.get_action(obs, self.prompt_name)
-            return action
-        except Exception as e:
-            print(f"[ERROR] LLM Agent failed to get action: {e}")
-            # Fallback to random valid action
-            print("[INFO] Using random fallback action")
-            return np.random.choice(valid_actions)
+        prompt = self.prompts.get(self.prompt_name, self.prompts['default_prompt'])
+        
+        # Use our API client (Distributed or Local)
+        action = self.api_client.get_action(prompt, obs, valid_actions)
+        
+        # Validation
+        final_action = self.validator.validate_action(action, action_mask)
+        return final_action
+
+    def on_game_end(self, reward):
+        """
+        Called by training loop when game ends.
+        """
+        if isinstance(self.api_client, DistributedOllamaAPI) and reward < 0:
+            print(f"[Enhancer] Agent lost (Reward {reward}). Triggering Prompt Enhancement...")
+            current_prompt = self.prompts.get(self.prompt_name, "")
+            stats = self.validator.get_statistics()
+            
+            # Request new prompt
+            new_prompt = self.api_client.enhance_prompt(current_prompt, stats)
+            
+            # Save it
+            if new_prompt and len(new_prompt) > 10:
+                self.save_prompt(new_prompt)
     
     def get_statistics(self):
-        """
-        Get agent statistics.
-        
-        Returns:
-            Dictionary with statistics including action validity rate
-        """
-        return self.player_handler.get_statistics()
+        return self.validator.get_statistics()
     
     def print_statistics(self):
-        """Print agent statistics."""
-        print(f"\n=== LLM Agent Statistics (Model: {self.model}) ===")
-        print(f"Prompt used: {self.prompt_name}")
-        self.player_handler.print_statistics()
+        self.validator.print_statistics()
     
     def reset_statistics(self):
-        """Reset agent statistics."""
-        self.player_handler.reset_statistics()
+        self.validator.reset_statistics()
