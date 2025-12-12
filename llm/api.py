@@ -11,10 +11,18 @@ import logging
 
 # ### NEW ###
 # Constants for card and action translation
+from utils.config import get_config
+
+CONFIG = get_config()
+CLIENT_CONFIG = CONFIG.get("llm_client", {})
+LOCAL_URL = CLIENT_CONFIG.get("local_url", "http://localhost:11434")
+MASTER_URL_CONF = CONFIG.get("distributed", {}).get("master", {}).get("url", "http://localhost:8000")
+
 SUITS = ["Spades", "Hearts", "Diamonds", "Clubs"]
 RANKS = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"]
 # 52 cards, ordered exactly as in the observation space
 CARD_NAMES = [f"{rank} of {suit}" for suit in SUITS for rank in RANKS]
+
 
 
 class OllamaAPI:
@@ -22,7 +30,7 @@ class OllamaAPI:
     Wrapper for Ollama API to generate actions based on game observations.
     """
 
-    def __init__(self, model: str = "llama3.2:1b", base_url: str = "http://localhost:11434"):
+    def __init__(self, model: str = "llama3.2:1b", base_url: str = None):
         """
         Initialize Ollama API client.
         
@@ -31,6 +39,9 @@ class OllamaAPI:
             base_url: Base URL for Ollama API (default: http://localhost:11434)
         """
         logging.basicConfig(filename='app.log',level=logging.INFO, format='%(message)s')
+        if base_url is None:
+             base_url = LOCAL_URL
+             
         self.model = model
         self.base_url = base_url
         self.api_endpoint = f"{self.base_url}/api/generate"
@@ -324,7 +335,10 @@ class DistributedOllamaAPI(OllamaAPI):
     """
     Client for the Distributed Master-Worker architecture.
     """
-    def __init__(self, master_url: str = "http://localhost:8000"):
+    def __init__(self, master_url: str = None):
+        if master_url is None:
+            master_url = MASTER_URL_CONF
+            
         super().__init__(base_url=master_url)
         self.master_url = master_url
         self.api_endpoint = f"{self.master_url}/api/generate"

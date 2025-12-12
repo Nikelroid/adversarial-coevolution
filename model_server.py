@@ -5,12 +5,17 @@ from typing import Dict, Optional, Any, List
 import uuid
 import asyncio
 from datetime import datetime
+from utils.config import get_config
 
 # --- Master Node Configuration ---
-PORT = 8000
+CONFIG = get_config()
+DIST_CONFIG = CONFIG.get("distributed", {}).get("master", {})
+PORT = DIST_CONFIG.get("port", 8000)
+
 # Queues for different job types
 # fast: action, evaluation (high priority, short latency)
 # slow: prompt enhancing (low priority, long duration)
+QUEUE_NAMES = DIST_CONFIG.get("queues", {"fast": "fast", "slow": "slow"})
 QUEUES = {
     "fast": asyncio.Queue(),
     "slow": asyncio.Queue()

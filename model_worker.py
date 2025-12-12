@@ -5,14 +5,12 @@ import argparse
 import sys
 # We are now importing BitsAndBytesConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from utils.config import get_config
 
-# --- Configuration ---
-# Models
-MODEL_MAP = {
-    "llama-70b": "meta-llama/Meta-Llama-3.1-70B",
-    "llama-3b": "meta-llama/Llama-3.2-3B", # Example smaller model
-    "qwen-32b": "Qwen/Qwen2.5-32B-Instruct"
-}
+CONFIG = get_config()
+MODEL_MAP = CONFIG.get("models", {})
+DIST_CONFIG = CONFIG.get("distributed", {}).get("worker", {})
+DEFAULT_MODEL = DIST_CONFIG.get("default_model", "llama-3b")
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -134,9 +132,14 @@ class ModelWorker:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--master", default="http://localhost:8000")
-    parser.add_argument("--model", default="meta-llama/Meta-Llama-3.1-70B")
-    parser.add_argument("--type", default="slow", choices=["fast", "slow"]) # fast=action/eval, slow=enhancer
+    master_default = CONFIG.get("distributed", {}).get("master", {}).get("url", "http://localhost:8000")
+    
+    parser.add_argument("--master", default=master_default)
+    # Get model ID from map if possible, else use raw string
+    default_model_id = MODEL_MAP.get(DEFAULT_MODEL, DEFAULT_MODEL)
+    
+    parser.add_argument("--model", default=default_model_id)
+    parser.add_argument("--type", default="slow", choices=["fast", "slow"]) 
     parser.add_argument("--id", default="worker_1")
     args = parser.parse_args()
     

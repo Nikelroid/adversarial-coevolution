@@ -18,7 +18,25 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import CombinedExtractor
 import torch
+import numpy as np
 import wandb
+import random
+from utils.config import get_config
+
+CONFIG = get_config()
+TRAIN_CONFIG = CONFIG.get("training", {})
+EVAL_CONFIG = CONFIG.get("evaluation", {})
+DIST_CONFIG = CONFIG.get("distributed", {}).get("master", {})
+
+# Defaults from config
+DEFAULT_TIMESTEPS = TRAIN_CONFIG.get("total_timesteps", 1000000)
+DEFAULT_NUM_ENV = TRAIN_CONFIG.get("num_env", 100)
+DEFAULT_TURNS = TRAIN_CONFIG.get("turns_limit", 200)
+DEFAULT_MASTER_URL = DIST_CONFIG.get("url", "http://localhost:8000")
+DEFAULT_REWARD = EVAL_CONFIG.get("reward_system", "long")
+DEFAULT_EVALUATOR = EVAL_CONFIG.get("type", None) 
+if DEFAULT_EVALUATOR == "none": DEFAULT_EVALUATOR = None
+
 from stable_baselines3.common.type_aliases import PyTorchObs
 import torch.optim as optim
 from curriculum_manager import CurriculumManager
@@ -351,7 +369,7 @@ def make_env(turns_limit=200, rank=0, curriculum_save_dir=None, reward_system='l
 
 
 def train_ppo(
-    total_timesteps=500_000,
+    total_timesteps=DEFAULT_TIMESTEPS,
     save_path='./artifacts/models/ppo_gin_rummy',
     log_path='./logs/',
     checkpoint_freq=50_000,
@@ -362,11 +380,14 @@ def train_ppo(
     wandb_project=WANDB_PROJECT,
     wandb_run_name=None,
     wandb_config=None,
-    turns_limit=200,
-    num_env = 100,
-    reward_system='long',
-    evaluator_type=None,
-    master_url="http://localhost:8000"
+    turns_limit=DEFAULT_TURNS,
+    num_env=DEFAULT_NUM_ENV,
+    reward_system=DEFAULT_REWARD,
+    evaluator_type=DEFAULT_EVALUATOR,
+    master_url=DEFAULT_MASTER_URL,
+    learning_rate=1e-4,
+    batch_size=1024,
+    ent_coef=0.01
 ):
     """
     Train a PPO agent on Gin Rummy with W&B logging.
@@ -416,15 +437,15 @@ def train_ppo(
     config = {
         "algorithm": "PPO",
         "policy": "MaskedGinRummyPolicy",
-        "total_timesteps": 40_000_000,     # 20M or more for complex card games
-        "learning_rate": 1e-4,             # slightly lower since updates are larger
+        "total_timesteps": total_timesteps,     # 20M or more for complex card games
+        "learning_rate": learning_rate,             # slightly lower since updates are larger
         "n_steps": 512,                    # shorter rollouts, since many envs aggregate data fast
-        "batch_size": 1024,                # increase batch size (divides evenly into n_steps*num_envs)
+        "batch_size": batch_size,                # increase batch size (divides evenly into n_steps*num_envs)
         "n_epochs": 4,                     # fewer epochs to avoid overfitting giant batches
         "gamma": 0.99,                    # standard discount
         "gae_lambda": 0.95,
         "clip_range": 0.2,
-        "ent_coef": 0.01,                 # slightly higher to encourage exploration
+        "ent_coef": ent_coef,                 # slightly higher to encourage exploration
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "randomize_position": True,
@@ -675,7 +696,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train PPO on Gin Rummy')
     parser.add_argument('--train', action='store_true', help='Train a new model')
     parser.add_argument('--test', type=str, help='Test a trained model (provide path)')
-    parser.add_argument('--timesteps', type=int, default=500_000, help='Training timesteps')
+    parser.add_argument('--timesteps', type=int, default=DEFAULT_TIMESTEPS, help='Training timesteps')
     parser.add_argument('--save-path', type=str, default='./artifacts/models/ppo_gin_rummy', 
                        help='Path to save models')
     parser.add_argument('--no-randomize', action='store_true',
@@ -687,20 +708,25 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-key', type=str, default=None,
                        help='Weights & Biases API key')
     
-    parser.add_argument('--turns-limit', type=int, default=100,
+    parser.add_argument('--turns-limit', type=int, default=DEFAULT_TURNS,
                        help='Limit on turns per game')
-    parser.add_argument('--num-env', type=int, default=96,
+    parser.add_argument('--num-env', type=int, default=DEFAULT_NUM_ENV,
                        help='Number of running envs')
     
     # New Arguments
-    parser.add_argument('--reward-system', type=str, choices=['long', 'short'], default='long',
+    parser.add_argument('--reward-system', type=str, choices=['long', 'short'], default=DEFAULT_REWARD,
                        help='Reward system to use: "long" (standard) or "short" (dense)')
-    parser.add_argument('--evaluator', type=str, choices=['expert', 'llm'], default=None,
+    parser.add_argument('--evaluator', type=str, choices=['expert', 'llm'], default=DEFAULT_EVALUATOR,
                        help='Evaluator agent for short-term rewards')
     parser.add_argument('--game-length', type=int, default=None,
                         help='Override game length (turns limit). Only used if set.')
-    parser.add_argument('--master-url', type=str, default="http://localhost:8000",
+    parser.add_argument('--master-url', type=str, default=DEFAULT_MASTER_URL,
                        help='URL of the LLM Master Node')
+
+    # Hyperparameters
+    parser.add_argument('--learning-rate', type=float, default=3e-4, help='Learning Rate')
+    parser.add_argument('--batch-size', type=int, default=64, help='Batch Size')
+    parser.add_argument('--ent-coef', type=float, default=0.0, help='Entropy Coefficient')
     
     args = parser.parse_args()
     
@@ -715,17 +741,37 @@ if __name__ == '__main__':
     
     if args.train:
         # Train model
-        train_ppo(
+        # Define wandb_config and evaluator_type before calling train_ppo
+        wandb_config = {
+            "learning_rate": args.learning_rate,
+            "batch_size": args.batch_size,
+            "ent_coef": args.ent_coef,
+            "total_timesteps": args.timesteps,
+            "reward_system": args.reward_system,
+            "evaluator_type": args.evaluator,
+            "turns_limit": args.turns_limit,
+            "game_length": args.game_length,
+            "num_env": args.num_env,
+            "randomize_position": not args.no_randomize,
+        }
+        evaluator_type = args.evaluator # Assuming evaluator_type is just args.evaluator
+        
+        model = train_ppo(
             total_timesteps=args.timesteps,
             save_path=args.save_path,
             randomize_position=not args.no_randomize,
             wandb_project=args.wandb_project,
             wandb_run_name=args.wandb_run_name,
-            turns_limit=turns_limit,
-            num_env = args.num_env,
+            wandb_config=wandb_config,
+            turns_limit=args.turns_limit,
+            num_env=args.num_env,
             reward_system=args.reward_system,
-            evaluator_type=args.evaluator,
-            master_url=args.master_url
+            evaluator_type=evaluator_type,  # Pass the resolved evaluator type
+            game_length=args.game_length,   # Pass logic-handled game_length (if set)
+            master_url=args.master_url,
+            learning_rate=args.learning_rate,
+            batch_size=args.batch_size,
+            ent_coef=args.ent_coef
         )
         
         # Test the trained model

@@ -4,6 +4,11 @@ import os
 from llm.api import OllamaAPI, DistributedOllamaAPI
 from llm.player_handler import LLMPlayerHandler
 from llm.validator import ActionValidator
+from utils.config import get_config
+
+CONFIG = get_config()
+DEFAULT_MODEL = CONFIG.get("models", {}).get("default_evaluator", "llama3.2:1b")
+MASTER_URL_CONF = CONFIG.get("distributed", {}).get("master", {}).get("url", "http://localhost:8000")
 
 
 class LLMAgent(Agent):
@@ -11,8 +16,13 @@ class LLMAgent(Agent):
     Agent that uses a Large Language Model (via Ollama) to make decisions in Gin Rummy.
     """
 
-    def __init__(self, env, model: str = "llama3.2:1b", prompt_name: str = "default_prompt", distributed: bool = False, master_url: str = "http://localhost:8000"):
+    def __init__(self, env, model: str = None, prompt_name: str = "default_prompt", distributed: bool = False, master_url: str = None):
         super().__init__(env)
+        if model is None:
+            model = DEFAULT_MODEL
+        if master_url is None:
+            master_url = MASTER_URL_CONF
+            
         self.model = model
         self.prompt_name = prompt_name
         self.config_path = "config/prompt.txt"

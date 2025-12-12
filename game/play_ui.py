@@ -532,9 +532,13 @@ def play_game(human_player_id=0, model_path="path/to/your/model.zip"):
 
 
 if __name__ == "__main__":
-    # !!! IMPORTANT !!!
-    # Change this path to point to your trained PPO model
-    MODEL_PATH = "./artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final_knock" 
-    
+    import argparse
+    parser = argparse.ArgumentParser(description="Play Gin Rummy vs PPO Agent")
+    parser.add_argument("--model", type=str, default="./artifacts/models/ppo_gin_rummy/best_model.zip",
+                        help="Path to the trained PPO model zip file")
+    parser.add_argument("--human-id", type=int, default=0, choices=[0, 1],
+                        help="Human player ID (0 or 1)")
+    args = parser.parse_args()
+
     # This will initialize, run, and quit Pygame cleanly one time.
-    play_game(human_player_id=0, model_path=MODEL_PATH)
+    play_game(human_player_id=args.human_id, model_path=args.model)

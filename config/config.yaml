@@ -1,0 +1,53 @@
+# Central Configuration for Gin Rummy RL & LLM Project
+
+# --- Training / PPO ---
+training:
+  total_timesteps: 1000000
+  num_env: 100
+  turns_limit: 200
+  seed: 42
+  curriculum:
+    enabled: true
+    max_pool_size: 20
+    save_dir: "artifacts/models/ppo_gin_rummy/curriculum_pool"
+
+# --- Evaluation / Short-term Rewards ---
+evaluation:
+  reward_system: "long" # Choices: 'long', 'short'
+  type: "expert" # Choices: 'expert', 'llm', 'none'
+  game_length: 50 # Overrides turns_limit for short-term reward episodes
+
+# --- Distributed Architecture (LLM) ---
+distributed:
+  master:
+    host: "0.0.0.0"
+    port: 8000
+    url: "http://localhost:8000" # Public URL for workers/clients
+    queues:
+      fast: "fast_queue"
+      slow: "slow_queue"
+      
+  worker:
+    default_model: "llama-3b" # Default if not specified
+    polling_interval: 0.1 # Seconds
+    timeout: 300
+
+# --- LLM Models ---
+models:
+  llama-3b: "meta-llama/Llama-3.2-3B"
+  llama-70b: "meta-llama/Meta-Llama-3.1-70B"
+  qwen-32b: "Qwen/Qwen2.5-32B-Instruct"
+  # New Models
+  llama-3.1-70b: "meta-llama/Llama-3.1-70B-Instruct" 
+  gpt-oss-20b: "gpt-oss/20b"
+  gemma3-27b: "google/gemma-3-27b"
+  qwen3-32b: "Qwen/Qwen2.5-32B-Instruct" # Assuming user meant Qwen2.5 or new Qwen3
+  default_evaluator: "llama-3b"
+  default_enhancer: "llama-70b"
+
+# --- Client ---
+llm_client:
+  timeout: 300
+  max_retries: 3
+  # Local Ollama config (fallback)
+  local_url: "http://localhost:11434"
