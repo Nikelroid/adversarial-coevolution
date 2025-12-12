@@ -766,8 +766,7 @@ if __name__ == '__main__':
             turns_limit=args.turns_limit,
             num_env=args.num_env,
             reward_system=args.reward_system,
-            evaluator_type=evaluator_type,  # Pass the resolved evaluator type
-            game_length=args.game_length,   # Pass logic-handled game_length (if set)
+            evaluator_type=args.evaluator,
             master_url=args.master_url,
             learning_rate=args.learning_rate,
             batch_size=args.batch_size,

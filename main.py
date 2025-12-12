@@ -11,6 +11,8 @@ import argparse
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 import os
 from datetime import datetime
 
@@ -185,160 +187,106 @@ def print_results(stats, num_games):
 
 def plot_results(stats, num_games, output_dir='./plots'):
     """
-    Create comprehensive plots of tournament results.
-    
-    Args:
-        stats: Statistics dictionary from tournament
-        num_games: Total number of games
-        output_dir: Directory to save plots
+    Create comprehensive plots of tournament results using Seaborn.
     """
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
+    # Set scientific style
+    sns.set_theme(style="whitegrid", context="paper", font_scale=1.2)
+    palette = sns.color_palette("viridis")
+    
     agent_names = list(stats.keys())
-    colors = ['#3498db', '#e74c3c']
     
-    # Figure 1: Win/Loss/Draw Summary
-    fig1, ax1 = plt.subplots(figsize=(10, 6))
-    x = np.arange(len(agent_names))
-    width = 0.25
-    
-    wins = [stats[name]['wins'] for name in agent_names]
-    losses = [stats[name]['losses'] for name in agent_names]
-    draws = [stats[name]['draws'] for name in agent_names]
-    
-    ax1.bar(x - width, wins, width, label='Wins', color='#2ecc71')
-    ax1.bar(x, losses, width, label='Losses', color='#e74c3c')
-    ax1.bar(x + width, draws, width, label='Draws', color='#95a5a6')
-    
-    ax1.set_xlabel('Agent', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('Count', fontsize=12, fontweight='bold')
-    ax1.set_title(f'Win/Loss/Draw Summary ({num_games} games)', fontsize=14, fontweight='bold')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(agent_names)
-    ax1.legend()
-    ax1.grid(axis='y', alpha=0.3)
-    plt.tight_layout()
+    # --- Data Preparation ---
+    # Convert stats to DataFrame for easier plotting with Seaborn
+    data_summary = []
+    for name in agent_names:
+        data_summary.append({
+            'Agent': name,
+            'Result': 'Wins',
+            'Count': stats[name]['wins']
+        })
+        data_summary.append({
+            'Agent': name,
+            'Result': 'Losses',
+            'Count': stats[name]['losses']
+        })
+        data_summary.append({
+            'Agent': name,
+            'Result': 'Draws',
+            'Count': stats[name]['draws']
+        })
+    df_summary = pd.DataFrame(data_summary)
+
+    # --- Figure 1: Win/Loss/Draw Summary ---
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(data=df_summary, x='Agent', y='Count', hue='Result', palette="muted")
+    ax.set_title(f'Tournament Results ({num_games} Games)', fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Agent', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Count', fontsize=12, fontweight='bold')
+    sns.despine(left=True)
+    plt.legend(title='Outcome')
     plt.savefig(f'{output_dir}/win_loss_draw_{timestamp}.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # Figure 2: Gin vs Knock vs Regular Wins
-    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    # --- Figure 2: Win Type Breakdown ---
+    data_types = []
+    for name in agent_names:
+        regular = stats[name]['wins'] - stats[name]['gin_count'] - stats[name]['knock_count']
+        data_types.append({'Agent': name, 'Type': 'Gin', 'Count': stats[name]['gin_count']})
+        data_types.append({'Agent': name, 'Type': 'Knock', 'Count': stats[name]['knock_count']})
+        data_types.append({'Agent': name, 'Type': 'Regular', 'Count': regular})
+    df_types = pd.DataFrame(data_types)
     
-    gin_counts = [stats[name]['gin_count'] for name in agent_names]
-    knock_counts = [stats[name]['knock_count'] for name in agent_names]
-    regular_wins = [stats[name]['wins'] - stats[name]['gin_count'] - stats[name]['knock_count'] 
-                    for name in agent_names]
-    
-    ax2.bar(x - width, gin_counts, width, label='Gin Wins', color='#f39c12')
-    ax2.bar(x, knock_counts, width, label='Knock Wins', color='#9b59b6')
-    ax2.bar(x + width, regular_wins, width, label='Regular Wins', color='#3498db')
-    
-    ax2.set_xlabel('Agent', fontsize=12, fontweight='bold')
-    ax2.set_ylabel('Count', fontsize=12, fontweight='bold')
-    ax2.set_title('Win Type Breakdown', fontsize=14, fontweight='bold')
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(agent_names)
-    ax2.legend()
-    ax2.grid(axis='y', alpha=0.3)
-    plt.tight_layout()
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(data=df_types, x='Agent', y='Count', hue='Type', palette="deep")
+    ax.set_title('Win Type Breakdown', fontsize=16, fontweight='bold', pad=20)
     plt.savefig(f'{output_dir}/win_types_{timestamp}.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # Figure 3: Point Differential Distribution
-    fig3, axes3 = plt.subplots(1, 2, figsize=(14, 5))
-    
+    # --- Figure 3: Point Differential Distribution ---
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     for idx, name in enumerate(agent_names):
         diffs = stats[name]['point_differentials']
-        axes3[idx].hist(diffs, bins=30, color=colors[idx], alpha=0.7, edgecolor='black')
-        axes3[idx].axvline(np.mean(diffs), color='red', linestyle='--', linewidth=2, 
-                          label=f'Mean: {np.mean(diffs):.2f}')
-        axes3[idx].set_xlabel('Point Differential', fontsize=11, fontweight='bold')
-        axes3[idx].set_ylabel('Frequency', fontsize=11, fontweight='bold')
-        axes3[idx].set_title(f'{name} - Point Differential Distribution', fontsize=12, fontweight='bold')
-        axes3[idx].legend()
-        axes3[idx].grid(axis='y', alpha=0.3)
-    
+        sns.histplot(diffs, kde=True, ax=axes[idx], color=palette[idx % len(palette)], bins=30)
+        axes[idx].axvline(np.mean(diffs), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(diffs):.2f}')
+        axes[idx].set_title(f'{name} - Point Differential', fontsize=14, fontweight='bold')
+        axes[idx].set_xlabel('Point Diff')
+        axes[idx].legend()
+    plt.suptitle('Score Differential Distribution', fontsize=16, fontweight='bold')
     plt.tight_layout()
     plt.savefig(f'{output_dir}/point_differential_{timestamp}.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # Figure 4: Performance Metrics Comparison
-    fig4, axes4 = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Win Rate
-    win_rates = [stats[name]['wins'] / num_games * 100 for name in agent_names]
-    axes4[0, 0].bar(agent_names, win_rates, color=colors)
-    axes4[0, 0].set_ylabel('Win Rate (%)', fontweight='bold')
-    axes4[0, 0].set_title('Win Rate Comparison', fontweight='bold')
-    axes4[0, 0].grid(axis='y', alpha=0.3)
-    for i, v in enumerate(win_rates):
-        axes4[0, 0].text(i, v + 1, f'{v:.1f}%', ha='center', fontweight='bold')
-    
-    # Average Reward
-    avg_rewards = [stats[name]['total_reward'] / num_games for name in agent_names]
-    axes4[0, 1].bar(agent_names, avg_rewards, color=colors)
-    axes4[0, 1].set_ylabel('Average Reward', fontweight='bold')
-    axes4[0, 1].set_title('Average Reward Comparison', fontweight='bold')
-    axes4[0, 1].grid(axis='y', alpha=0.3)
-    for i, v in enumerate(avg_rewards):
-        axes4[0, 1].text(i, v + 0.01, f'{v:.3f}', ha='center', fontweight='bold')
-    
-    # Weighted Score
-    weighted_scores = [stats[name]['weighted_score'] for name in agent_names]
-    axes4[1, 0].bar(agent_names, weighted_scores, color=colors)
-    axes4[1, 0].set_ylabel('Weighted Score', fontweight='bold')
-    axes4[1, 0].set_title('Weighted Score (Gin=1.0, Knock=0.5)', fontweight='bold')
-    axes4[1, 0].grid(axis='y', alpha=0.3)
-    for i, v in enumerate(weighted_scores):
-        axes4[1, 0].text(i, v + 5, f'{v:.1f}', ha='center', fontweight='bold')
-    
-    # Average Loss Margin
-    avg_loss_margins = []
+    # --- Figure 4: Performance Metrics ---
+    metrics_data = []
     for name in agent_names:
+        metrics_data.append({'Agent': name, 'Metric': 'Win Rate (%)', 'Value': stats[name]['wins'] / num_games * 100})
+        metrics_data.append({'Agent': name, 'Metric': 'Avg Reward', 'Value': stats[name]['total_reward'] / num_games})
+        metrics_data.append({'Agent': name, 'Metric': 'Weighted Score', 'Value': stats[name]['weighted_score']})
+        
         loss_diffs = [pd for pd in stats[name]['point_differentials'] if pd < 0]
-        avg_loss_margins.append(abs(np.mean(loss_diffs)) if loss_diffs else 0)
+        avg_loss = abs(np.mean(loss_diffs)) if loss_diffs else 0
+        metrics_data.append({'Agent': name, 'Metric': 'Avg Loss Margin', 'Value': avg_loss})
     
-    axes4[1, 1].bar(agent_names, avg_loss_margins, color=colors)
-    axes4[1, 1].set_ylabel('Average Loss Margin', fontweight='bold')
-    axes4[1, 1].set_title('Average Loss Margin', fontweight='bold')
-    axes4[1, 1].grid(axis='y', alpha=0.3)
-    for i, v in enumerate(avg_loss_margins):
-        axes4[1, 1].text(i, v + 0.01, f'{v:.3f}', ha='center', fontweight='bold')
+    df_metrics = pd.DataFrame(metrics_data)
     
+    g = sns.FacetGrid(df_metrics, col="Metric", col_wrap=2, height=4, aspect=1.5, sharey=False)
+    g.map_dataframe(sns.barplot, x="Agent", y="Value", palette="viridis")
+    g.set_titles("{col_name}", fontweight='bold', size=14)
+    
+    # Add labels
+    for ax in g.axes.flat:
+        for container in ax.containers:
+            ax.bar_label(container, fmt='%.1f', padding=3)
+
     plt.tight_layout()
     plt.savefig(f'{output_dir}/performance_metrics_{timestamp}.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    # Figure 5: Pie Chart - Win Distribution
-    fig5, axes5 = plt.subplots(1, 2, figsize=(14, 6))
-    
-    for idx, name in enumerate(agent_names):
-        sizes = [stats[name]['gin_count'], stats[name]['knock_count'], 
-                 stats[name]['wins'] - stats[name]['gin_count'] - stats[name]['knock_count']]
-        labels = ['Gin', 'Knock', 'Regular']
-        colors_pie = ['#f39c12', '#9b59b6', '#3498db']
-        
-        # Only plot if there are wins
-        if sum(sizes) > 0:
-            axes5[idx].pie(sizes, labels=labels, colors=colors_pie, autopct='%1.1f%%',
-                          startangle=90, textprops={'fontsize': 11, 'fontweight': 'bold'})
-            axes5[idx].set_title(f'{name} - Win Type Distribution', fontsize=12, fontweight='bold')
-        else:
-            axes5[idx].text(0.5, 0.5, 'No Wins', ha='center', va='center', fontsize=14)
-            axes5[idx].set_title(f'{name} - Win Type Distribution', fontsize=12, fontweight='bold')
-    
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/win_distribution_{timestamp}.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"\n✅ Plots saved to '{output_dir}/' directory")
-    print(f"   - win_loss_draw_{timestamp}.png")
-    print(f"   - win_types_{timestamp}.png")
-    print(f"   - point_differential_{timestamp}.png")
-    print(f"   - performance_metrics_{timestamp}.png")
-    print(f"   - win_distribution_{timestamp}.png\n")
+    print(f"\n✅ Plots saved to '{output_dir}/' directory (Seaborn Style)")
 
 
 def main():
