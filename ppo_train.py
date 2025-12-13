@@ -57,7 +57,7 @@ class MaskedGinRummyPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.last_entropy = None
-    """
+    
         """
         Return the masked action distribution for given observations.
         """
