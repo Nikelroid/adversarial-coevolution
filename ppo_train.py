@@ -387,7 +387,8 @@ def train_ppo(
     master_url=DEFAULT_MASTER_URL,
     learning_rate=1e-4,
     batch_size=1024,
-    ent_coef=0.01
+    ent_coef=0.01,
+    game_length=None
 ):
     """
     Train a PPO agent on Gin Rummy with W&B logging.
@@ -407,6 +408,11 @@ def train_ppo(
     # Create directories
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(log_path, exist_ok=True)
+
+    # Use game_length if provided, effectively overriding turns_limit
+    if game_length is not None:
+        turns_limit = game_length
+        print(f"Game length override: turns_limit set to {turns_limit}")
 
     curriculum_save_dir = os.path.join(save_path, 'curriculum_pool')
 
@@ -716,10 +722,8 @@ if __name__ == '__main__':
     # New Arguments
     parser.add_argument('--reward-system', type=str, choices=['long', 'short'], default=DEFAULT_REWARD,
                        help='Reward system to use: "long" (standard) or "short" (dense)')
-    parser.add_argument('--evaluator', type=str, choices=['expert', 'llm'], default=DEFAULT_EVALUATOR,
-                       help='Evaluator agent for short-term rewards')
-    parser.add_argument('--game-length', type=int, default=None,
-                        help='Override game length (turns limit). Only used if set.')
+    parser.add_argument('--evaluator', type=str, default='expert', choices=['expert', 'llm'], help='Evaluator agent type for short-term rewards')
+    parser.add_argument('--game-length', type=int, default=200, help='Max turns per game (short-term limit)')
     parser.add_argument('--master-url', type=str, default=DEFAULT_MASTER_URL,
                        help='URL of the LLM Master Node')
 
@@ -767,6 +771,7 @@ if __name__ == '__main__':
             num_env=args.num_env,
             reward_system=args.reward_system,
             evaluator_type=args.evaluator,
+            game_length=args.game_length,
             master_url=args.master_url,
             learning_rate=args.learning_rate,
             batch_size=args.batch_size,
