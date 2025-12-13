@@ -5,7 +5,6 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from hand_scoring import score_gin_rummy_hand
-# --- ADD IMPORT ---
 from agents.ppo_agent import PPOAgent
 
 
@@ -20,7 +19,6 @@ class GinRummySB3Wrapper(gym.Env):
     def __init__(self, opponent_policy, randomize_position=True, turns_limit=200, curriculum_manager=None, render_mode=None, rank=0, reward_system='long', evaluator=None):
         super().__init__()
         
-        # --- ADD THESE LINES ---
         self.rank = rank
         self.log_buffer = [] 
         
@@ -37,17 +35,9 @@ class GinRummySB3Wrapper(gym.Env):
         # Short-term reward system
         self.reward_system = reward_system
         self.evaluator = evaluator
-        if self.evaluator:
-            # Evaluator needs access to env logic usually. ExpertAgent takes (env.unwrapped) or just (env)
-            # We assume it's initialized before passing, OR we init it here if it's a class?
-            # User said "evaluator_agent can be LLM or expert... I'll give it as argument"
-            # We assume 'evaluator' is an INSTANCE OF AN AGENT that has .do_action()
-            # If it needs to observe, we might need to set its player/env.
-            pass
-
+        
         self.log_buffer.append(
             f"[make_env rank={self.rank}] Wrapper initialized. "
-            # This now checks the ATTRIBUTE, not the argument
             f"CurriculumManager is {'NOT ' if self.curriculum_manager is not None else ''}None."
         )
 
@@ -100,44 +90,33 @@ class GinRummySB3Wrapper(gym.Env):
         if self.curriculum_manager is not None:
             opponent_type,phase,step = self.curriculum_manager.get_opponent_type()
             self.current_opponent_type = opponent_type
-
-            #self.log_buffer.append(f"[Rank {self.rank}] Episode starting with opponent: {opponent_type }, Phase: {phase}, Step: {step}")
             
             if opponent_type == 'random':
                 self.opponent_policy = self.opponent_policy_class(self.env)
             
-            # --- MODIFY 'pool' CASE ---
             elif opponent_type == 'pool':
                 # Get a loaded model object from the cache (fast)
-                # or load-and-cache (slow first time)
                 ppo_model = self.curriculum_manager.get_policy_from_pool(recent_n=10)
                 
                 if ppo_model:
-                    # Pass the *model object* directly
                     self.opponent_policy = PPOAgent(model=ppo_model, env=self.env)
                 else:
-                    # Fallback if pool was empty or failed to load
                     self.log_buffer.append(f"[Rank {self.rank}] Pool requested, but pool is empty/failed. Using random.")
                     self.opponent_policy = self.opponent_policy_class(self.env)
             
-            # --- MODIFY 'self' CASE ---
             elif opponent_type == 'self':
                 # Get the loaded self-play model from cache
                 ppo_model = self.curriculum_manager.get_selfplay_policy()
                 
                 if ppo_model:
-                    # Pass the *model object* directly
                     self.opponent_policy = PPOAgent(model=ppo_model, env=self.env)
-                    # self.log_buffer.append(f"[Rank {self.rank}] Loaded self-play model successfully")
                 else:
                     self.log_buffer.append(f"[Rank {self.rank}] Failed to init PPOAgent with self-play model: , using random")
                     self.opponent_policy = self.opponent_policy_class(self.env)
             
             else:
-                # Fallback
                 self.opponent_policy = self.opponent_policy_class(self.env)
         else:
-            # No curriculum - use default opponent
             self.log_buffer.append(f"[Rank {self.rank}] THERE IS NO CURRICULUM")
             self.opponent_policy = self.opponent_policy_class(self.env)
 
@@ -198,104 +177,102 @@ class GinRummySB3Wrapper(gym.Env):
     def step(self, action):
         """Take a step in the environment."""
         step_reward = 0.0
-        # Training agent takes action
+        
+        # Get pre-action state for scoring
         obs, reward, termination, truncation, info = self.env.last()
+        score_before = 0.0
+        
+        if self.reward_system == 'short':
+             try:
+                 if len(obs['observation'].shape) == 2:
+                     hand_mask = obs['observation'][0]
+                 else:
+                     hand_mask = obs['observation']
+                 score_before = score_gin_rummy_hand(hand_mask)
+             except Exception:
+                 pass
 
         # Check if action is valid
         if not termination and not truncation:
             mask = obs['action_mask']
             if not mask[action]:
-                # Invalid action - give negative reward and sample valid action
+                # Invalid action - give negative reward and choose random valid action
                 self.log_buffer.append(f"[Rank {self.rank}][Warning] Invalid Action Chosen: {action}")
-                reward = -1.0
+                reward -= 1.0 # Penalize
                 valid_actions = np.where(mask)[0]
-        # But we need to return it from this wrapper.step()
+                action = np.random.choice(valid_actions)
         
-        # wrapper.step() returns (obs, reward, ...)
-        # We need to capture the reward returned by env.last() AFTER step?
-        # NO. Wrapper logic:
-        # self.env.step(action) -> updates state.
-        # next_obs, reward, ... = self.env.last() -> This reward is for the agent who just acted?
-        # In PZ: rewards are instantaneous.
-        # So we should ADD step_reward to the returned reward.
+        # EXECUTE ACTION
+        if not termination and not truncation:
+            self.env.step(action)
+        else:
+            self.env.step(None)
 
+        # Check truncation limits
         if self.turn_num > self.turns_limit:
             truncation = True
         self.turn_num += 1
         
-        # Check if game ended
-        if termination or truncation:
-            next_obs, reward, _, _, _ = self.env.last()
-
-            if abs(reward - 0.2) < 0.001:
-                reward = 0.5
-            elif abs(reward - 1) < 0.001:
-                reward = 1
-
-
-            if self.curriculum_manager is not None:
-                self.curriculum_manager.episode_complete()
-            
-            # CRITICAL FIX: Select new opponent for next episode
-            # This is called BEFORE vectorized env's internal reset
-            self._select_opponent()
-
-            return next_obs, reward, True, False, info
-        
-        # Opponent's turn(s) until it's training agent's turn again
+        # Loop until it is the training agent's turn again or game ends
         while True:
-            agent = self.env.agent_selection
-            
+            try:
+                agent = self.env.agent_selection
+            except:
+                return obs, reward, True, False, info
+
             if agent == self.training_agent:
+                # It is our turn again!
                 obs, reward, termination, truncation, info = self.env.last()
-                done = termination or truncation 
-                reward += step_reward # Add dense reward
-                return obs, reward, done, False, info
-            else:
-                self._opponent_step()
                 
-                # Check if game ended during opponent's turn
-                _, _, termination, truncation, _ = self.env.last()
-                if termination or truncation:
-                    obs, reward, _, _, info = self.env.last()
+                # Check additional truncation
+                if self.turn_num > self.turns_limit:
+                    truncation = True
 
-                    if abs(reward - 0.2) < 0.001:
-                        reward = 0.5
-                    elif abs(reward - 1) < 0.001:
-                        reward = 1
+                # Calculate Score Improvement (Short Term Reward)
+                if self.reward_system == 'short' and not (termination or truncation):
+                    try:
+                        if len(obs['observation'].shape) == 2:
+                            hand_mask = obs['observation'][0]
+                        else:
+                            hand_mask = obs['observation']
+                        score_after = score_gin_rummy_hand(hand_mask)
+                        
+                        # Reward is the improvement
+                        diff = score_after - score_before
+                        step_reward += diff * 10.0 # Scale
+                    except:
+                        pass
+                
+                reward += step_reward
+                
+                if np.isnan(reward):
+                    reward = 0.0
 
-                    # Add Dense Reward logic here too? No, usually dense is for OUR action.
-                    # But if we want to reward winning?
-                    # User: "run game for that time... and give reward... based on how good it done in its actions"
-                    # So dense reward is per-action.
-                    
-                    if self.reward_system == 'short':
-                        pass # termination reward is separate?
-                        # Maybe override termination reward?
-                        # User: "without any minus score for early ending"
-                        # If truncated by length, we don't punish. Wrapper handles truncation normally.
-
+                done = termination or truncation
+                
+                if done:
                     if self.curriculum_manager is not None:
-                        self.curriculum_manager.episode_complete()
-                    
-                    # CRITICAL FIX: Select new opponent for next episode
+                         self.curriculum_manager.episode_complete()
                     self._select_opponent()
-
-                    reward += step_reward # Add our calculated step reward
-                    return obs, reward, True, False, info
+                
+                return obs, reward, done, False, info
+            
+            else:
+                # Opponent's turn
+                obs_opp, reward_opp, term_opp, trunc_opp, info_opp = self.env.last()
+                
+                if term_opp or trunc_opp:
+                    self.env.step(None) # Clear opponent
                     
-        # Return standard step return
-        # Need to capture reward from last()
-        # The wrapper logic above returns early if opponent ends game.
-        # If not, we fall through?
-        # NO. The wrapper implementation has a return inside the loop?
-        # Wait, the original code had:
-        # return obs, reward, done, False, info
-        # inside the loop when agent is training_agent.
-        
-        # So we need to inject step_reward there.
-        
-        pass # This block is confusing to search/replace. I will target the specific return line.
+                    if self.curriculum_manager is not None:
+                         self.curriculum_manager.episode_complete()
+                    self._select_opponent()
+                    
+                    # Return terminal state
+                    # We need to return valid obs/reward/done
+                    return obs_opp, 0, True, False, info_opp
+                else:
+                    self._opponent_step()
     
     def render(self, mode='human'):
         """Render the environment."""
