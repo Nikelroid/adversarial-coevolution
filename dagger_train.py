@@ -52,8 +52,8 @@ def collect_dagger_data(env, student_policy, expert_agent, num_episodes, beta=0.
         obs, _ = env.reset()
         done = False
         
-        # We need to set the expert's internal env reference if it needs it per episode?
-        # ExpertAgent stores self.env. The env object is persistent, so it's fine.
+        if hasattr(env, 'training_agent'):
+             expert_agent.set_player(env.training_agent)
         
         while not done:
             # 1. Get Expert Action
@@ -91,7 +91,8 @@ def collect_dagger_data(env, student_policy, expert_agent, num_episodes, beta=0.
             obs, reward, done, truncated, info = env.step(action)
             
             if done or truncated:
-                if reward > 0.5: # Simple win check from wrapper rewards
+                # Fix: Check >= 0.5 to include Knocks (0.5) and Gins (1.0 or 1.5)
+                if reward >= 0.5: 
                     wins += 1
                 break
                 
