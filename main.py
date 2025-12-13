@@ -298,6 +298,8 @@ def main():
     parser.add_argument('--tournament', action='store_true')
     parser.add_argument('--num-games', type=int, default=100)
     parser.add_argument('--plot-dir', type=str, default='./plots', help='Directory to save plots')
+    parser.add_argument('--player1-name', type=str, default=None, help='Custom name for Player 1')
+    parser.add_argument('--player2-name', type=str, default=None, help='Custom name for Player 2')
     
     args = parser.parse_args()
     
@@ -305,17 +307,17 @@ def main():
     
     if args.player1 == 'random':
         agent1 = RandomAgent(env)
-        agent1_name = 'Random Agent'
+        agent1_name = args.player1_name if args.player1_name else 'Random Agent'
     else:
         agent1 = PPOAgent(model_path=args.model, env=env)
-        agent1_name = 'PPO Agent'
+        agent1_name = args.player1_name if args.player1_name else 'PPO Agent'
     
     if args.player2 == 'random':
         agent2 = RandomAgent(env)
-        agent2_name = 'Random Opponent'
+        agent2_name = args.player2_name if args.player2_name else 'Random Opponent'
     else:
         agent2 = PPOAgent(model_path=args.model, env=env)
-        agent2_name = 'PPO Opponent'
+        agent2_name = args.player2_name if args.player2_name else 'PPO Opponent'
     
     if args.tournament:
         print(f"\nStarting Tournament: {agent1_name} vs {agent2_name}")
