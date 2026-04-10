@@ -12,6 +12,8 @@ This project explores the intersection of **Reinforcement Learning (RL)** and **
 
 We utilize LLMs (Llama 3, Gemma, GPT) as zero-shot strategic opponents to guide the training of efficient PPO agents. The system employs a **3-phase curriculum learning** approach to distill the broad, "common-sense" strategic knowledge of LLMs into a fast, compact RL policy.
 
+![Results Page](adverserial-coev.png)
+
 ## 🚀 Key Features & Achievements
 
 * **High-Performance RL Pipeline:** Engineered a high-throughput, 64-96 core, multi-process PPO training pipeline with a custom action-masked policy using Stable Baselines 3 and PyTorch.
