@@ -65,6 +65,12 @@ _SUITS_FILE = ["spades", "hearts", "diamonds", "clubs"]
 _SUITS_DISP = ["Spades", "Hearts", "Diamonds", "Clubs"]
 _RANKS_DISP = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"]
 
+# RLCard card encoding -> PettingZoo index. We read the opponent's true hand from
+# the underlying RLCard state because env.observe() ignores its agent argument
+# (it always returns the *current* player's view, i.e. the human's).
+_RLCARD_SUITS = "SHDC"
+_RLCARD_RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K"]
+
 
 def card_image(idx: int) -> str:
     return f"{idx % 13 + 1}_of_{_SUITS_FILE[idx // 13]}.png"
@@ -163,6 +169,7 @@ class GameSession:
         self.done = False
         self.result = None
         self._opp_snapshot = []        # last opponent hand seen while in play
+        self._human_snapshot = []      # last human hand (for end-of-game deadwood)
         self.last_reward = 0.0
         self._auto_advance()
         if not self.done:
@@ -221,16 +228,21 @@ class GameSession:
         # The reveal uses the last snapshot of the opponent's hand taken while it
         # was still in play (the env clears hands at termination).
 
-    def _observe_opponent(self):
-        """The opponent's current hand as card objects (exact while it's in play;
-        empty once the env has terminated and cleared hands)."""
+    def _player_hands(self):
+        """(human_hand, opponent_hand) as sorted PettingZoo card-index lists,
+        read from the underlying RLCard game state. Empty lists if unavailable."""
         try:
-            board = np.asarray(self.wrapper.env.observe(self.wrapper.opponent_agent)
-                               ["observation"])
-            idx = sorted(int(i) for i in np.where(board[0] == 1)[0])
-            return [card_obj(i) for i in idx]
+            players = self.wrapper.env.unwrapped.env.game.round.players
+
+            def pz(p):
+                return sorted(_RLCARD_SUITS.index(c.suit) * 13
+                              + _RLCARD_RANKS.index(c.rank) for c in p.hand)
+
+            h_pid = int(self.wrapper.training_agent.split("_")[1])
+            o_pid = int(self.wrapper.opponent_agent.split("_")[1])
+            return pz(players[h_pid]), pz(players[o_pid])
         except Exception:
-            return []
+            return [], []
 
 
 def build_view(session: GameSession) -> dict:
@@ -257,17 +269,24 @@ def build_view(session: GameSession) -> dict:
     else:
         phase = "discard"
 
-    deadwood, melds = best_melds_deadwood(hand)
+    # True hands from the RLCard state, snapshotted so we can still show them
+    # after the env clears the live hands at termination.
+    h_hand, o_hand = session._player_hands()
+    if h_hand:
+        session._human_snapshot = h_hand
+    if o_hand:
+        session._opp_snapshot = o_hand
 
-    # Opponent hand: exact while in play (used by the debug "see opponent" mode);
-    # snapshot the last non-empty view so we can reveal it after termination.
-    live_opp = session._observe_opponent()
-    if live_opp:
-        session._opp_snapshot = live_opp
+    # During play use the live obs hand for the player; at the end the env has
+    # cleared it, so fall back to the snapshot.
+    player_hand = (session._human_snapshot or hand) if session.done else hand
+    opp_hand = session._opp_snapshot if session.done else o_hand
+
+    deadwood, melds = best_melds_deadwood(player_hand)
 
     return {
-        "hand": [card_obj(i) for i in hand],
-        "hand_count": len(hand),
+        "hand": [card_obj(i) for i in player_hand],
+        "hand_count": len(player_hand),
         "top_discard": card_obj(top_discard) if top_discard is not None else None,
         "discard_known": [card_obj(i) for i in known],
         "phase": phase,
@@ -279,9 +298,15 @@ def build_view(session: GameSession) -> dict:
         "message": session.message,
         "opponent_key": session.opponent_key,
         "opponent_label": OPPONENTS[session.opponent_key]["label"],
-        "opponent_count": len(live_opp) if live_opp else 10,
-        "opponent_hand_live": live_opp if not session.done else None,  # debug view
-        "opponent_reveal": session._opp_snapshot if session.done else None,  # end reveal
+        "opponent_count": len(opp_hand) if opp_hand else 10,
+        # debug "see opponent" view (live, exact); only while in play
+        "opponent_hand_live": ([card_obj(i) for i in o_hand]
+                               if (o_hand and not session.done) else None),
+        # end-of-game reveal + both deadwoods
+        "opponent_reveal": ([card_obj(i) for i in session._opp_snapshot]
+                            if session.done else None),
+        "opponent_deadwood": (best_melds_deadwood(session._opp_snapshot)[0]
+                              if (session.done and session._opp_snapshot) else None),
     }
 
 

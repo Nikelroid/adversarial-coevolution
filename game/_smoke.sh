@@ -68,12 +68,19 @@ for g in range(8):
         assert v["hand_count"] in (10,11), ("bad hand_count", v["hand_count"])
         lv=v.get("opponent_hand_live")
         assert isinstance(lv,list) and len(lv) in (10,11), ("bad opp live", None if lv is None else len(lv))
+        # The opponent's hand must be DISJOINT from the player's (one deck) -- this
+        # is the regression guard for "opponent shows my hand".
+        ph=set(c["idx"] for c in v["hand"]); oh=set(c["idx"] for c in lv)
+        assert ph.isdisjoint(oh), ("opponent hand overlaps player hand!", sorted(ph & oh))
         a=pick(v); assert a is not None, ("no legal action", v["legal"])
         st,v=post("/api/action",{"action":a})
         assert st==200 and "error" not in v, ("action error", st, v)
         steps+=1
     assert v["done"], ("game didn't finish", steps)
     assert v.get("opponent_reveal") and len(v["opponent_reveal"]) in (10,11), ("reveal missing", v.get("opponent_reveal"))
+    assert isinstance(v.get("opponent_deadwood"), int), ("opp deadwood missing", v.get("opponent_deadwood"))
+    rh=set(c["idx"] for c in v["hand"]); ro=set(c["idx"] for c in v["opponent_reveal"])
+    assert rh.isdisjoint(ro), ("reveal overlaps player hand!", sorted(rh & ro))
     results[v["result"]]+=1
     print(f"game {g}: {v['result']} in {steps} steps, final dw={v['deadwood']}")
 
