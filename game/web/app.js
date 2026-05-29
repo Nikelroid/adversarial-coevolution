@@ -1,23 +1,28 @@
 "use strict";
 
-// Action ids must match the PettingZoo gin_rummy_v4 action space (the backend
-// re-validates every action against the env's mask, so these are just the
-// agreed encoding).
+// Action ids (PettingZoo gin_rummy_v4). The server re-validates everything.
 const A_DRAW = 2;
 const A_TAKE = 3;
 const A_DEAD = 4;
 const A_GIN = 5;
-const discardAction = (idx) => 6 + idx;   // discard card `idx`
-const knockAction = (idx) => 58 + idx;    // knock, discarding card `idx`
-
+const discardAction = (idx) => 6 + idx;
+const knockAction = (idx) => 58 + idx;
 const CARD_BACK = "/deck_images/card_back.png";
 
 let view = null;
 let knockArmed = false;
 let busy = false;
 
+// animation bookkeeping
+let prevCardsByIdx = {};     // idx -> card obj (for ghosts)
+let prevTopIdx = null;       // last discard-top idx (to pop on change)
+let pendingDraw = null;      // {source:'stock'|'discard'} set when we draw/take
+let pendingDiscard = null;   // {idx} set when we discard/knock
+let dealNext = false;        // animate a fresh deal on the next render
+
 const $ = (id) => document.getElementById(id);
 
+// ---------------------------------------------------------------- networking
 async function api(method, path, body) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
   if (body !== undefined) opts.body = JSON.stringify(body);
@@ -28,20 +33,53 @@ async function api(method, path, body) {
 }
 
 async function refresh() {
-  try { render(await api("GET", "/api/state")); }
-  catch (e) { flash(e.message); }
+  try { render(await api("GET", "/api/state")); } catch (e) { flash(e.message); }
 }
 
-function selectedOpponent() {
-  const sel = document.getElementById("opponent-select");
-  return sel && sel.value ? sel.value : undefined;
+function setPending(action) {
+  pendingDraw = null;
+  pendingDiscard = null;
+  if (action === A_DRAW) pendingDraw = { source: "stock" };
+  else if (action === A_TAKE) pendingDraw = { source: "discard" };
+  else if (action >= 6 && action <= 57) pendingDiscard = { idx: action - 6 };
+  else if (action >= 58 && action <= 109) pendingDiscard = { idx: action - 58 };
 }
 
 async function newGame() {
   if (busy) return;
   knockArmed = false;
+  pendingDraw = null;
+  pendingDiscard = null;
+  dealNext = true;
   const key = selectedOpponent();
   await run(() => api("POST", "/api/new_game", key ? { opponent: key } : {}));
+}
+
+async function send(action) {
+  if (busy) return;
+  knockArmed = false;
+  setPending(action);
+  await run(() => api("POST", "/api/action", { action }));
+}
+
+async function run(fn) {
+  busy = true;
+  try { render(await fn()); }
+  catch (e) { flash(e.message); }
+  finally { busy = false; }
+}
+
+function flash(msg) {
+  const m = $("message");
+  m.textContent = msg;
+  m.classList.add("flash");
+  setTimeout(() => m.classList.remove("flash"), 1200);
+}
+
+// ---------------------------------------------------------------- opponents
+function selectedOpponent() {
+  const sel = $("opponent-select");
+  return sel && sel.value ? sel.value : undefined;
 }
 
 async function loadOpponents() {
@@ -54,61 +92,96 @@ async function loadOpponents() {
     opt.textContent = `${o.label} · ${o.stat}`;
     sel.appendChild(opt);
   });
-  sel.onchange = () => newGame();   // switching opponent starts a fresh game
+  sel.onchange = () => newGame();
 }
 
-async function send(action) {
-  if (busy) return;
-  await run(() => api("POST", "/api/action", { action }));
-}
-
-// Single in-flight request at a time -> the client can never desync the server.
-async function run(fn) {
-  busy = true;
-  try { render(await fn()); }
-  catch (e) { flash(e.message); }
-  finally { busy = false; }
-}
-
-function flash(msg) {
-  const m = $("message");
-  m.textContent = msg;
-  m.style.outline = "2px solid #ff8e8e";
-  setTimeout(() => (m.style.outline = "none"), 1200);
-}
-
-function cardDiv(card, { small = false } = {}) {
+// ---------------------------------------------------------------- card DOM
+function cardEl(card, small) {
   const d = document.createElement("div");
   d.className = "card";
   d.style.backgroundImage = `url(/deck_images/${card.img})`;
   d.title = card.label;
-  if (small) { d.style.width = "54px"; d.style.height = "78px"; }
+  d.dataset.idx = card.idx;
+  if (small) d.classList.add("small");
   return d;
 }
 
-function backDiv() {
+function backEl() {
   const d = document.createElement("div");
-  d.className = "card";
+  d.className = "card small back";
   d.style.backgroundImage = `url(${CARD_BACK})`;
-  d.style.width = "54px";
-  d.style.height = "78px";
   return d;
 }
 
+// ---------------------------------------------------------------- animation
+// FLIP: animate `el` from a previous rectangle into its current layout slot.
+function flip(el, fromRect, opts) {
+  opts = opts || {};
+  try {
+    const to = el.getBoundingClientRect();
+    const dx = fromRect.left - to.left;
+    const dy = fromRect.top - to.top;
+    if (!opts.grow && Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const sx = opts.grow ? (fromRect.width / to.width) || 1 : 1;
+    const sy = opts.grow ? (fromRect.height / to.height) || 1 : 1;
+    const delay = opts.delay || 0;
+    el.style.transition = "none";
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+    if (opts.grow) el.style.opacity = "0.35";
+    el.getBoundingClientRect(); // force reflow
+    requestAnimationFrame(() => {
+      el.style.transition =
+        `transform .45s cubic-bezier(.2,.85,.25,1) ${delay}ms, opacity .35s ${delay}ms`;
+      el.style.transform = "";
+      el.style.opacity = "";
+      setTimeout(() => { el.style.transition = ""; }, 520 + delay);
+    });
+  } catch (e) { /* end-state already correct */ }
+}
+
+// A card flying from the hand to the discard pile when we discard.
+function discardGhost(card, fromRect) {
+  try {
+    if (!card || !fromRect) return;
+    const disc = $("discard").getBoundingClientRect();
+    const g = document.createElement("div");
+    g.className = "card ghost-card";
+    g.style.cssText =
+      `position:fixed; left:${fromRect.left}px; top:${fromRect.top}px;` +
+      `width:${fromRect.width}px; height:${fromRect.height}px;` +
+      `background-image:url(/deck_images/${card.img});`;
+    document.body.appendChild(g);
+    requestAnimationFrame(() => {
+      g.style.transform =
+        `translate(${disc.left - fromRect.left}px, ${disc.top - fromRect.top}px) rotate(9deg)`;
+    });
+    setTimeout(() => g.remove(), 480);
+  } catch (e) { /* cosmetic */ }
+}
+
+function pop(el) {
+  if (!el) return;
+  el.classList.remove("pop");
+  void el.offsetWidth;
+  el.classList.add("pop");
+}
+
+// ---------------------------------------------------------------- render
 function render(v) {
   view = v;
-  knockArmed = knockArmed && v.legal && v.legal.knock.length > 0 && v.phase === "discard";
 
   if (v.opponent_key) {
     const sel = $("opponent-select");
     if (sel && sel.value !== v.opponent_key) sel.value = v.opponent_key;
   }
 
-  $("message").textContent = v.message || "";
+  const msg = $("message");
+  if (msg.textContent !== (v.message || "")) {
+    msg.textContent = v.message || "";
+  }
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
 
-  // Opponent — face-down unless the "see opponent" debug toggle is on. Melded
-  // (matched) opponent cards get the same gold bar as the player's.
+  // ---- opponent zone (face-down, or face-up with melds in debug) ----
   const oppMelded = new Set();
   (v.opponent_melds || []).forEach((m) => m.forEach((i) => oppMelded.add(i)));
   const opp = $("opponent");
@@ -116,16 +189,16 @@ function render(v) {
   const showOpp = $("debug-toggle") && $("debug-toggle").checked;
   if (showOpp && v.opponent_hand_live && v.opponent_hand_live.length) {
     v.opponent_hand_live.forEach((c) => {
-      const el = cardDiv(c, { small: true });
+      const el = cardEl(c, true);
       if (oppMelded.has(c.idx)) el.classList.add("melded");
       opp.appendChild(el);
     });
   } else {
     const n = v.opponent_count || 10;
-    for (let i = 0; i < n; i++) opp.appendChild(backDiv());
+    for (let i = 0; i < n; i++) opp.appendChild(backEl());
   }
 
-  // Stock
+  // ---- stock + discard ----
   const stock = $("stock");
   stock.className = "card-slot stock";
   stock.style.backgroundImage = `url(${CARD_BACK})`;
@@ -135,7 +208,6 @@ function render(v) {
     stock.onclick = () => send(A_DRAW);
   }
 
-  // Discard
   const disc = $("discard");
   disc.className = "card-slot discard";
   disc.onclick = null;
@@ -152,17 +224,31 @@ function render(v) {
     disc.classList.add("clickable");
     disc.onclick = () => send(A_TAKE);
   }
+  const topIdx = v.top_discard ? v.top_discard.idx : null;
+  if (topIdx !== prevTopIdx && topIdx !== null) pop(disc);
+  prevTopIdx = topIdx;
 
-  // Player hand
+  // ---- hand (with FLIP animation) ----
+  const handDiv = $("hand");
+  const oldRects = {};
+  for (const el of Array.from(handDiv.children)) {
+    const i = Number(el.dataset.idx);
+    if (!Number.isNaN(i)) oldRects[i] = el.getBoundingClientRect();
+  }
+  // a card we just discarded flies to the pile
+  if (pendingDiscard && prevCardsByIdx[pendingDiscard.idx]) {
+    discardGhost(prevCardsByIdx[pendingDiscard.idx], oldRects[pendingDiscard.idx]);
+  }
+
   const melded = new Set();
   (v.melds || []).forEach((m) => m.forEach((idx) => melded.add(idx)));
   const discardable = new Set(v.legal.discard);
   const knockable = new Set(v.legal.knock);
 
-  const hand = $("hand");
-  hand.innerHTML = "";
+  handDiv.innerHTML = "";
+  const newEls = {};
   v.hand.forEach((card) => {
-    const el = cardDiv(card);
+    const el = cardEl(card, false);
     if (melded.has(card.idx)) el.classList.add("melded");
     if (!v.done && v.phase === "discard") {
       if (knockArmed && knockable.has(card.idx)) {
@@ -175,25 +261,38 @@ function render(v) {
         el.classList.add("disabled");
       }
     }
-    hand.appendChild(el);
+    handDiv.appendChild(el);
+    newEls[card.idx] = el;
   });
 
-  // Buttons
+  const isDeal = dealNext ||
+    (Object.keys(oldRects).length === 0 && v.hand.length > 1);
+  const stockRect = stock.getBoundingClientRect();
+  v.hand.forEach((card, i) => {
+    const el = newEls[card.idx];
+    if (isDeal) {                                          // new-game deal cascade
+      flip(el, stockRect, { grow: true, delay: i * 50 });
+    } else if (oldRects[card.idx]) {
+      flip(el, oldRects[card.idx]);                        // existing card slides
+    } else if (pendingDraw) {                              // drawn card flies in
+      const src = pendingDraw.source === "discard" ? disc : stock;
+      flip(el, src.getBoundingClientRect(), { grow: true });
+    }
+  });
+  dealNext = false;
+
+  // ---- action buttons ----
   setBtn("btn-draw", !v.done && v.legal.draw_stock, () => send(A_DRAW));
   setBtn("btn-take", !v.done && v.legal.take_discard, () => send(A_TAKE));
   setBtn("btn-gin", !v.done && v.legal.gin, () => send(A_GIN));
   setBtn("btn-dead", !v.done && v.legal.declare_dead, () => send(A_DEAD));
-
   const canKnock = !v.done && v.legal.knock.length > 0;
   const knockBtn = $("btn-knock");
-  setBtn("btn-knock", canKnock, () => {
-    knockArmed = !knockArmed;
-    render(view); // re-render to reflect armed state
-  });
+  setBtn("btn-knock", canKnock, () => { knockArmed = !knockArmed; render(view); });
   knockBtn.classList.toggle("armed", knockArmed && canKnock);
   if (knockArmed && canKnock) $("message").textContent = "Knock: click the card to discard.";
 
-  // Overlay
+  // ---- end overlay ----
   const overlay = $("overlay");
   if (v.done) {
     const card = overlay.querySelector(".overlay-card");
@@ -210,7 +309,7 @@ function render(v) {
     oh.innerHTML = "";
     if (v.opponent_reveal && v.opponent_reveal.length) {
       v.opponent_reveal.forEach((c) => {
-        const el = cardDiv(c, { small: true });
+        const el = cardEl(c, true);
         if (oppMelded.has(c.idx)) el.classList.add("melded");
         oh.appendChild(el);
       });
@@ -222,6 +321,13 @@ function render(v) {
   } else {
     overlay.classList.add("hidden");
   }
+
+  // ---- bookkeeping for next render's animations ----
+  prevCardsByIdx = {};
+  v.hand.forEach((c) => { prevCardsByIdx[c.idx] = c; });
+  if (v.opponent_reveal) v.opponent_reveal.forEach((c) => { prevCardsByIdx[c.idx] = c; });
+  pendingDraw = null;
+  pendingDiscard = null;
 }
 
 function setBtn(id, enabled, onclick) {

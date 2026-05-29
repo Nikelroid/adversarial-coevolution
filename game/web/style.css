@@ -166,3 +166,77 @@ body {
 .reveal { margin: 18px 0; }
 .reveal-label { font-size: 12px; letter-spacing: 1px; opacity: 0.7; margin-bottom: 8px; }
 .reveal-hand .card { width: 56px; height: 80px; }
+
+/* ===================== animation & polish layer ===================== */
+.card {
+  transition: transform .18s cubic-bezier(.2,.85,.25,1), box-shadow .18s,
+              outline-color .18s, filter .18s;
+  will-change: transform;
+}
+.card.small { width: 56px; height: 80px; box-shadow: 0 3px 7px rgba(0,0,0,.45); }
+.card.back { box-shadow: 0 3px 7px rgba(0,0,0,.45); }
+.opponent-hand { gap: 5px; }
+
+/* melded cards: gold rim + gentle pulse */
+.card.melded {
+  outline-color: var(--gold);
+  animation: meldGlow 2.2s ease-in-out infinite;
+}
+@keyframes meldGlow {
+  0%,100% { box-shadow: 0 0 0 1px var(--gold), 0 0 10px rgba(244,193,69,.40), 0 6px 12px rgba(0,0,0,.4); }
+  50%     { box-shadow: 0 0 0 1px var(--gold), 0 0 22px rgba(244,193,69,.80), 0 6px 14px rgba(0,0,0,.45); }
+}
+
+/* hover lift */
+.card.playable:hover { transform: translateY(-16px) scale(1.04); box-shadow: 0 16px 24px rgba(0,0,0,.55); z-index: 5; }
+.card.knockable:hover { transform: translateY(-16px) scale(1.04); outline-color: var(--amber); box-shadow: 0 0 18px var(--amber), 0 16px 24px rgba(0,0,0,.5); z-index: 5; }
+.card.disabled { filter: brightness(.8) saturate(.85); }
+
+/* stock as a stacked deck */
+.stock::before, .stock::after {
+  content: ""; position: absolute; inset: 0; border-radius: 9px;
+  background: inherit; background-size: cover; z-index: -1;
+}
+.stock::before { transform: translate(4px, 5px); filter: brightness(.82); }
+.stock::after  { transform: translate(8px, 10px); filter: brightness(.66); }
+.card-slot { transition: transform .18s, box-shadow .18s; }
+.card-slot.clickable { box-shadow: 0 0 16px rgba(244,193,69,.5); }
+.card-slot.clickable:hover { transform: translateY(-6px) scale(1.05); }
+
+/* discard pile pops when its top changes */
+.card-slot.pop { animation: popIn .42s cubic-bezier(.2,.85,.25,1); }
+@keyframes popIn {
+  0%   { transform: scale(.55) rotate(-10deg); opacity: .3; }
+  60%  { transform: scale(1.08) rotate(2deg); }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ghost card flying from hand to the discard pile */
+.ghost-card {
+  border-radius: 9px; background-size: cover; background-position: center;
+  z-index: 60; pointer-events: none; box-shadow: 0 14px 24px rgba(0,0,0,.55);
+  transition: transform .46s cubic-bezier(.2,.85,.25,1), opacity .46s; opacity: .96;
+}
+
+/* felt depth + soft vignette */
+.table { position: relative; }
+.table::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 200px rgba(0,0,0,.55);
+}
+
+/* status message flash */
+.message { transition: box-shadow .2s; }
+.message.flash { box-shadow: 0 0 0 2px #ff8e8e; }
+
+/* overlay entrance + win shimmer */
+.overlay { animation: fadeIn .25s ease; }
+.overlay-card { animation: rise .38s cubic-bezier(.2,.85,.25,1); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { transform: translateY(26px) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+.overlay-card.win { animation: rise .38s cubic-bezier(.2,.85,.25,1), winGlow 1.8s ease-in-out .4s infinite; }
+@keyframes winGlow {
+  0%,100% { box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 28px rgba(244,193,69,.35); }
+  50%     { box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 60px rgba(244,193,69,.8); }
+}
+.btn-gold { background: linear-gradient(135deg, #ffd766, #f4c145); }
