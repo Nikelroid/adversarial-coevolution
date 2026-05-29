@@ -189,12 +189,18 @@ class GameSession:
             _, opp_before = self._player_hands()
         except Exception:
             opp_before = []
+        try:
+            # the discard top BEFORE this move -- this is the card revealed
+            # underneath if the opponent then takes the card we're discarding.
+            under_top = self._top_idx()
+        except Exception:
+            under_top = None
         obs, reward, done, trunc, _ = self.wrapper.step(action)
         self.obs = obs
         self.last_reward = float(reward)
         try:
             if not (done or trunc):
-                self.events = self._opponent_events(action, set(opp_before))
+                self.events = self._opponent_events(action, set(opp_before), under_top)
         except Exception:
             self.events = []
         if done or trunc:
@@ -264,10 +270,12 @@ class GameSession:
         t = np.where(board[1] == 1)[0]
         return int(t[0]) if len(t) else None
 
-    def _opponent_events(self, action, opp_before):
+    def _opponent_events(self, action, opp_before, under_top=None):
         """Infer what the opponent did this turn (draw source + discard) by
         diffing its hand, so the UI can animate it. Only meaningful after a human
-        discard/knock (the opponent doesn't move after a draw)."""
+        discard/knock (the opponent doesn't move after a draw). under_top is the
+        discard top before this move -- the card revealed if the opponent takes
+        the card we just discarded."""
         is_discard = 6 <= action <= 57
         is_knock = 58 <= action <= 109
         if not (is_discard or is_knock):
@@ -281,7 +289,11 @@ class GameSession:
         if len(drawn) == 1:
             d = drawn[0]
             source = "discard" if d == human_discard else "stock"
-            events.append({"type": "opp_draw", "source": source, "card": card_obj(d)})
+            ev = {"type": "opp_draw", "source": source, "card": card_obj(d)}
+            if source == "discard":
+                # what the UI should show on the pile once the top is taken
+                ev["under"] = card_obj(under_top) if under_top is not None else None
+            events.append(ev)
         elif top_after is not None and top_after != human_discard:
             # hand unchanged -> the opponent drew a card from stock and discarded
             # that SAME card; surface it so the UI still animates the fly-in/out
