@@ -118,6 +118,9 @@ can teach. This is what motivates Phase~2.
     Pool champion (12M) & run\_5 & 62.0 & 38.0 & \\
     OLMoE-1B opponent & random & $\approx$50 & --- & plays at chance \\
     Qwen2.5-7B opponent & random & \textbf{100} & 0 & $5/5$ (small $N$) \\
+    \midrule
+    LLM-finetuned PPO (40k) & random & 98.2 & 1.8 & retains competence \\
+    LLM-finetuned PPO (40k) & self-play champ & 45.4 & 54.6 & short run; not yet improved \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -201,13 +204,17 @@ per-call latency falls from $\sim$16\,s to $\sim$0.4\,s---roughly a $500\times$
 aggregate speedup over a na\"ive single-stream CoT loop (Fig.~\ref{fig:run}),
 and the headline win-condition (rollout collected in minutes, not hours) holds:
 PPO sustains \textbf{39 env-steps/s}, completing an 8192-step rollout in
-$\sim$206\,s. Reward stays stable as fine-tuning begins
-($\overline{r}_{\text{ep}}$: $0.489 \to 0.498$ over the first two rollouts).
-The suit-symmetry cache hit-rate is $\approx$0\% so far---early-game states are
-diverse enough that canonicalization rarely collides---so throughput is currently
-worker-bound and scales with the pool. The open question Phase~3 must answer is
-whether continued fine-tuning against the LLM raises the gin rate, the headroom
-Phase~1 exposed.
+$\sim$206\,s. Reward stays stable as fine-tuning runs
+($\overline{r}_{\text{ep}} \approx 0.49$). The run completed all $40$k steps
+($4.9$ rollouts) in $17.5$\,min, saving the fine-tuned agent. Evaluated
+afterward (Table~\ref{tab:leaderboard}), it \emph{retains} $98.2\%$ vs random but
+sits at $45.4\%$ vs the self-play champion it was warm-started from: $40$k steps
+(against $3$M for the self-play generation) is far too short to improve, so this
+run validates the \emph{pipeline} and confirms competence is retained---not yet
+that the LLM teacher helps. The suit-symmetry cache hit-rate is $\approx$0\%
+(early-game states are diverse), so throughput is worker-bound and scales with
+the pool. The open question Phase~3 must answer is whether a \emph{much longer}
+fine-tune against the LLM raises the gin rate, the headroom Phase~1 exposed.
 
 \begin{figure}[h]
   \centering
