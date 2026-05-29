@@ -49,12 +49,14 @@ IMAGES_DIR = os.path.join(GAME_DIR, "images")
 #   reward  -> run_2 (highest mean reward, 0.54)
 # Both ship in game/model/ so a fresh clone has them.
 OPPONENTS = {
-    "winrate": {"label": "Highest win rate", "stat": "99.6% wins",
+    "selfplay": {"label": "Self-play champion", "stat": "strongest so far",
+                 "file": "ppo_gin_rummy_selfplay.zip"},
+    "winrate": {"label": "Highest win rate", "stat": "99.6% vs random",
                 "file": "ppo_gin_rummy_winrate.zip"},
     "reward": {"label": "Highest reward", "stat": "0.54 avg reward",
                "file": "ppo_gin_rummy_reward.zip"},
 }
-DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "winrate")
+DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "selfplay")
 
 
 def opponent_path(key: str) -> str:
