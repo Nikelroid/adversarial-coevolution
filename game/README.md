@@ -79,8 +79,9 @@ python game/server.py
 You'll see:
 
 ```
-Loading model: .../artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final.zip
-Model loaded. Starting a game session...
+Loading 'winrate' opponent: .../game/model/ppo_gin_rummy_winrate.zip
+Loading 'reward' opponent: .../game/model/ppo_gin_rummy_reward.zip
+Models loaded. Starting a game session...
 ============================================================
   Gin Rummy vs PPO is running at:  http://localhost:8000
   Open that URL in your browser. Ctrl-C to stop.
@@ -89,17 +90,22 @@ Model loaded. Starting a game session...
 
 Open **http://localhost:8000** in your browser and play. 🎉
 
+### Choose your opponent
+
+A dropdown at the top of the page lets you pick which trained agent to play
+against (switching it starts a fresh game). Both ship in `game/model/`:
+
+| Opponent | Model | Strength (vs random, 1000 games) |
+|---|---|---|
+| **Highest win rate** (default) | `run_5` | **99.6%** wins |
+| **Highest reward** | `run_2` | 0.54 avg reward (98.3% wins) |
+
 ### Options
 
 ```bash
-python game/server.py --port 8001                  # different port
-python game/server.py --model path/to/model.zip    # a different agent
-GIN_MODEL_PATH=path/to/model.zip python game/server.py
+python game/server.py --port 8001          # use a different port
+GIN_OPPONENT=reward python game/server.py   # start on the "highest reward" agent
 ```
-
-A stronger opponent: the hyperparameter-sweep winners live in
-`sweep/models/run_*/final.zip` (e.g. `run_5` ≈ 99.6% win rate). Point `--model`
-at one of those if you have them.
 
 ---
 
@@ -132,7 +138,7 @@ at one of those if you have them.
 
 | Symptom | Fix |
 |---|---|
-| `Model not found` | Pass `--model PATH` or set `GIN_MODEL_PATH`. The default model ships in `artifacts/models/ppo_gin_rummy/`. |
+| `Model not found` | Ensure `game/model/ppo_gin_rummy_winrate.zip` and `ppo_gin_rummy_reward.zip` exist (they ship with the repo). |
 | `Address already in use` | Another process holds the port — run with `--port 8001`. |
 | `ModuleNotFoundError` | Activate your environment and re-run `pip install -r game/requirements.txt`. |
 | First move feels slow | The model loads once at startup (a few seconds); play is instant after. |

@@ -32,10 +32,29 @@ async function refresh() {
   catch (e) { flash(e.message); }
 }
 
+function selectedOpponent() {
+  const sel = document.getElementById("opponent-select");
+  return sel && sel.value ? sel.value : undefined;
+}
+
 async function newGame() {
   if (busy) return;
   knockArmed = false;
-  await run(() => api("POST", "/api/new_game"));
+  const key = selectedOpponent();
+  await run(() => api("POST", "/api/new_game", key ? { opponent: key } : {}));
+}
+
+async function loadOpponents() {
+  const list = await api("GET", "/api/opponents");
+  const sel = $("opponent-select");
+  sel.innerHTML = "";
+  list.forEach((o) => {
+    const opt = document.createElement("option");
+    opt.value = o.key;
+    opt.textContent = `${o.label} · ${o.stat}`;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => newGame();   // switching opponent starts a fresh game
 }
 
 async function send(action) {
@@ -79,6 +98,11 @@ function backDiv() {
 function render(v) {
   view = v;
   knockArmed = knockArmed && v.legal && v.legal.knock.length > 0 && v.phase === "discard";
+
+  if (v.opponent_key) {
+    const sel = $("opponent-select");
+    if (sel && sel.value !== v.opponent_key) sel.value = v.opponent_key;
+  }
 
   $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
@@ -193,4 +217,11 @@ function setBtn(id, enabled, onclick) {
 $("btn-new").onclick = newGame;
 $("overlay-again").onclick = newGame;
 
-refresh();
+(async function init() {
+  try {
+    await loadOpponents();
+    render(await api("GET", "/api/state"));
+  } catch (e) {
+    flash(e.message);
+  }
+})();
