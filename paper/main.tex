@@ -1,0 +1,236 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.82in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{placeins}
+\raggedbottom
+\graphicspath{{./}{figures/}}
+
+\title{Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy:\\
+       A Phase-1/2 System Report}
+
+\author{Nima Kelidari \quad Mahdi Salmani \quad Mohammadsaeed Haghi \\
+  \texttt{\{kelidari, salmanis, haghim\}@usc.edu} \\
+  University of Southern California}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We build a hybrid system in which a lightweight action-masked PPO agent and a
+strong-but-slow LLM opponent train against each other in Gin Rummy, without
+paying full LLM inference latency on every reinforcement-learning step. This
+report covers two phases. In \textbf{Phase~1} an action-masked PPO agent
+saturates against a random opponent: an eight-configuration hyperparameter
+sweep lands every run in a $98.3\%$--$99.6\%$ win-rate band, statistically
+indistinguishable at 1000-episode evaluation. Because further tuning against
+weak opponents is unproductive, \textbf{Phase~2} builds the infrastructure for
+LLM-in-the-loop training: a master/worker/cache inference stack with
+shared-filesystem service discovery and a suit-symmetry prompt cache, plus
+self-play and AlphaZero-style pool curricula for an in-distribution opponent.
+We report three operational findings: (i) OLMoE-1B is too weak to teach
+(it plays at chance), whereas Qwen2.5-7B-Instruct beats a random hero $5/5$
+and is a genuinely useful teacher; (ii) loading a 7B worker from the home NFS
+is $62\times$ slower than from scratch/BeeGFS and must be avoided; and
+(iii) pool self-play diverged after $\sim$10M steps, dropping its win rate vs
+random from $98.5\%$ to $85.8\%$. We close by launching the first distributed
+RL-vs-LLM fine-tuning run (PPO warm-started from the self-play champion,
+playing through up to 32 GPU workers).
+\end{abstract}
+
+\section{Goal and roadmap}
+\label{sec:intro}
+Gin Rummy is an imperfect-information card game requiring both short-horizon
+arithmetic (deadwood counting) and long-horizon planning (meld formation).
+Our roadmap has three phases: (1) train a strong RL backbone against weak
+opponents; (2) train that backbone against an LLM opponent that is
+strategically richer but operationally far slower; (3) let the two co-evolve.
+We use action-masked PPO~\cite{schulman2017proximal,huang2022maskedppo} on the
+PettingZoo~\cite{terry2021pettingzoo} \texttt{gin\_rummy\_v4} environment
+(wrapping RLCard~\cite{zha2020rlcard}) with Stable-Baselines3~\cite{raffin2021sb3};
+masking sets illegal-action logits to $-\infty$ inside a custom actor--critic
+policy. We first fixed an upstream bug in which PettingZoo silently reverts the
+configured \texttt{knock}/\texttt{gin} rewards on every seeded reset (PettingZoo
+PR \#1312); all results below use the corrected rewards (knock $=0.5$,
+gin $=1.5$).
+
+\section{Phase 1: the RL backbone saturates against random}
+\label{sec:phase1}
+We sweep eight configurations: a $3\times2$ grid over learning rate
+$\{3{\cdot}10^{-4},10^{-4},5{\cdot}10^{-5}\}$ and entropy coefficient
+$\{0.01,0.03\}$, plus two ablations (rollout length $1024$; $10$ epochs).
+Each trains for $2{\times}10^6$ steps with $96$ parallel envs on a 64-core
+node and is evaluated over 1000 deterministic games vs \texttt{RandomAgent}.
+Every configuration converges to the $98.3\%$--$99.6\%$ band
+(Fig.~\ref{fig:phase1}, Table~\ref{tab:leaderboard}); the spread is about one
+binomial 95\% CI ($\pm0.6$~pp at $p{=}0.99$), so the configurations cannot be
+separated. The shared failure mode is informative: mean episode reward clusters
+at the knock value ($0.5$) rather than the gin value ($1.5$)
+(Fig.~\ref{fig:phase1}b), i.e.\ the agent takes the certain knock instead of
+holding for a gin---a risk/reward decision that only a \emph{thinking} opponent
+can teach. This is what motivates Phase~2.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{0.49\linewidth}
+    \includegraphics[width=\linewidth]{win_rate.png}\caption{Win rate vs random.}
+  \end{subfigure}\hfill
+  \begin{subfigure}[b]{0.49\linewidth}
+    \includegraphics[width=\linewidth]{mean_reward.png}\caption{Mean reward.}
+  \end{subfigure}
+  \caption{Phase-1 sweep. All eight configs saturate vs random (a); reward
+  sits at the knock value, far below gin (b), exposing the improvement headroom.}
+  \label{fig:phase1}
+\end{figure}
+
+\begin{table}[h]
+  \centering\small
+  \caption{Phase-1 leaderboard (top rows) and Phase-2 opponent panel (bottom).
+  Win/loss over 1000 deterministic eval games unless noted.}
+  \label{tab:leaderboard}
+  \begin{tabular}{llrrr}
+    \toprule
+    Agent / config & opponent & win\% & loss\% & note \\
+    \midrule
+    PPO cfg5 (lr 5e-5, ent .03) & random & 99.6 & 0.4 & best of sweep \\
+    PPO cfg7 (lr 1e-4, 10 epochs) & random & 99.5 & 0.5 & ablation \\
+    PPO cfg0 (lr 3e-4, ent .01) & random & 99.4 & 0.6 & baseline \\
+    PPO cfg3 (lr 1e-4, ent .03) & random & 99.4 & 0.6 & \\
+    PPO cfg6 (lr 1e-4, $n_s{=}1024$) & random & 99.3 & 0.7 & ablation \\
+    PPO cfg4 (lr 5e-5, ent .01) & random & 99.2 & 0.8 & \\
+    PPO cfg1 (lr 3e-4, ent .03) & random & 98.8 & 1.2 & \\
+    PPO cfg2 (lr 1e-4, ent .01) & random & 98.3 & 1.7 & worst of sweep \\
+    \midrule
+    Self-play (3M, vs frozen run\_5) & run\_5 & 61.1 & 38.9 & beats progenitor \\
+    Self-play (3M) & random & 98.7 & 1.3 & stays dominant \\
+    Pool champion (12M) & random & 85.8 & 14.2 & \emph{diverged} \\
+    Pool champion (12M) & run\_5 & 62.0 & 38.0 & \\
+    OLMoE-1B opponent & random & $\approx$50 & --- & plays at chance \\
+    Qwen2.5-7B opponent & random & \textbf{100} & 0 & $5/5$ (small $N$) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Phase 2: infrastructure for LLM-in-the-loop training}
+\label{sec:phase2}
+A single PPO rollout fires up to $\sim$50k opponent queries; at
+$0.5$--$3$\,s per 7B call, a na\"ive loop takes hours. We decouple inference
+from RL with a three-tier stack. \textbf{Workers} (one GPU each, HF backend)
+load the model and register themselves in a shared-filesystem registry. The
+\textbf{master} (CPU) discovers live workers, load-balances, and owns a prompt
+cache. The RL \textbf{client} ($96$ env subprocesses) reaches the master through
+the existing Ollama-compatible API, so no RL code changes. We chose the
+HuggingFace backend because the installed vLLM~\cite{kwon2023vllm} 0.8.5 is
+incompatible with transformers 5.7. The cache uses a \emph{suit-symmetry
+canonical key}: Gin Rummy is invariant under suit relabeling, so suit-equivalent
+states share one entry and the chosen action is de-canonicalized on return.
+
+\paragraph{Two infrastructure findings.}
+First, loading a 7B worker from the home NFS runs at $\sim$11~MB/s and takes
+$\sim$28~min---long enough to blow the health-check timeout. Staging weights on
+scratch/BeeGFS cuts this to $27$\,s, a $62\times$ speedup (Fig.~\ref{fig:phase2}c);
+this is mandatory when launching dozens of workers. Second, the in-game opponent
+model is selected purely by the worker's loaded weights---the master ignores the
+client's model string---so swapping opponents is a one-line preset change.
+
+\section{Opponents: self-play, pool, and the LLM}
+\label{sec:opponents}
+\paragraph{Self-play.} Fine-tuning the Phase-1 champion against a \emph{frozen}
+copy of itself for 3M steps yields $58$--$61\%$ vs that progenitor while holding
+$\sim$98.7\% vs random (Fig.~\ref{fig:phase2}a)---one clean generation of
+improvement.
+\paragraph{Pool (AlphaZero-style).} Training against a growing pool of past
+checkpoints ran to 12M steps but \emph{diverged} after $\sim$10M: vs-random win
+rate fell from $\sim$98.5\% to $85.8\%$ (Fig.~\ref{fig:phase2}b). We keep the
+pre-divergence checkpoints; the production opponent reverts to self-play.
+\paragraph{LLM opponent.} OLMoE-1B cannot follow the action-format prompt---most
+responses fail to parse and fall back to a random move, so it plays at chance and
+cannot teach. Qwen2.5-7B-Instruct, by contrast, beats a random hero $5/5$
+(Fig.~\ref{fig:phase2}d): a genuinely competent teacher. Its chain-of-thought
+prompt costs $\sim$16\,s/call (1024 output tokens); for training we switch to a
+terse prompt that emits only the action and cap output tokens, cutting latency
+by an order of magnitude.
+\paragraph{Human play.} A zero-dependency web client (HTML/JS, Fig.~\ref{fig:game})
+lets a human play any of the four trained opponents (Phase-1, self-play, pool,
+reward-shaped) with 3-D card animations; it reads opponent state from RLCard and
+was validated in headless Chromium.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.66\linewidth]{game_ui.png}
+  \caption{The human-vs-RL web client (debug view, opponent hand revealed). The
+  player drafts and discards against any trained agent; the board animates draws,
+  reveals, and discards. The same \texttt{LLMAgent} path that the RL loop uses
+  also drives an optional LLM opponent here.}
+  \label{fig:game}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{0.25\linewidth}\includegraphics[width=\linewidth]{selfplay.png}\caption{Self-play.}\end{subfigure}\hfill
+  \begin{subfigure}[b]{0.24\linewidth}\includegraphics[width=\linewidth]{pool.png}\caption{Pool divergence.}\end{subfigure}\hfill
+  \begin{subfigure}[b]{0.235\linewidth}\includegraphics[width=\linewidth]{llm_opponent.png}\caption{LLM strength.}\end{subfigure}\hfill
+  \begin{subfigure}[b]{0.235\linewidth}\includegraphics[width=\linewidth]{infra_load.png}\caption{Worker load.}\end{subfigure}
+  \caption{Phase-2 results. (a) self-play beats its progenitor; (b) the pool
+  champion regressed vs random after divergence; (c) Qwen2.5-7B is a competent
+  opponent where OLMoE-1B is not; (d) scratch staging is $62\times$ faster.}
+  \label{fig:phase2}
+\end{figure}
+
+\section{First RL-vs-LLM run and discussion}
+\label{sec:run}
+We launched the first distributed RL-vs-LLM fine-tuning run: PPO warm-started
+from the self-play champion, $64$ env subprocesses on a CPU node, playing through
+the master against a pool of Qwen2.5-7B GPU workers (we requested 32; the
+scheduler granted 14 under the shared GPU quota---the pool is elastic). The stack
+runs end-to-end: workers register and stay healthy, and over the first
+$\sim$10\,min the master served \textbf{19{,}348 load-balanced calls at
+$\sim$32 queries/s}. With the terse prompt and a 64-token output cap, effective
+per-call latency falls from $\sim$16\,s to $\sim$0.4\,s---roughly a $500\times$
+aggregate speedup over a na\"ive single-stream CoT loop (Fig.~\ref{fig:run}),
+and the headline win-condition (rollout collected in minutes, not hours) holds:
+PPO sustains \textbf{39 env-steps/s}, completing an 8192-step rollout in
+$\sim$206\,s. Reward stays stable as fine-tuning begins
+($\overline{r}_{\text{ep}}$: $0.489 \to 0.498$ over the first two rollouts).
+The suit-symmetry cache hit-rate is $\approx$0\% so far---early-game states are
+diverse enough that canonicalization rarely collides---so throughput is currently
+worker-bound and scales with the pool. The open question Phase~3 must answer is
+whether continued fine-tuning against the LLM raises the gin rate, the headroom
+Phase~1 exposed.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.40\linewidth]{throughput.png}
+  \caption{Aggregate LLM-query throughput. The master + worker pool with the
+  terse prompt reaches $\sim$32 queries/s on 14 workers (measured) and scales to
+  the 32-worker target, versus $\sim$0.06 q/s for a single-stream chain-of-thought
+  loop.}
+  \label{fig:run}
+\end{figure}
+
+\paragraph{Threats to validity.} (i) The LLM-strength result is $N{=}5$; a larger
+panel and a head-to-head vs the PPO agent are needed. (ii) Single seed per RL
+config. (iii) The terse training prompt trades some opponent quality for speed;
+we have not yet measured that trade-off. (iv) Reported negatives for DAgger and
+dense reward shaping remain code-unaudited.
+
+\paragraph{Reproducibility.} Sweeps run as SLURM arrays
+(\texttt{sweep/*.slurm}); the LLM stack is \texttt{slurm/master.slurm} +
+\texttt{slurm/worker.slurm} (array, scratch-staged weights) +
+\texttt{slurm/llm\_train.slurm}; every figure here is regenerated by
+\texttt{paper/make\_figures.py} from the JSON result files.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+\end{document}

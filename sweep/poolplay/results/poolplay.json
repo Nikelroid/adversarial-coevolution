@@ -1,0 +1,29 @@
+{
+  "steps": 12000000,
+  "save_freq": 1500000,
+  "knock": 0.5,
+  "gin": 1.5,
+  "train_seconds": 7285.434880256653,
+  "model_path": "/home1/kelidari/Adversarial-CoEvolution/sweep/poolplay/models/poolplay_final.zip",
+  "pool_size": 9,
+  "panel": {
+    "random": {
+      "win_rate": 0.858,
+      "loss_rate": 0.142,
+      "mean_reward": 1.04346,
+      "n": 500
+    },
+    "run5": {
+      "win_rate": 0.62,
+      "loss_rate": 0.38,
+      "mean_reward": 0.21497999999999998,
+      "n": 500
+    },
+    "pool": {
+      "win_rate": 0.566,
+      "loss_rate": 0.434,
+      "mean_reward": 0.29874,
+      "n": 500
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "combo": 3,
+  "train_seconds": 1107.5941624641418,
+  "model_path": "/home1/kelidari/Adversarial-CoEvolution/sweep/models/run_3/final.zip",
+  "config": {
+    "total_timesteps": 2000000,
+    "num_env": 96,
+    "n_steps": 512,
+    "batch_size": 1024,
+    "n_epochs": 4,
+    "learning_rate": 0.0001,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.03,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "weight_decay": 0.0,
+    "seed": 100,
+    "eval_episodes": 1000,
+    "turns_limit": 200,
+    "config_id": 3
+  },
+  "eval_episodes": 1000,
+  "win_rate": 0.994,
+  "loss_rate": 0.006,
+  "draw_rate": 0.0,
+  "mean_reward": 0.5195599999999999,
+  "std_reward": 0.16453512208644086,
+  "mean_length": 22.692
+}

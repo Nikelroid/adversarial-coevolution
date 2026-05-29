@@ -17,14 +17,14 @@ class GinRummySB3Wrapper(gym.Env):
     Training agent position is randomized each episode for fair learning.
     """
     
-    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200, curriculum_manager=None, render_mode=None, rank=0):
+    def __init__(self, opponent_policy, randomize_position=True, turns_limit=200, curriculum_manager=None, render_mode=None, rank=0, knock_reward=0.5, gin_reward=1.5):
         super().__init__()
-        
+
         # --- ADD THESE LINES ---
         self.rank = rank
-        self.log_buffer = [] 
-        
-        self.env = gin_rummy_v4.env(render_mode=render_mode, knock_reward=0.5, gin_reward=1.5, opponents_hand_visible=False)
+        self.log_buffer = []
+
+        self.env = gin_rummy_v4.env(render_mode=render_mode, knock_reward=knock_reward, gin_reward=gin_reward, opponents_hand_visible=False)
 
         self.opponent_policy_class = opponent_policy  # Store class, not instance
         self.opponent_policy = None  # Will be created in reset()
@@ -201,12 +201,6 @@ class GinRummySB3Wrapper(gym.Env):
         if termination or truncation:
             next_obs, reward, _, _, _ = self.env.last()
 
-            if abs(reward - 0.2) < 0.001:
-                reward = 0.5
-            elif abs(reward - 1) < 0.001:
-                reward = 1
-
-
             if self.curriculum_manager is not None:
                 self.curriculum_manager.episode_complete()
             
@@ -231,11 +225,6 @@ class GinRummySB3Wrapper(gym.Env):
                 _, _, termination, truncation, _ = self.env.last()
                 if termination or truncation:
                     obs, reward, _, _, info = self.env.last()
-
-                    if abs(reward - 0.2) < 0.001:
-                        reward = 0.5
-                    elif abs(reward - 1) < 0.001:
-                        reward = 1
 
                     if self.curriculum_manager is not None:
                         self.curriculum_manager.episode_complete()
