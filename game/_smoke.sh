@@ -81,6 +81,9 @@ for g in range(8):
     assert isinstance(v.get("opponent_deadwood"), int), ("opp deadwood missing", v.get("opponent_deadwood"))
     rh=set(c["idx"] for c in v["hand"]); ro=set(c["idx"] for c in v["opponent_reveal"])
     assert rh.isdisjoint(ro), ("reveal overlaps player hand!", sorted(rh & ro))
+    om=set()
+    for m in v.get("opponent_melds",[]): om.update(m)
+    assert om <= ro, ("opponent melds not within opponent hand", sorted(om - ro))
     results[v["result"]]+=1
     print(f"game {g}: {v['result']} in {steps} steps, final dw={v['deadwood']}")
 

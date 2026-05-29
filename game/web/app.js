@@ -107,12 +107,19 @@ function render(v) {
   $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
 
-  // Opponent — face-down unless the "see opponent" debug toggle is on
+  // Opponent — face-down unless the "see opponent" debug toggle is on. Melded
+  // (matched) opponent cards get the same gold bar as the player's.
+  const oppMelded = new Set();
+  (v.opponent_melds || []).forEach((m) => m.forEach((i) => oppMelded.add(i)));
   const opp = $("opponent");
   opp.innerHTML = "";
   const showOpp = $("debug-toggle") && $("debug-toggle").checked;
   if (showOpp && v.opponent_hand_live && v.opponent_hand_live.length) {
-    v.opponent_hand_live.forEach((c) => opp.appendChild(cardDiv(c, { small: true })));
+    v.opponent_hand_live.forEach((c) => {
+      const el = cardDiv(c, { small: true });
+      if (oppMelded.has(c.idx)) el.classList.add("melded");
+      opp.appendChild(el);
+    });
   } else {
     const n = v.opponent_count || 10;
     for (let i = 0; i < n; i++) opp.appendChild(backDiv());
@@ -202,7 +209,11 @@ function render(v) {
     const oh = $("overlay-opphand");
     oh.innerHTML = "";
     if (v.opponent_reveal && v.opponent_reveal.length) {
-      v.opponent_reveal.forEach((c) => oh.appendChild(cardDiv(c, { small: true })));
+      v.opponent_reveal.forEach((c) => {
+        const el = cardDiv(c, { small: true });
+        if (oppMelded.has(c.idx)) el.classList.add("melded");
+        oh.appendChild(el);
+      });
       reveal.style.display = "";
     } else {
       reveal.style.display = "none";
