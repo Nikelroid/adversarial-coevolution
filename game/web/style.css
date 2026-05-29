@@ -230,6 +230,16 @@ body {
   100% { transform: none; opacity: 1; }
 }
 
+/* combined FLY + 3D FLIP for cards entering the hand (deal + draw): the card
+   starts at the source pile (translate by the --dx/--dy delta set inline),
+   edge-on and small, then flies to its slot while flipping open. */
+.fly-flip-in { animation: flyFlipIn .6s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes flyFlipIn {
+  0%   { transform: translate(var(--dx,0px), var(--dy,0px)) rotateY(-90deg) scale(.8); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: translate(0px, 0px) rotateY(0deg) scale(1); opacity: 1; }
+}
+
 /* felt depth + soft vignette */
 .table { position: relative; }
 .table::after {
