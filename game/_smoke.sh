@@ -74,6 +74,17 @@ for g in range(8):
     results[v["result"]]+=1
     print(f"game {g}: {v['result']} in {steps} steps, final dw={v['deadwood']}")
 
+# 2b) opponent chooser: both opponents listed, and switching works
+with urllib.request.urlopen(BASE+"/api/opponents") as r: opps=json.loads(r.read())
+keys=[o["key"] for o in opps]
+assert "winrate" in keys and "reward" in keys, keys
+print("opponents:", keys)
+st,v=post("/api/new_game",{"opponent":"reward"})
+assert st==200 and v.get("opponent_key")=="reward", ("switch failed", v.get("opponent_key"))
+st,v=post("/api/new_game",{"opponent":"winrate"})
+assert st==200 and v.get("opponent_key")=="winrate", ("switch back failed", v.get("opponent_key"))
+print("opponent switching OK")
+
 # 3) illegal move is rejected with 400
 st,v=post("/api/new_game")
 illegal=next(a for a in range(2,110) if a not in legal_set(v))

@@ -44,10 +44,21 @@ GAME_DIR = os.path.join(REPO_ROOT, "game")
 WEB_DIR = os.path.join(GAME_DIR, "web")
 DECK_DIR = os.path.join(GAME_DIR, "deck_images")
 IMAGES_DIR = os.path.join(GAME_DIR, "images")
-DEFAULT_MODEL = os.environ.get(
-    "GIN_MODEL_PATH",
-    os.path.join(REPO_ROOT, "artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final.zip"),
-)
+# Opponents the player can choose between, drawn from the Phase-1 sweep:
+#   winrate -> run_5 (highest win rate, 99.6% vs random)
+#   reward  -> run_2 (highest mean reward, 0.54)
+# Both ship in game/model/ so a fresh clone has them.
+OPPONENTS = {
+    "winrate": {"label": "Highest win rate", "stat": "99.6% wins",
+                "file": "ppo_gin_rummy_winrate.zip"},
+    "reward": {"label": "Highest reward", "stat": "0.54 avg reward",
+               "file": "ppo_gin_rummy_reward.zip"},
+}
+DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "winrate")
+
+
+def opponent_path(key: str) -> str:
+    return os.path.join(REPO_ROOT, "game", "model", OPPONENTS[key]["file"])
 
 # PettingZoo card index = suit*13 + rank, suits in this order, rank 0=Ace..12=King.
 _SUITS_FILE = ["spades", "hearts", "diamonds", "clubs"]
@@ -131,14 +142,22 @@ def best_melds_deadwood(cards):
 class GameSession:
     """One human-vs-model game, driven through the tested SB3 wrapper."""
 
-    def __init__(self, model):
+    def __init__(self, models, default_key):
         self.lock = threading.Lock()
-        self.wrapper = GinRummySB3Wrapper(
-            opponent_policy=functools.partial(PPOAgent, model=model),
-            randomize_position=True, turns_limit=200, curriculum_manager=None)
-        self.new_game()
+        self.models = models               # {key: loaded PPO model}
+        self.opponent_key = default_key
+        self.wrapper = None
+        self.new_game(default_key)
 
-    def new_game(self):
+    def _build_wrapper(self, key):
+        self.opponent_key = key
+        self.wrapper = GinRummySB3Wrapper(
+            opponent_policy=functools.partial(PPOAgent, model=self.models[key]),
+            randomize_position=True, turns_limit=200, curriculum_manager=None)
+
+    def new_game(self, opponent_key=None):
+        key = opponent_key if opponent_key in self.models else self.opponent_key
+        self._build_wrapper(key)
         obs, _ = self.wrapper.reset()
         self.obs = obs
         self.done = False
@@ -241,6 +260,8 @@ def build_view(session: GameSession) -> dict:
         "done": session.done,
         "result": session.result,
         "message": session.message,
+        "opponent_key": session.opponent_key,
+        "opponent_label": OPPONENTS[session.opponent_key]["label"],
         "opponent_hand": ([card_obj(i) for i in session.opponent_hand]
                           if session.opponent_hand else None),
     }
@@ -297,6 +318,11 @@ def _make_handler(session: GameSession):
                     self._serve_image(DECK_DIR, path[len("/deck_images/"):])
                 elif path.startswith("/images/"):
                     self._serve_image(IMAGES_DIR, path[len("/images/"):])
+                elif path == "/api/opponents":
+                    self._send_json([
+                        {"key": k, "label": v["label"], "stat": v["stat"]}
+                        for k, v in OPPONENTS.items()
+                    ])
                 elif path == "/api/state":
                     with session.lock:
                         self._send_json(build_view(session))
@@ -315,8 +341,9 @@ def _make_handler(session: GameSession):
             try:
                 path = self.path.split("?", 1)[0]
                 if path == "/api/new_game":
+                    data = self._read_json()
                     with session.lock:
-                        session.new_game()
+                        session.new_game(data.get("opponent"))
                         self._send_json(build_view(session))
                 elif path == "/api/action":
                     data = self._read_json()
@@ -340,19 +367,19 @@ def _make_handler(session: GameSession):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--model", default=DEFAULT_MODEL, help="path to trained PPO .zip")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     args = p.parse_args()
 
-    if not os.path.isfile(args.model):
-        sys.exit(f"Model not found: {args.model}\n"
-                 f"Pass --model PATH or set GIN_MODEL_PATH.")
-
-    print(f"Loading model: {args.model}")
-    model = PPO.load(args.model, device="cpu")
-    print("Model loaded. Starting a game session...")
-    session = GameSession(model)
+    models = {}
+    for key in OPPONENTS:
+        path = opponent_path(key)
+        if not os.path.isfile(path):
+            sys.exit(f"Model not found: {path}")
+        print(f"Loading '{key}' opponent: {path}")
+        models[key] = PPO.load(path, device="cpu")
+    print("Models loaded. Starting a game session...")
+    session = GameSession(models, DEFAULT_OPPONENT)
 
     httpd = ThreadingHTTPServer((args.host, args.port), _make_handler(session))
     url = f"http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}"
