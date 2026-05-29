@@ -1,0 +1,214 @@
+"""Generate docs/report.html: a self-contained, styled HTML report.
+
+All figures from paper/figures/ are embedded as base64 data URIs so the page
+renders anywhere (GitHub htmlpreview, locally, offline) with no asset paths.
+Run after paper/make_figures.py. Tables mirror paper/main.tex.
+"""
+from __future__ import annotations
+
+import base64
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+FIGS = os.path.join(HERE, "figures")
+OUT = os.path.join(HERE, "..", "docs", "report.html")
+
+
+def img(name: str, alt: str = "") -> str:
+    p = os.path.join(FIGS, name)
+    if not os.path.exists(p):
+        return f'<p class="missing">[missing figure: {name}]</p>'
+    b64 = base64.b64encode(open(p, "rb").read()).decode()
+    return f'<img src="data:image/png;base64,{b64}" alt="{alt}"/>'
+
+
+CSS = """
+:root{--green:#0b5b39;--green2:#073d27;--gold:#d9a521;--ink:#16242d;--muted:#5c6b73;
+--card:#ffffff;--line:#e3e8e6;--good:#1f8a5a;--bad:#c0392b;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+color:var(--ink);background:#f4f6f5;line-height:1.6;}
+.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:54px 24px 46px;text-align:center;
+border-bottom:4px solid var(--gold);}
+.hero h1{margin:0 0 8px;font-size:30px;letter-spacing:.3px;}
+.hero p{margin:6px auto;max-width:780px;opacity:.92;font-size:15px;}
+.hero .authors{font-size:13px;opacity:.8;margin-top:14px;}
+.badges{margin-top:18px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:999px;
+padding:5px 13px;font-size:12.5px;font-weight:600;}
+.wrap{max-width:940px;margin:0 auto;padding:0 22px 70px;}
+section{background:var(--card);margin:22px 0;padding:26px 30px;border-radius:14px;
+box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
+h2{color:var(--green);border-bottom:2px solid var(--line);padding-bottom:8px;margin-top:4px;font-size:22px;}
+h3{color:var(--green2);font-size:16.5px;margin:22px 0 6px;}
+p,li{font-size:15px;}
+code{background:#eef2f0;padding:1.5px 6px;border-radius:5px;font-size:13px;color:#0a3b27;}
+.fig{margin:18px 0;text-align:center;}
+.fig img{max-width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;}
+.fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:680px){.grid2,.grid4{grid-template-columns:1fr;}}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;}
+th{background:#f0f4f2;color:var(--green2);font-weight:700;}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+tr:hover td{background:#fafcfb;}
+.good{color:var(--good);font-weight:700;}.bad{color:var(--bad);font-weight:700;}
+.callout{background:#fff8e6;border-left:4px solid var(--gold);padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14.5px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;}
+@media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--green);color:#fff;border-radius:12px;padding:16px;text-align:center;}
+.kpi .v{font-size:24px;font-weight:800;}.kpi .l{font-size:12px;opacity:.9;margin-top:3px;}
+.foot{text-align:center;color:var(--muted);font-size:13px;padding:24px;}
+a{color:#0a6b43;}
+"""
+
+HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</title>
+<style>{CSS}</style></head><body>
+
+<div class="hero">
+  <h1>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
+  <p>A hybrid system where a lightweight action-masked PPO agent and a strong-but-slow
+  LLM opponent train against each other &mdash; without paying full LLM latency on every RL step.</p>
+  <div class="authors">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &mdash; University of Southern California</div>
+  <div class="badges">
+    <span class="badge">PPO + action masking</span>
+    <span class="badge">PettingZoo / RLCard</span>
+    <span class="badge">master / worker / cache</span>
+    <span class="badge">Qwen2.5-7B opponent</span>
+    <span class="badge">SLURM &middot; up to 32 V100</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<section>
+  <h2>Overview</h2>
+  <p>Gin Rummy is an imperfect-information card game needing both short-horizon arithmetic
+  (deadwood counting) and long-horizon planning (meld formation). Our roadmap has three phases:
+  <b>(1)</b> train a strong RL backbone against weak opponents; <b>(2)</b> train it against an
+  LLM opponent that is strategically richer but operationally far slower; <b>(3)</b> let the two
+  co-evolve. This report covers Phases&nbsp;1&ndash;2.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="v">99.6%</div><div class="l">best PPO vs random</div></div>
+    <div class="kpi"><div class="v">5/5</div><div class="l">Qwen2.5-7B beats random</div></div>
+    <div class="kpi"><div class="v">62&times;</div><div class="l">faster worker load (scratch)</div></div>
+    <div class="kpi"><div class="v">~32 q/s</div><div class="l">LLM throughput, 14 workers</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Phase 1 &mdash; the RL backbone saturates against random</h2>
+  <p>We sweep eight configurations (a 3&times;2 grid over learning rate and entropy coefficient,
+  plus two ablations), each trained for 2M steps with 96 parallel envs on a 64-core node and
+  evaluated over 1000 deterministic games vs a random opponent. <b>Every configuration lands in
+  the 98.3%&ndash;99.6% band</b> &mdash; statistically indistinguishable (binomial 95% CI &plusmn;0.6&nbsp;pp).
+  The shared failure mode is the lever: mean reward sits at the <i>knock</i> value (0.5), not the
+  <i>gin</i> value (1.5) &mdash; a risk/reward call only a thinking opponent can teach. That motivates Phase&nbsp;2.</p>
+  <div class="grid2">
+    <figure class="fig">{img("win_rate.png","win rate per config")}<figcaption>Win rate vs random per HP config (95% CI).</figcaption></figure>
+    <figure class="fig">{img("mean_reward.png","mean reward per config")}<figcaption>Mean reward clusters at the knock value.</figcaption></figure>
+  </div>
+  <h3>Phase-1 leaderboard (1000 deterministic eval games vs random)</h3>
+  <table>
+    <tr><th>Config</th><th class="num">win%</th><th class="num">loss%</th><th>note</th></tr>
+    <tr><td>cfg5 &middot; lr 5e-5, ent .03</td><td class="num good">99.6</td><td class="num">0.4</td><td>best of sweep</td></tr>
+    <tr><td>cfg7 &middot; lr 1e-4, 10 epochs</td><td class="num">99.5</td><td class="num">0.5</td><td>ablation</td></tr>
+    <tr><td>cfg0 &middot; lr 3e-4, ent .01</td><td class="num">99.4</td><td class="num">0.6</td><td>baseline</td></tr>
+    <tr><td>cfg3 &middot; lr 1e-4, ent .03</td><td class="num">99.4</td><td class="num">0.6</td><td></td></tr>
+    <tr><td>cfg6 &middot; lr 1e-4, n<sub>steps</sub>=1024</td><td class="num">99.3</td><td class="num">0.7</td><td>ablation</td></tr>
+    <tr><td>cfg4 &middot; lr 5e-5, ent .01</td><td class="num">99.2</td><td class="num">0.8</td><td></td></tr>
+    <tr><td>cfg1 &middot; lr 3e-4, ent .03</td><td class="num">98.8</td><td class="num">1.2</td><td></td></tr>
+    <tr><td>cfg2 &middot; lr 1e-4, ent .01</td><td class="num">98.3</td><td class="num">1.7</td><td>worst of sweep</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Phase 2 &mdash; infrastructure for LLM-in-the-loop training</h2>
+  <p>A single PPO rollout fires up to ~50k opponent queries; at 0.5&ndash;3&nbsp;s per 7B call a na&iuml;ve
+  loop takes hours. We decouple inference from RL with a three-tier stack:</p>
+  <ul>
+    <li><b>Workers</b> (one GPU each, HuggingFace backend) load the model and register themselves in a
+    shared-filesystem registry.</li>
+    <li><b>Master</b> (CPU) discovers live workers, load-balances, and owns a <b>suit-symmetry prompt cache</b>
+    (Gin Rummy is invariant under suit relabeling, so suit-equivalent states share one entry).</li>
+    <li><b>Client</b> (96 env subprocesses) reaches the master through the existing Ollama-compatible API &mdash;
+    no RL code changes.</li>
+  </ul>
+  <div class="callout"><b>Infra finding.</b> Loading a 7B worker from the home NFS runs at ~11&nbsp;MB/s
+  (~28&nbsp;min, blows the health-check timeout). Staging weights on scratch/BeeGFS cuts this to <b>27&nbsp;s &mdash;
+  a 62&times; speedup</b>, mandatory when launching dozens of workers.</div>
+  <figure class="fig" style="max-width:430px;margin:0 auto;">{img("infra_load.png","load time")}<figcaption>Worker weight-load: home NFS vs scratch (log scale).</figcaption></figure>
+</section>
+
+<section>
+  <h2>Opponents: self-play, pool, and the LLM</h2>
+  <div class="grid4">
+    <figure class="fig">{img("selfplay.png","self-play")}<figcaption><b>Self-play.</b> Fine-tuning vs a frozen copy beats its progenitor (58&ndash;61% vs run_5) while holding ~98.7% vs random.</figcaption></figure>
+    <figure class="fig">{img("pool.png","pool divergence")}<figcaption><b>Pool (AlphaZero-style).</b> Ran to 12M but <i>diverged</i> after ~10M &mdash; vs-random fell to 85.8%.</figcaption></figure>
+    <figure class="fig">{img("llm_opponent.png","LLM strength")}<figcaption><b>LLM opponent.</b> OLMoE-1B plays at chance; Qwen2.5-7B beats random 5/5 &mdash; a useful teacher.</figcaption></figure>
+    <figure class="fig">{img("throughput.png","throughput")}<figcaption><b>Throughput.</b> Master + worker pool reaches ~32 q/s on 14 workers; ~500&times; over a naive CoT loop.</figcaption></figure>
+  </div>
+  <h3>Opponent &amp; agent panel</h3>
+  <table>
+    <tr><th>Agent / opponent</th><th>vs</th><th class="num">win%</th><th class="num">loss%</th><th>note</th></tr>
+    <tr><td>Self-play (3M)</td><td>frozen run_5</td><td class="num good">61.1</td><td class="num">38.9</td><td>beats progenitor</td></tr>
+    <tr><td>Self-play (3M)</td><td>random</td><td class="num">98.7</td><td class="num">1.3</td><td>stays dominant</td></tr>
+    <tr><td>Pool champion (12M)</td><td>random</td><td class="num bad">85.8</td><td class="num">14.2</td><td>diverged</td></tr>
+    <tr><td>OLMoE-1B opponent</td><td>random</td><td class="num">&asymp;50</td><td class="num">&mdash;</td><td>plays at chance</td></tr>
+    <tr><td>Qwen2.5-7B opponent</td><td>random</td><td class="num good">100</td><td class="num">0</td><td>5/5 (small N)</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Play it: human vs RL web client</h2>
+  <p>A zero-dependency web client (HTML/JS) lets a human play any of the four trained opponents with 3-D
+  card animations. The same <code>LLMAgent</code> path the RL loop uses also drives an optional LLM opponent.
+  Validated end-to-end in headless Chromium.</p>
+  <figure class="fig">{img("game_ui.png","web game")}<figcaption>The web client (debug view, opponent hand revealed).</figcaption></figure>
+</section>
+
+<section>
+  <h2>First RL-vs-LLM run</h2>
+  <p>PPO warm-started from the self-play champion, 64 env subprocesses, playing through the master against
+  a pool of Qwen2.5-7B workers (requested 32, granted 14 under the shared GPU quota &mdash; elastic). The stack
+  ran end-to-end: <b>19,348 load-balanced calls at ~32 q/s</b>; the terse prompt + 64-token cap dropped per-call
+  latency from ~16&nbsp;s to ~0.4&nbsp;s. PPO sustained <b>39 env-steps/s</b> and completed
+  <b>40k steps (~5 rollouts) in 17.5&nbsp;min</b>.</p>
+  <div class="callout"><b>Honest result.</b> The fine-tuned agent <b>retains 98.2% vs random</b> but sits at
+  <b>45.4% vs the self-play champion it started from</b> &mdash; 40k steps (against 3M for the self-play generation)
+  is far too short to improve. This run validates the <i>pipeline</i> and confirms competence is retained;
+  demonstrating that the LLM teacher <i>helps</i> is the Phase-3 experiment (a much longer fine-tune).</p>
+  <table>
+    <tr><th>Fine-tuned agent (40k steps)</th><th>vs</th><th class="num">win%</th><th class="num">loss%</th></tr>
+    <tr><td>LLM-finetuned PPO</td><td>random</td><td class="num good">98.2</td><td class="num">1.8</td></tr>
+    <tr><td>LLM-finetuned PPO</td><td>self-play champion</td><td class="num">45.4</td><td class="num">54.6</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Reproducibility</h2>
+  <p>Sweeps run as SLURM arrays (<code>sweep/*.slurm</code>). The LLM stack is
+  <code>slurm/master.slurm</code> + <code>slurm/worker.slurm</code> (array, scratch-staged weights) +
+  <code>slurm/llm_train.slurm</code>; <code>sweep/llmplay_one.py</code> runs the RL-vs-LLM fine-tune.
+  Every figure here is regenerated by <code>paper/make_figures.py</code> from the JSON result files, and
+  this page by <code>paper/make_report_html.py</code>. The typeset 4-page version is
+  <a href="../paper/main.pdf">paper/main.pdf</a>.</p>
+</section>
+
+<div class="foot">Generated from measured results &middot; Adversarial Co-Evolution project &middot; USC</div>
+</div></body></html>"""
+
+
+def main():
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w") as f:
+        f.write(HTML)
+    print(f"wrote {OUT} ({len(HTML)//1024} KB of HTML, figures embedded)")
+
+
+if __name__ == "__main__":
+    main()
