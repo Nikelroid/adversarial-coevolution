@@ -158,18 +158,23 @@ function flip(el, fromRect, opts) {
 // A free-flying ghost card from one screen rect to another (body-level overlay).
 function flyGhost(o) {
   try {
+    // Always a fixed CARD size, flying between the CENTERS of the two rects.
+    // (Never size to a rect — the opponent zone rect is the whole fan and would
+    // make a giant cropped card.)
+    const W = o.w || 74, H = o.h || 104;
+    const fcx = o.from.left + o.from.width / 2, fcy = o.from.top + o.from.height / 2;
+    const tcx = o.to.left + o.to.width / 2, tcy = o.to.top + o.to.height / 2;
     const g = document.createElement("div");
-    g.className = "card ghost-card" + (o.small ? " small" : "");
+    g.className = "card ghost-card";
     g.style.backgroundImage = (o.back || !o.img)
       ? `url(${CARD_BACK})` : `url(/deck_images/${o.img})`;
-    g.style.left = o.from.left + "px";
-    g.style.top = o.from.top + "px";
-    g.style.width = o.from.width + "px";
-    g.style.height = o.from.height + "px";
+    g.style.width = W + "px";
+    g.style.height = H + "px";
+    g.style.left = (fcx - W / 2) + "px";
+    g.style.top = (fcy - H / 2) + "px";
     g.style.opacity = "0";
     document.body.appendChild(g);
-    const dx = o.to.left - o.from.left;
-    const dy = o.to.top - o.from.top;
+    const dx = tcx - fcx, dy = tcy - fcy;
     setTimeout(() => {
       g.style.opacity = "1";
       requestAnimationFrame(() => {
@@ -177,7 +182,7 @@ function flyGhost(o) {
         if (o.fade) g.style.opacity = "0";
       });
     }, o.delay || 0);
-    setTimeout(() => g.remove(), (o.delay || 0) + 640);
+    setTimeout(() => g.remove(), (o.delay || 0) + 700);
   } catch (e) { /* cosmetic */ }
 }
 
@@ -215,7 +220,6 @@ function animateOpponentEvents(events, gen, finalTop, pileWasMine) {
         const isPublic = ev.source === "discard";           // taken card is visible
         const show = (isPublic || showOpp) && ev.card;
         flyGhost({ from, to: oppRect, delay: t, small: true, fade: true,
-                   rotate: "rotateY(180deg)",
                    img: show ? ev.card.img : null, back: !show });
         t += 380;
       } else if (ev.type === "opp_discard" && ev.card) {
@@ -332,16 +336,21 @@ function render(v) {
 
   const isDeal = dealNext ||
     (Object.keys(oldRects).length === 0 && v.hand.length > 1);
-  const stockRect = stock.getBoundingClientRect();
   v.hand.forEach((card, i) => {
     const el = newEls[card.idx];
     if (isDeal) {
-      flip(el, stockRect, { grow: true, delay: i * 55 });
+      el.classList.add("flip-in");                  // deal: each card flips open
+      el.style.animationDelay = (i * 55) + "ms";
     } else if (oldRects[card.idx]) {
-      flip(el, oldRects[card.idx]);
+      flip(el, oldRects[card.idx]);                 // existing card slides to new slot
     } else if (pendingDraw) {
+      el.classList.add("flip-in");                  // drawn card flips open in place
       const src = pendingDraw.source === "discard" ? disc : stock;
-      flip(el, src.getBoundingClientRect(), { grow: true });
+      const toRect = el.getBoundingClientRect();
+      flyGhost({ from: src.getBoundingClientRect(), to: toRect,
+                 w: toRect.width, h: toRect.height, fade: true,
+                 img: pendingDraw.source === "discard" ? card.img : null,
+                 back: pendingDraw.source !== "discard" });
     }
   });
   dealNext = false;
