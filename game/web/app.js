@@ -20,6 +20,7 @@ let view = null;
 let knockArmed = false;
 let busy = false;
 let lockMs = 0;             // how long to keep the board non-interactive after a render
+let toggleFlip = false;    // set when "see opponent" is toggled -> flip the whole hand
 
 // animation bookkeeping
 let prevCardsByIdx = {};
@@ -129,6 +130,15 @@ function backEl() {
   return d;
 }
 
+// An opponent card: its face when revealed, otherwise a back that still carries
+// the card's idx so it occupies its TRUE sorted slot (we just don't show it).
+function oppCardEl(card, showOpp) {
+  if (showOpp) return cardEl(card, true);
+  const d = backEl();
+  if (card) d.dataset.idx = card.idx;
+  return d;
+}
+
 function setDiscImg(card) {
   const d = $("discard");
   if (card) {
@@ -195,7 +205,6 @@ function flyCard(o) {
       g.style.perspective = "1000px";
       inner = document.createElement("div");
       inner.className = "fc-inner";
-      inner.style.transition = `transform ${dur}ms cubic-bezier(.4,.05,.2,1)`;
       const back = document.createElement("div");
       back.className = "fc-face fc-back";
       back.style.backgroundImage = `url(${CARD_BACK})`;
@@ -204,6 +213,10 @@ function flyCard(o) {
       front.style.backgroundImage = o.img ? `url(/deck_images/${o.img})` : `url(${CARD_BACK})`;
       inner.appendChild(back);
       inner.appendChild(front);
+      // reverseFlip starts on the FACE and turns to the BACK as it lands (a face-up
+      // discard taken into a hidden hand). Normal reveal is back -> face.
+      if (o.reverseFlip) inner.style.transform = "rotateY(180deg)";
+      inner.style.transition = `transform ${dur}ms cubic-bezier(.4,.05,.2,1)`;
       g.appendChild(inner);
     } else {
       g.classList.add("plain");
@@ -215,7 +228,7 @@ function flyCard(o) {
     const sx = tw / fw, sy = th / fh;
     const start = () => {
       g.style.transform = `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
-      if (inner) inner.style.transform = "rotateY(180deg)";
+      if (inner) inner.style.transform = o.reverseFlip ? "rotateY(0deg)" : "rotateY(180deg)";
     };
     if (o.delay) setTimeout(() => requestAnimationFrame(start), o.delay);
     else requestAnimationFrame(start);
@@ -253,11 +266,17 @@ function runOppTurn(o) {
   const { oppEl, showOpp, drawnCard, discCard, drawSource,
           stockRect, discRect, oppRect, sizes, gen } = o;
   const { OPP_W, OPP_H, PILE_W, PILE_H } = sizes;
-  const drawReveal = drawSource === "stock";   // from stock -> turns around; from pile -> straight
+  // Rotation rules. Revealed hand: a stock draw turns around to reveal its face;
+  // a discard draw is already face-up so it flies straight. Hidden hand: the
+  // reverse — a face-up discard flips DOWN to a back as it enters the hidden hand,
+  // while a face-down stock card just slides in without turning.
+  const drawReveal = showOpp ? (drawSource === "stock") : (drawSource === "discard");
+  const drawReverse = !showOpp && drawSource === "discard";  // face -> back
   const drawDur = drawReveal ? T_REVEAL : T_FLY;
   const discReveal = !showOpp;                  // hidden hand -> the discard reveals as it leaves
   const discDur = discReveal ? T_REVEAL : T_FLY;
-  // never reveal a face-down stock draw into a hidden hand
+  // show a face only when revealed, or when the card came from the (public)
+  // discard pile; a hidden stock draw stays face-down.
   const flyImg = (showOpp || drawSource === "discard")
     ? (drawnCard ? drawnCard.img : null) : null;
 
@@ -277,9 +296,11 @@ function runOppTurn(o) {
   setTimeout(() => {
     if (gen !== renderGen) return;
     const old = snap();
-    placeholder = showOpp && drawnCard ? cardEl(drawnCard, true) : backEl();
+    placeholder = oppCardEl(drawnCard, showOpp);
     placeholder.style.visibility = "hidden";          // reserve the slot, invisible for now
-    if (showOpp && drawnCard) {
+    // insert at the card's TRUE sorted position -- hidden backs carry idx too, so
+    // the new card never just lands on the right end.
+    if (drawnCard) {
       const ref = Array.from(oppEl.children).find((k) => Number(k.dataset.idx) > drawnCard.idx);
       oppEl.insertBefore(placeholder, ref || null);
     } else {
@@ -296,6 +317,7 @@ function runOppTurn(o) {
     const slot = placeholder.getBoundingClientRect();
     const from = drawSource === "discard" ? discRect : stockRect;
     flyCard({ from, to: slot, img: flyImg, reveal: drawReveal, slow: drawReveal,
+              reverseFlip: drawReverse,
               fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
   }, flyAt);
   setTimeout(() => { if (gen === renderGen && placeholder) placeholder.style.visibility = ""; },
@@ -307,11 +329,12 @@ function runOppTurn(o) {
   setTimeout(() => {
     if (gen !== renderGen) return;
     let discEl = null;
-    if (showOpp && discCard) {
+    if (discCard) {  // find the discard at its TRUE slot (hidden backs carry idx too)
       discEl = Array.from(oppEl.children).find((k) => Number(k.dataset.idx) === discCard.idx);
-    } else {
+    }
+    if (!discEl) {                                     // fallback: rightmost card
       const kids = Array.from(oppEl.children);
-      discEl = kids[kids.length - 1];        // hidden hand: any card will do
+      discEl = kids[kids.length - 1];
     }
     if (discEl) discEl.classList.add("lift");          // STEP 3: chosen card lifts out
     setTimeout(() => {
@@ -338,6 +361,10 @@ function runOppTurn(o) {
 
 // ---------------------------------------------------------------- render
 function render(v) {
+  // toggling "see opponent" and arming knock re-render the SAME view object; on
+  // those we must NOT replay the last move's animation.
+  const isReRender = (v === view);
+  const isToggle = toggleFlip; toggleFlip = false;
   view = v;
   const gen = ++renderGen;
 
@@ -373,39 +400,41 @@ function render(v) {
   const drawSource = drawnEv ? drawnEv.source : "stock";
   const oppTurn = (v.events || []).length > 0;
 
-  if (oppTurn) {
-    // render the PRE-turn fan (discarded card still in hand, drawn card absent);
-    // runOppTurn() then plays the move step by step, ending at the post-turn hand.
-    if (showOpp && v.opponent_hand_live) {
-      let pre = v.opponent_hand_live.filter((c) => !drawnCard || c.idx !== drawnCard.idx);
-      if (discCard) pre = pre.concat([discCard]);
-      pre.sort((a, b) => a.idx - b.idx);
-      pre.forEach((c) => {
-        const el = cardEl(c, true);
-        if (oppMelded.has(c.idx)) el.classList.add("melded");
-        opp.appendChild(el);
-      });
-    } else {
-      const n = v.opponent_count || 10; // pre-turn count == post-turn count
-      for (let i = 0; i < n; i++) opp.appendChild(backEl());
-    }
-  } else if (showOpp && v.opponent_hand_live && v.opponent_hand_live.length) {
-    v.opponent_hand_live.forEach((c) => {
-      const el = cardEl(c, true);
-      if (oppMelded.has(c.idx)) el.classList.add("melded");
+  const playTurn = oppTurn && !isReRender;  // only animate the move on a fresh view
+
+  // Build the opponent fan. On a fresh move we render the PRE-turn hand (the
+  // discarded card still present, the drawn card absent) and runOppTurn() plays
+  // it out; otherwise the current hand. Hidden cards use oppCardEl so they sit in
+  // their TRUE sorted slots (shown as backs), not bunched on the right.
+  let oppCards = (v.opponent_hand_live || []).slice();
+  if (playTurn) {
+    oppCards = oppCards.filter((c) => !drawnCard || c.idx !== drawnCard.idx);
+    if (discCard) oppCards.push(discCard);
+  }
+  oppCards.sort((a, b) => a.idx - b.idx);
+  if (oppCards.length) {
+    oppCards.forEach((c) => {
+      const el = oppCardEl(c, showOpp);
+      if (showOpp && oppMelded.has(c.idx)) el.classList.add("melded");
       opp.appendChild(el);
       oppNewEls[c.idx] = el;
     });
   } else {
-    const n = v.opponent_count || 10;
+    const n = v.opponent_count || 10;        // fallback if the hand wasn't sent
     for (let i = 0; i < n; i++) opp.appendChild(backEl());
   }
   const oppRect = opp.getBoundingClientRect();
   const firstOpp = opp.querySelector(".card");
   const oR = firstOpp ? firstOpp.getBoundingClientRect() : null;
   const OPP_W = oR ? oR.width : 56, OPP_H = oR ? oR.height : 80;
-  // reflow persisting opponent cards when nothing moved (a turn reflows itself)
-  if (showOpp && !oppTurn) {
+  if (isToggle) {
+    // "see opponent" toggled: just turn the whole hand around in place.
+    Array.from(opp.children).forEach((el, i) => {
+      el.classList.add("flip-turn");
+      el.style.animationDelay = (i * 45) + "ms";
+    });
+  } else if (!playTurn) {
+    // nothing moved -> slide persisting cards from their old slots (no-op if same)
     Object.keys(oppNewEls).forEach((idx) => {
       if (oppOldRects[idx]) flip(oppNewEls[idx], oppOldRects[idx]);
     });
@@ -499,7 +528,7 @@ function render(v) {
 
   // ---- opponent's step-by-step turn + interaction lock ----
   let oppEnd = 0;
-  if (oppTurn) {
+  if (playTurn) {
     oppEnd = runOppTurn({
       oppEl: opp, showOpp, drawnCard, discCard, drawSource,
       stockRect: pileRect, discRect: disc.getBoundingClientRect(), oppRect,
@@ -549,7 +578,10 @@ function render(v) {
     } else {
       reveal.style.display = "none";
     }
-    overlay.classList.remove("hidden");
+    // show the win/lose screen only AFTER the final move's animation finishes
+    overlay.classList.add("hidden");
+    setTimeout(() => { if (gen === renderGen) overlay.classList.remove("hidden"); },
+               Math.max(lockMs, 0));
   } else {
     overlay.classList.add("hidden");
   }
@@ -570,7 +602,7 @@ function setBtn(id, enabled, onclick) {
 
 $("btn-new").onclick = newGame;
 $("overlay-again").onclick = newGame;
-$("debug-toggle").onchange = () => { if (view) render(view); };
+$("debug-toggle").onchange = () => { if (view && !busy) { toggleFlip = true; render(view); } };
 
 (async function init() {
   try {
