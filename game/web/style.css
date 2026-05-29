@@ -84,7 +84,10 @@ body {
 .pile { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .pile-label { font-size: 12px; letter-spacing: 1px; opacity: 0.7; }
 
-.status { text-align: center; min-width: 220px; }
+/* fixed box: neither the message text length nor its presence may resize the
+   center zone (which would shove the stock/discard piles around). */
+.status { text-align: center; width: 340px; height: 64px;
+  display: flex; align-items: center; justify-content: center; }
 .message {
   font-size: 17px; font-weight: 600;
   background: rgba(0, 0, 0, 0.28);
@@ -93,7 +96,9 @@ body {
 }
 
 /* Cards */
-.hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: var(--card-h); }
+/* nowrap keeps the row height fixed so adding/removing a card never reflows the
+   rest of the board (stock, discard, status text stay put). */
+.hand { display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px; min-height: var(--card-h); }
 .player-hand { gap: 10px; }
 
 .card, .card-slot {
@@ -180,7 +185,14 @@ body {
   background-size: 100% 100%;          /* the back image now fills the whole box */
   background-position: center;
 }
-.opponent-hand { gap: 5px; }
+.opponent-hand { gap: 5px; perspective: 900px; }
+
+/* "see opponent" toggle: each card swings around in place (staggered cascade). */
+@keyframes flipTurn {
+  0%   { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+.card.flip-turn { animation: flipTurn .45s cubic-bezier(.2,.8,.3,1) both; }
 
 /* melded cards: gold rim + gentle pulse */
 .card.melded {
