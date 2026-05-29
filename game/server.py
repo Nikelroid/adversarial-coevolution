@@ -282,6 +282,11 @@ class GameSession:
             d = drawn[0]
             source = "discard" if d == human_discard else "stock"
             events.append({"type": "opp_draw", "source": source, "card": card_obj(d)})
+        elif top_after is not None and top_after != human_discard:
+            # hand unchanged -> the opponent drew a card from stock and discarded
+            # that SAME card; surface it so the UI still animates the fly-in/out
+            # (otherwise card=None and the draw animation is silently skipped).
+            events.append({"type": "opp_draw", "source": "stock", "card": card_obj(top_after)})
         else:
             events.append({"type": "opp_draw", "source": "stock", "card": None})
         if top_after is not None and top_after != human_discard:

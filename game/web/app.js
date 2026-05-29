@@ -409,13 +409,16 @@ function render(v) {
   const drawSource = drawnEv ? drawnEv.source : "stock";
   const oppTurn = (v.events || []).length > 0;
 
-  const playTurn = oppTurn && !isReRender;  // only animate the move on a fresh view
+  // Never choreograph the game-ending move -- at done the server sends
+  // opponent_hand_live=null, so reconstructing a pre-turn fan would collapse it.
+  const playTurn = oppTurn && !isReRender && !v.done;
 
   // Build the opponent fan. On a fresh move we render the PRE-turn hand (the
   // discarded card still present, the drawn card absent) and runOppTurn() plays
   // it out; otherwise the current hand. Hidden cards use oppCardEl so they sit in
-  // their TRUE sorted slots (shown as backs), not bunched on the right.
-  let oppCards = (v.opponent_hand_live || []).slice();
+  // their TRUE sorted slots (shown as backs), not bunched on the right. At game
+  // over the live hand is null -> fall back to the revealed final hand.
+  let oppCards = (v.opponent_hand_live || v.opponent_reveal || []).slice();
   if (playTurn) {
     // pre-turn hand = live, minus the drawn card (the opp picked it up), plus the
     // discarded card (it was in hand before). If the opp drew AND discarded the
@@ -559,6 +562,7 @@ function render(v) {
 
   if (isDeal) lockMs = v.hand.length * T_DEAL_STAGGER + 560;
   else if (pendingDraw) lockMs = (pendingDraw.source === "stock") ? T_REVEAL + 120 : T_TAKE + 120;
+  if (myDiscard) lockMs = Math.max(lockMs, T_FLY + 150);  // let my discard land (e.g. knock-to-win)
   lockMs = Math.max(lockMs, oppEnd);
 
   // ---- buttons ----
