@@ -107,13 +107,15 @@ function render(v) {
   $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
 
-  // Opponent
+  // Opponent — face-down unless the "see opponent" debug toggle is on
   const opp = $("opponent");
   opp.innerHTML = "";
-  if (v.opponent_hand) {
-    v.opponent_hand.forEach((c) => opp.appendChild(cardDiv(c, { small: true })));
+  const showOpp = $("debug-toggle") && $("debug-toggle").checked;
+  if (showOpp && v.opponent_hand_live && v.opponent_hand_live.length) {
+    v.opponent_hand_live.forEach((c) => opp.appendChild(cardDiv(c, { small: true })));
   } else {
-    for (let i = 0; i < 10; i++) opp.appendChild(backDiv());
+    const n = v.opponent_count || 10;
+    for (let i = 0; i < n; i++) opp.appendChild(backDiv());
   }
 
   // Stock
@@ -196,8 +198,8 @@ function render(v) {
     const reveal = overlay.querySelector(".reveal");
     const oh = $("overlay-opphand");
     oh.innerHTML = "";
-    if (v.opponent_hand && v.opponent_hand.length) {
-      v.opponent_hand.forEach((c) => oh.appendChild(cardDiv(c, { small: true })));
+    if (v.opponent_reveal && v.opponent_reveal.length) {
+      v.opponent_reveal.forEach((c) => oh.appendChild(cardDiv(c, { small: true })));
       reveal.style.display = "";
     } else {
       reveal.style.display = "none";
@@ -216,6 +218,7 @@ function setBtn(id, enabled, onclick) {
 
 $("btn-new").onclick = newGame;
 $("overlay-again").onclick = newGame;
+$("debug-toggle").onchange = () => { if (view) render(view); };
 
 (async function init() {
   try {

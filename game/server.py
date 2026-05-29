@@ -162,7 +162,7 @@ class GameSession:
         self.obs = obs
         self.done = False
         self.result = None
-        self.opponent_hand = None
+        self._opp_snapshot = []        # last opponent hand seen while in play
         self.last_reward = 0.0
         self._auto_advance()
         if not self.done:
@@ -218,9 +218,19 @@ class GameSession:
             self.result, self.message = "loss", "You lost this round."
         else:
             self.result, self.message = "draw", "Round over — a draw."
-        # The env clears hands at termination, so rather than risk revealing a
-        # stale/incorrect opponent hand we don't reveal it at all.
-        self.opponent_hand = None
+        # The reveal uses the last snapshot of the opponent's hand taken while it
+        # was still in play (the env clears hands at termination).
+
+    def _observe_opponent(self):
+        """The opponent's current hand as card objects (exact while it's in play;
+        empty once the env has terminated and cleared hands)."""
+        try:
+            board = np.asarray(self.wrapper.env.observe(self.wrapper.opponent_agent)
+                               ["observation"])
+            idx = sorted(int(i) for i in np.where(board[0] == 1)[0])
+            return [card_obj(i) for i in idx]
+        except Exception:
+            return []
 
 
 def build_view(session: GameSession) -> dict:
@@ -248,6 +258,13 @@ def build_view(session: GameSession) -> dict:
         phase = "discard"
 
     deadwood, melds = best_melds_deadwood(hand)
+
+    # Opponent hand: exact while in play (used by the debug "see opponent" mode);
+    # snapshot the last non-empty view so we can reveal it after termination.
+    live_opp = session._observe_opponent()
+    if live_opp:
+        session._opp_snapshot = live_opp
+
     return {
         "hand": [card_obj(i) for i in hand],
         "hand_count": len(hand),
@@ -262,8 +279,9 @@ def build_view(session: GameSession) -> dict:
         "message": session.message,
         "opponent_key": session.opponent_key,
         "opponent_label": OPPONENTS[session.opponent_key]["label"],
-        "opponent_hand": ([card_obj(i) for i in session.opponent_hand]
-                          if session.opponent_hand else None),
+        "opponent_count": len(live_opp) if live_opp else 10,
+        "opponent_hand_live": live_opp if not session.done else None,  # debug view
+        "opponent_reveal": session._opp_snapshot if session.done else None,  # end reveal
     }
 
 

@@ -66,11 +66,14 @@ for g in range(8):
     steps=0
     while not v["done"] and steps<400:
         assert v["hand_count"] in (10,11), ("bad hand_count", v["hand_count"])
+        lv=v.get("opponent_hand_live")
+        assert isinstance(lv,list) and len(lv) in (10,11), ("bad opp live", None if lv is None else len(lv))
         a=pick(v); assert a is not None, ("no legal action", v["legal"])
         st,v=post("/api/action",{"action":a})
         assert st==200 and "error" not in v, ("action error", st, v)
         steps+=1
     assert v["done"], ("game didn't finish", steps)
+    assert v.get("opponent_reveal") and len(v["opponent_reveal"]) in (10,11), ("reveal missing", v.get("opponent_reveal"))
     results[v["result"]]+=1
     print(f"game {g}: {v['result']} in {steps} steps, final dw={v['deadwood']}")
 
