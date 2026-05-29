@@ -193,8 +193,11 @@ function render(v) {
     card.className = "overlay-card " + (v.result || "draw");
     $("overlay-title").textContent =
       v.result === "win" ? "You win! 🎉" : v.result === "loss" ? "You lost" : "Draw";
-    $("overlay-sub").textContent =
-      (v.message || "") + `  ·  your deadwood: ${v.deadwood}`;
+    let sub = v.message || "";
+    if (typeof v.deadwood === "number") sub += `  ·  your deadwood: ${v.deadwood}`;
+    if (typeof v.opponent_deadwood === "number")
+      sub += `  ·  opponent deadwood: ${v.opponent_deadwood}`;
+    $("overlay-sub").textContent = sub;
     const reveal = overlay.querySelector(".reveal");
     const oh = $("overlay-opphand");
     oh.innerHTML = "";
