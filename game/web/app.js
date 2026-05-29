@@ -271,7 +271,7 @@ function holdAppear(el, dur, delay) {
 // discard  4) take it out of the hand  5) send it to the pile. Hidden and revealed
 // hands differ only by whether cards rotate to show a face. Returns total ms.
 function runOppTurn(o) {
-  const { oppEl, showOpp, drawnCard, discCard, drawSource,
+  const { oppEl, showOpp, drawnCard, discCard, drawSource, underCard,
           stockRect, discRect, oppRect, sizes, gen } = o;
   const { OPP_W, OPP_H, PILE_W, PILE_H } = sizes;
   // Rotation rules. Revealed hand: a stock draw turns around to reveal its face;
@@ -327,9 +327,9 @@ function runOppTurn(o) {
     flyCard({ from, to: slot, img: flyImg, reveal: drawReveal, slow: drawReveal,
               reverseFlip: drawReverse,
               fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
-    // the top discard was just taken -> clear it so it doesn't appear to stay
-    // (STEP 5 will set the opponent's new discard when it lands).
-    if (drawSource === "discard") setDiscImg(null);
+    // the top discard was just taken -> reveal the card that was underneath
+    // (null => genuinely empty); STEP 5 sets the opponent's new discard on land.
+    if (drawSource === "discard") setDiscImg(underCard);
   }, flyAt);
   setTimeout(() => { if (gen === renderGen && placeholder) placeholder.style.visibility = ""; },
              flyAt + drawDur);
@@ -407,6 +407,7 @@ function render(v) {
   const drawnCard = drawnEv ? drawnEv.card : null;
   const discCard = discEv ? discEv.card : null;
   const drawSource = drawnEv ? drawnEv.source : "stock";
+  const underCard = drawnEv ? (drawnEv.under || null) : null;  // shown when opp takes the top
   const oppTurn = (v.events || []).length > 0;
 
   // Never choreograph the game-ending move -- at done the server sends
@@ -554,7 +555,7 @@ function render(v) {
   let oppEnd = 0;
   if (playTurn) {
     oppEnd = runOppTurn({
-      oppEl: opp, showOpp, drawnCard, discCard, drawSource,
+      oppEl: opp, showOpp, drawnCard, discCard, drawSource, underCard,
       stockRect: pileRect, discRect: disc.getBoundingClientRect(), oppRect,
       sizes: { OPP_W, OPP_H, PILE_W, PILE_H }, gen,
     });
