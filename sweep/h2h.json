@@ -1,0 +1,53 @@
+{
+  "n": 300,
+  "models": [
+    "selfplay",
+    "pool",
+    "winrate",
+    "reward",
+    "llm_40k"
+  ],
+  "matrix": {
+    "selfplay": {
+      "selfplay": null,
+      "pool": 0.477,
+      "winrate": 0.613,
+      "reward": 0.59,
+      "llm_40k": 0.457,
+      "random": 0.99
+    },
+    "pool": {
+      "selfplay": 0.527,
+      "pool": null,
+      "winrate": 0.557,
+      "reward": 0.583,
+      "llm_40k": 0.55,
+      "random": 0.897
+    },
+    "winrate": {
+      "selfplay": 0.387,
+      "pool": 0.447,
+      "winrate": null,
+      "reward": 0.473,
+      "llm_40k": 0.39,
+      "random": 0.997
+    },
+    "reward": {
+      "selfplay": 0.403,
+      "pool": 0.44,
+      "winrate": 0.437,
+      "reward": null,
+      "llm_40k": 0.37,
+      "random": 0.973
+    },
+    "llm_40k": {
+      "selfplay": 0.43,
+      "pool": 0.45,
+      "winrate": 0.6,
+      "reward": 0.62,
+      "llm_40k": null,
+      "random": 0.987
+    }
+  },
+  "seconds": 348
+}

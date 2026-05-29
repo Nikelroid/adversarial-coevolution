@@ -30,6 +30,38 @@ import torch.optim as optim
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback
+
+try:
+    import wandb
+    _WANDB = True
+except Exception:
+    _WANDB = False
+
+
+def _wandb_enabled():
+    if not _WANDB or os.environ.get("WANDB_DISABLED", "").lower() in ("1", "true", "yes"):
+        return False
+    return bool(os.environ.get("WANDB_API_KEY")) or os.path.exists(
+        os.path.expanduser("~/.netrc"))
+
+
+class _WandbRollout(BaseCallback):
+    """Push SB3 train/* + rollout/* metrics to W&B once per rollout."""
+    def _on_step(self):
+        return True
+
+    def _on_rollout_end(self):
+        if not _wandb_enabled():
+            return
+        snap = {}
+        for k, v in self.model.logger.name_to_value.items():
+            try:
+                snap[k] = abs(float(v)) if "loss" in k else float(v)
+            except Exception:
+                pass
+        if snap:
+            wandb.log(snap, step=self.num_timesteps)
 
 from gym_wrapper import GinRummySB3Wrapper
 from agents.fast_llm_agent import FastLLMAgent
@@ -83,8 +115,33 @@ def main():
     else:
         print("[llmplay] no init model; training from scratch", flush=True)
 
+    ckpt_dir = os.environ.get("CKPT_DIR", "sweep/llmplay/ckpts")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    save_every = max(int(os.environ.get("CKPT_EVERY", "250000")) // num_env, 1)
+    callbacks = [CheckpointCallback(save_freq=save_every, save_path=ckpt_dir,
+                                    name_prefix="llm_ppo")]
+    print(f"[llmplay] checkpoint every ~{save_every*num_env} steps -> {ckpt_dir}", flush=True)
+
+    if _wandb_enabled():
+        try:
+            wandb.init(
+                project=os.environ.get("WANDB_PROJECT", "Adversarial-CoEvolution"),
+                entity=os.environ.get("WANDB_ENTITY", "VLAvengers"),
+                name=os.environ.get("WANDB_NAME", f"rl_vs_llm_{total//1000}k"),
+                group="phase2-rl-vs-llm",
+                tags=["rl-vs-llm", "qwen2.5-7b"],
+                config=dict(num_env=num_env, total_steps=total, n_steps=n_steps,
+                            init=init, opponent="qwen2.5-7b", master=master),
+                reinit=True)
+            callbacks.append(_WandbRollout())
+            print("[llmplay] W&B logging enabled", flush=True)
+        except Exception as exc:  # noqa: BLE001 - never let W&B kill training
+            print(f"[llmplay] W&B init failed, continuing without: {exc}", flush=True)
+    else:
+        print("[llmplay] W&B not enabled (no key) — training without logging", flush=True)
+
     t0 = time.time()
-    model.learn(total_timesteps=total, progress_bar=False)
+    model.learn(total_timesteps=total, progress_bar=False, callback=callbacks)
     dt = time.time() - t0
     os.makedirs(os.path.dirname(save), exist_ok=True)
     model.save(save)
@@ -92,6 +149,9 @@ def main():
     print(f"[llmplay] DONE {total} steps in {dt:.0f}s = {total/max(dt,1):.0f} steps/s "
           f"| ~{rollout} steps/rollout, ~{total/max(rollout,1):.1f} rollouts | saved {save}",
           flush=True)
+    if _wandb_enabled() and wandb.run is not None:
+        wandb.log({"train/steps_per_s": total / max(dt, 1), "train/wall_seconds": dt})
+        wandb.finish()
     print("LLMPLAY_DONE", flush=True)
 
 

@@ -27,6 +27,17 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false
 
+# W&B: map the user's WANDB_TOKEN (env or ~/.bashrc) onto WANDB_API_KEY so the
+# run logs to the dashboard like the self-play sweep does.
+WANDB_API_KEY="${WANDB_API_KEY:-${WANDB_TOKEN:-}}"
+if [ -z "$WANDB_API_KEY" ]; then
+  line=$(grep -E '\bWANDB_TOKEN=' ~/.bashrc 2>/dev/null | tail -1 || true)
+  v=${line#*=}; v=${v#[\"\']}; v=${v%[\"\']}; WANDB_API_KEY=${v%% *}
+fi
+export WANDB_API_KEY
+export WANDB_PROJECT="${WANDB_PROJECT:-Adversarial-CoEvolution}"
+if [ -n "$WANDB_API_KEY" ]; then echo "W&B: key resolved (len=${#WANDB_API_KEY})"; else echo "W&B: no key"; fi
+
 # find the master (written by slurm/master.slurm to runtime/master.json)
 echo "waiting for master + a healthy worker..."
 URL=""
