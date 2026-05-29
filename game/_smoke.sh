@@ -90,7 +90,7 @@ for g in range(8):
 # 2b) opponent chooser: both opponents listed, and switching works
 with urllib.request.urlopen(BASE+"/api/opponents") as r: opps=json.loads(r.read())
 keys=[o["key"] for o in opps]
-assert "selfplay" in keys and "winrate" in keys and "reward" in keys, keys
+assert "selfplay" in keys and "pool" in keys and "winrate" in keys and "reward" in keys, keys
 print("opponents:", keys)
 st,v=post("/api/new_game",{"opponent":"reward"})
 assert st==200 and v.get("opponent_key")=="reward", ("switch failed", v.get("opponent_key"))

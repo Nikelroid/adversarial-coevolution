@@ -97,7 +97,8 @@ against (switching it starts a fresh game). Both ship in `game/model/`:
 
 | Opponent | Model | Notes |
 |---|---|---|
-| **Self-play champion** (default) | self-play gen-1 (fine-tuned from run_5) | **strongest so far** — beats the base agents ~61%, 98.7% vs random |
+| **Self-play champion** (default) | self-play gen-1 (from run_5) | all-rounder — beats run_5 ~61%, 98.7% vs random |
+| **Pool champion** | AlphaZero-style pool self-play (12M steps) | self-play hardened — beats run_5 ~62% and its own pool ~57%, 86% vs random |
 | **Highest win rate** | `run_5` | 99.6% wins vs random |
 | **Highest reward** | `run_2` | 0.54 avg reward |
 
