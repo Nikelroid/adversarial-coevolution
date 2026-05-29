@@ -174,7 +174,12 @@ body {
   will-change: transform;
 }
 .card.small { width: 56px; height: 80px; box-shadow: 0 3px 7px rgba(0,0,0,.45); }
-.card.back { box-shadow: 0 3px 7px rgba(0,0,0,.45); }
+.card.back {
+  box-shadow: 0 3px 7px rgba(0,0,0,.45);
+  background-color: #2b4f8e;           /* fill behind the back so no felt shows */
+  background-size: 100% 100%;          /* the back image now fills the whole box */
+  background-position: center;
+}
 .opponent-hand { gap: 5px; }
 
 /* melded cards: gold rim + gentle pulse */
@@ -265,6 +270,10 @@ body.locked .card.knockable,
 body.locked .card-slot.clickable,
 body.locked .btn:not(#btn-new) { pointer-events: none; }
 body.locked .card-slot.clickable { filter: brightness(.92); }
+
+/* a card "chosen" to be discarded lifts out of the hand before flying away */
+.card.lift { transform: translateY(-16px); transition: transform .25s ease;
+  box-shadow: 0 16px 22px rgba(0,0,0,.5); z-index: 6; }
 
 /* felt depth + soft vignette */
 .table { position: relative; }
