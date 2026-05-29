@@ -415,6 +415,9 @@ def _make_handler(session: GameSession):
                 elif path == "/api/state":
                     with session.lock:
                         self._send_json(build_view(session))
+                elif path == "/favicon.ico":
+                    self.send_response(204)         # no icon; avoid a console 404
+                    self.end_headers()
                 else:
                     self.send_error(404, "not found")
             except Exception as exc:  # never 500-crash the loop
