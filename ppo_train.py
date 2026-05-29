@@ -18,7 +18,10 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import CombinedExtractor
 import torch
-import wandb
+try:
+    import wandb  # optional: only needed for training-time logging
+except Exception:  # noqa: BLE001 - lets the game/eval run without wandb installed
+    wandb = None
 from stable_baselines3.common.type_aliases import PyTorchObs
 import torch.optim as optim
 from curriculum_manager import CurriculumManager
