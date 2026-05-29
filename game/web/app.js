@@ -9,19 +9,29 @@ const discardAction = (idx) => 6 + idx;
 const knockAction = (idx) => 58 + idx;
 const CARD_BACK = "/deck_images/card_back.png";
 
+// animation timings (ms)
+const T_DEAL_STAGGER = 55;
+const T_FLY = 560;          // plain fly (deck/discard <-> hand/pile)
+const T_TAKE = 760;         // taking the face-up discard into my hand (a touch slower)
+const T_REVEAL = 1000;      // slow reveal flip (the 3 reveal cases)
+const T_OPP_GAP = 140;      // gap between the opponent's draw and discard
+
 let view = null;
 let knockArmed = false;
 let busy = false;
+let lockMs = 0;             // how long to keep the board non-interactive after a render
 
 // animation bookkeeping
-let prevCardsByIdx = {};   // idx -> card obj (for ghosts)
-let prevTopIdx = null;     // last discard-top idx
-let pendingDraw = null;    // {source:'stock'|'discard'} when we draw/take
-let pendingDiscard = null; // {idx} when we discard/knock
-let dealNext = false;      // animate a fresh deal on the next render
-let renderGen = 0;         // bumped each render; guards stale scheduled DOM writes
+let prevCardsByIdx = {};
+let prevTopIdx = null;
+let pendingDraw = null;     // {source:'stock'|'discard'}
+let pendingDiscard = null;  // {idx}
+let dealNext = false;
+let renderGen = 0;
 
 const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const center = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
 
 // ---------------------------------------------------------------- networking
 async function api(method, path, body) {
@@ -31,10 +41,6 @@ async function api(method, path, body) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
   return data;
-}
-
-async function refresh() {
-  try { render(await api("GET", "/api/state")); } catch (e) { flash(e.message); }
 }
 
 function setPending(action) {
@@ -63,11 +69,21 @@ async function send(action) {
   await run(() => api("POST", "/api/action", { action }));
 }
 
+// Keep the board non-interactive until the move's animation finishes, so a
+// draw/take can't happen mid-discard (for me or the opponent).
 async function run(fn) {
   busy = true;
-  try { render(await fn()); }
-  catch (e) { flash(e.message); }
-  finally { busy = false; }
+  document.body.classList.add("locked");
+  try {
+    lockMs = 0;
+    render(await fn());
+    if (lockMs > 0) await sleep(lockMs);
+  } catch (e) {
+    flash(e.message);
+  } finally {
+    busy = false;
+    document.body.classList.remove("locked");
+  }
 }
 
 function flash(msg) {
@@ -128,35 +144,25 @@ function setDiscImg(card) {
 }
 
 // ---------------------------------------------------------------- animation
-// FLIP a hand card from a previous rect into its slot; `grow` adds a 3D flip.
-function flip(el, fromRect, opts) {
-  opts = opts || {};
+// Reflow: slide a card from its previous rect to its current slot (no rotation).
+function flip(el, fromRect) {
   try {
     const to = el.getBoundingClientRect();
     const dx = fromRect.left - to.left;
     const dy = fromRect.top - to.top;
-    if (!opts.grow && Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-    const sx = opts.grow ? (fromRect.width / to.width) || 1 : 1;
-    const sy = opts.grow ? (fromRect.height / to.height) || 1 : 1;
-    const delay = opts.delay || 0;
-    const rot = opts.grow ? " rotateY(90deg)" : "";
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
     el.style.transition = "none";
-    el.style.transform =
-      `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})${rot}`;
-    if (opts.grow) el.style.opacity = "0.25";
-    el.getBoundingClientRect(); // reflow
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    el.getBoundingClientRect();
     requestAnimationFrame(() => {
-      el.style.transition =
-        `transform .5s cubic-bezier(.2,.85,.25,1) ${delay}ms, opacity .4s ${delay}ms`;
+      el.style.transition = "transform .42s cubic-bezier(.2,.85,.25,1)";
       el.style.transform = "";
-      el.style.opacity = "";
-      setTimeout(() => { el.style.transition = ""; }, 580 + delay);
+      setTimeout(() => { el.style.transition = ""; }, 440);
     });
   } catch (e) { /* end-state already correct */ }
 }
 
-// Plain fly-in on the REAL card (no rotation): travels from the source pile to
-// its slot. Used for the deal and for taking the already-visible discard.
+// Plain fly-in on the REAL card (no rotation): travels from a source pile.
 function flyOnlyCard(el, srcRect, delay, dur) {
   try {
     const r = el.getBoundingClientRect();
@@ -164,28 +170,26 @@ function flyOnlyCard(el, srcRect, delay, dur) {
     const dy = (srcRect.top + srcRect.height / 2) - (r.top + r.height / 2);
     el.style.setProperty("--dx", dx + "px");
     el.style.setProperty("--dy", dy + "px");
-    el.style.setProperty("--flydur", (dur || 520) + "ms");
+    el.style.setProperty("--flydur", (dur || T_FLY) + "ms");
     el.style.animationDelay = (delay || 0) + "ms";
     el.classList.add("fly-only");
   } catch (e) { /* end-state already correct */ }
 }
 
-// A free-flying card that travels the FULL path between two screen rects.
-// reveal=true -> two-faced (shows the back, then turns to the front), slow.
-// reveal=false -> a plain single-face card (img, or the card back if img is null).
+// A free-flying card travelling the FULL path between two points, morphing size
+// from (fw,fh) to (tw,th). reveal=true -> two-faced back->front turn (slow).
 function flyCard(o) {
   try {
-    const W = o.w || (o.small ? 56 : 74);
-    const H = o.h || (o.small ? 80 : 104);
-    const dur = o.slow ? 1000 : 520;
-    const fcx = o.from.left + o.from.width / 2, fcy = o.from.top + o.from.height / 2;
-    const tcx = o.to.left + o.to.width / 2, tcy = o.to.top + o.to.height / 2;
+    const fw = o.fw || 74, fh = o.fh || 104;
+    const tw = o.tw || fw, th = o.th || fh;
+    const dur = o.slow ? T_REVEAL : (o.dur || T_FLY);
+    const fc = center(o.from), tc = center(o.to);
     const g = document.createElement("div");
     g.className = "fly-card";
-    g.style.left = (fcx - W / 2) + "px";
-    g.style.top = (fcy - H / 2) + "px";
-    g.style.width = W + "px";
-    g.style.height = H + "px";
+    g.style.left = (fc.x - fw / 2) + "px";
+    g.style.top = (fc.y - fh / 2) + "px";
+    g.style.width = fw + "px";
+    g.style.height = fh + "px";
     let inner = null;
     if (o.reveal) {
       g.style.perspective = "1000px";
@@ -207,10 +211,11 @@ function flyCard(o) {
     }
     document.body.appendChild(g);
     g.style.transition = `transform ${dur}ms cubic-bezier(.3,.8,.3,1)`;
-    const dx = tcx - fcx, dy = tcy - fcy;
+    const dx = tc.x - fc.x, dy = tc.y - fc.y;
+    const sx = tw / fw, sy = th / fh;
     const start = () => {
-      g.style.transform = `translate(${dx}px, ${dy}px)`;
-      if (inner) inner.style.transform = "rotateY(180deg)";   // back -> front
+      g.style.transform = `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      if (inner) inner.style.transform = "rotateY(180deg)";
     };
     if (o.delay) setTimeout(() => requestAnimationFrame(start), o.delay);
     else requestAnimationFrame(start);
@@ -218,11 +223,10 @@ function flyCard(o) {
   } catch (e) { /* cosmetic */ }
 }
 
-// My discarded card flying (no rotation — it was already face-up) onto the pile.
-function discardGhost(card, fromRect) {
+function discardGhost(card, fromRect, pileRect) {
   if (!card || !fromRect) return;
-  flyCard({ img: card.img, from: fromRect, to: $("discard").getBoundingClientRect(),
-            reveal: false, w: fromRect.width, h: fromRect.height });
+  flyCard({ img: card.img, from: fromRect, to: pileRect, reveal: false,
+            fw: fromRect.width, fh: fromRect.height, tw: pileRect.width, th: pileRect.height });
 }
 
 function pop(el) {
@@ -232,58 +236,59 @@ function pop(el) {
   el.classList.add("pop");
 }
 
-// Animate the opponent's turn (draw + discard) from the server-reported events,
-// honouring hidden (face-down) vs visible (debug) hands.
-function animateOpponentEvents(events, gen, finalTop, pileWasMine) {
+// Animate the opponent's turn (draw then discard) and return its total ms.
+function animateOpponentEvents(events, gen, finalTop, pileWasMine, ctx) {
   if (!events || !events.length) {
     if (pileWasMine) setDiscImg(finalTop);
-    return;
+    return 0;
   }
+  let endMs = 0;
   try {
-    const oppRect = $("opponent").getBoundingClientRect();
-    const stockRect = $("stock").getBoundingClientRect();
-    const discRect = $("discard").getBoundingClientRect();
-    const showOpp = $("debug-toggle") && $("debug-toggle").checked;
-    let t = 560;            // begin after my own discard fly settles
+    const { oppNewEls, oppOldRects, showOpp, oppRect, stockRect, discRect,
+            PILE_W, PILE_H, OPP_W, OPP_H } = ctx;
+    const slotOf = (idx) => {
+      const el = oppNewEls[idx];
+      return el ? el.getBoundingClientRect() : oppRect;
+    };
+    let t = T_FLY + 40;     // start once my own discard fly has landed
     let lastDiscardLand = null;
     events.forEach((ev) => {
       if (ev.type === "opp_draw") {
-        if (ev.source === "discard") {                  // known card -> plain fly
-          flyCard({ from: discRect, to: oppRect, img: ev.card ? ev.card.img : null,
-                    reveal: false, small: true, delay: t });
-          t += 640;
-        } else if (showOpp) {                           // CASE 3: reveal into visible hand
-          flyCard({ from: stockRect, to: oppRect, img: ev.card ? ev.card.img : null,
-                    reveal: true, slow: true, small: true, delay: t });
-          t += 1120;
-        } else {                                        // hidden: a face-down card flies up
-          flyCard({ from: stockRect, to: oppRect, img: null, reveal: false,
-                    small: true, delay: t });
-          t += 640;
+        const src = ev.source === "discard" ? discRect : stockRect;
+        const revealCase = (ev.source === "stock") && showOpp;     // CASE 3
+        const dest = (showOpp && ev.card) ? slotOf(ev.card.idx) : oppRect;
+        // hold the real drawn card hidden until the fly lands
+        if (showOpp && ev.card && oppNewEls[ev.card.idx]) {
+          const el = oppNewEls[ev.card.idx];
+          el.style.setProperty("--appdur", (revealCase ? T_REVEAL : T_FLY) + "ms");
+          el.style.animationDelay = t + "ms";
+          el.classList.add("hold-appear");
         }
+        flyCard({ from: src, to: dest, img: ev.card ? ev.card.img : null,
+                  reveal: revealCase, slow: revealCase, delay: t,
+                  fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
+        t += (revealCase ? T_REVEAL : T_FLY) + T_OPP_GAP;
       } else if (ev.type === "opp_discard" && ev.card) {
-        if (!showOpp) {                                 // CASE 2: hidden -> revealed on pile
-          flyCard({ from: oppRect, to: discRect, img: ev.card.img, reveal: true,
-                    slow: true, small: true, delay: t });
-          lastDiscardLand = t + 1000;
-          t += 1120;
-        } else {                                        // visible card -> plain fly
-          flyCard({ from: oppRect, to: discRect, img: ev.card.img, reveal: false,
-                    small: true, delay: t });
-          lastDiscardLand = t + 520;
-          t += 640;
-        }
+        const revealCase = !showOpp;                                // CASE 2
+        const src = (showOpp && oppOldRects[ev.card.idx]) ? oppOldRects[ev.card.idx] : oppRect;
+        flyCard({ from: src, to: discRect, img: ev.card.img,
+                  reveal: revealCase, slow: revealCase, delay: t,
+                  fw: OPP_W, fh: OPP_H, tw: PILE_W, th: PILE_H });
+        lastDiscardLand = t + (revealCase ? T_REVEAL : T_FLY);
+        t += (revealCase ? T_REVEAL : T_FLY) + T_OPP_GAP;
       }
     });
-    const at = lastDiscardLand != null ? lastDiscardLand : t + 150;
+    const at = lastDiscardLand != null ? lastDiscardLand : t;
+    endMs = at + 120;
     setTimeout(() => {
-      if (gen !== renderGen) return;          // a newer render happened; skip
-      if (pileWasMine) setDiscImg(finalTop);  // reveal the opponent's actual discard
+      if (gen !== renderGen) return;
+      if (pileWasMine) setDiscImg(finalTop);
       pop($("discard"));
     }, at);
   } catch (e) {
     if (pileWasMine) setDiscImg(finalTop);
   }
+  return endMs;
 }
 
 // ---------------------------------------------------------------- render
@@ -298,25 +303,46 @@ function render(v) {
   $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
 
-  // ---- opponent zone ----
+  const stock = $("stock");
+  const disc = $("discard");
+  const pileRect = stock.getBoundingClientRect();
+  const PILE_W = pileRect.width || 78, PILE_H = pileRect.height || 112;
+
+  // ---- opponent zone (capture old rects -> reflow when revealed) ----
   const oppMelded = new Set();
   (v.opponent_melds || []).forEach((m) => m.forEach((i) => oppMelded.add(i)));
   const opp = $("opponent");
-  opp.innerHTML = "";
   const showOpp = $("debug-toggle") && $("debug-toggle").checked;
+  const oppOldRects = {};
+  for (const el of Array.from(opp.children)) {
+    const i = Number(el.dataset.idx);
+    if (!Number.isNaN(i)) oppOldRects[i] = el.getBoundingClientRect();
+  }
+  opp.innerHTML = "";
+  const oppNewEls = {};
   if (showOpp && v.opponent_hand_live && v.opponent_hand_live.length) {
     v.opponent_hand_live.forEach((c) => {
       const el = cardEl(c, true);
       if (oppMelded.has(c.idx)) el.classList.add("melded");
       opp.appendChild(el);
+      oppNewEls[c.idx] = el;
     });
   } else {
     const n = v.opponent_count || 10;
     for (let i = 0; i < n; i++) opp.appendChild(backEl());
   }
+  const oppRect = opp.getBoundingClientRect();
+  const firstOpp = opp.querySelector(".card");
+  const oR = firstOpp ? firstOpp.getBoundingClientRect() : null;
+  const OPP_W = oR ? oR.width : 56, OPP_H = oR ? oR.height : 80;
+  // reflow persisting opponent cards (revealed)
+  if (showOpp) {
+    Object.keys(oppNewEls).forEach((idx) => {
+      if (oppOldRects[idx]) flip(oppNewEls[idx], oppOldRects[idx]);
+    });
+  }
 
   // ---- stock ----
-  const stock = $("stock");
   stock.className = "card-slot stock";
   stock.style.backgroundImage = `url(${CARD_BACK})`;
   stock.onclick = null;
@@ -325,15 +351,14 @@ function render(v) {
     stock.onclick = () => send(A_DRAW);
   }
 
-  // ---- discard (with choreography: my card lands first, opponent's reveals later) ----
-  const disc = $("discard");
+  // ---- discard (choreography: my card lands first, opponent's reveals later) ----
   disc.className = "card-slot discard";
   disc.onclick = null;
   const myDiscard = pendingDiscard && prevCardsByIdx[pendingDiscard.idx];
   const oppTurn = (v.events || []).length > 0;
   const topIdx = v.top_discard ? v.top_discard.idx : null;
   if (myDiscard && oppTurn) {
-    setDiscImg(myDiscard);                  // show my discard; opp sequence reveals the final top
+    setDiscImg(myDiscard);
     pop(disc);
   } else {
     setDiscImg(v.top_discard);
@@ -345,7 +370,7 @@ function render(v) {
     disc.onclick = () => send(A_TAKE);
   }
 
-  // ---- hand (FLIP + 3D flip-in) ----
+  // ---- my hand ----
   const handDiv = $("hand");
   const oldRects = {};
   for (const el of Array.from(handDiv.children)) {
@@ -353,7 +378,8 @@ function render(v) {
     if (!Number.isNaN(i)) oldRects[i] = el.getBoundingClientRect();
   }
   if (pendingDiscard && prevCardsByIdx[pendingDiscard.idx]) {
-    discardGhost(prevCardsByIdx[pendingDiscard.idx], oldRects[pendingDiscard.idx]);
+    const fr = oldRects[pendingDiscard.idx];
+    discardGhost(prevCardsByIdx[pendingDiscard.idx], fr, pileRect);
   }
 
   const melded = new Set();
@@ -386,25 +412,30 @@ function render(v) {
   v.hand.forEach((card, i) => {
     const el = newEls[card.idx];
     if (isDeal) {
-      flyOnlyCard(el, stock.getBoundingClientRect(), i * 55);      // deal: plain fly-in
+      flyOnlyCard(el, pileRect, i * T_DEAL_STAGGER);
     } else if (oldRects[card.idx]) {
-      flip(el, oldRects[card.idx]);                                // reflow slide (smooth)
+      flip(el, oldRects[card.idx]);
     } else if (pendingDraw && pendingDraw.source === "stock") {
-      // CASE 1: drawing a fresh card from the stock -> slow reveal flip
       const slot = el.getBoundingClientRect();
-      el.style.setProperty("--appdur", "1000ms");
+      el.style.setProperty("--appdur", T_REVEAL + "ms");
       el.classList.add("hold-appear");
-      flyCard({ from: stock.getBoundingClientRect(), to: slot, reveal: true, slow: true,
-                img: card.img, w: slot.width, h: slot.height });
+      flyCard({ from: pileRect, to: slot, reveal: true, slow: true, img: card.img,
+                fw: PILE_W, fh: PILE_H, tw: slot.width, th: slot.height });
     } else if (pendingDraw) {
-      // taking the (already-visible) discard -> plain fly, no rotation
-      flyOnlyCard(el, disc.getBoundingClientRect(), 0);
+      flyOnlyCard(el, disc.getBoundingClientRect(), 0, T_TAKE);
     }
   });
   dealNext = false;
 
-  // ---- opponent move animations ----
-  animateOpponentEvents(v.events || [], gen, v.top_discard, !!(myDiscard && oppTurn));
+  // ---- opponent animation + interaction lock ----
+  const oppEnd = animateOpponentEvents(v.events || [], gen, v.top_discard,
+    !!(myDiscard && oppTurn),
+    { oppNewEls, oppOldRects, showOpp, oppRect, stockRect: pileRect, discRect: disc.getBoundingClientRect(),
+      PILE_W, PILE_H, OPP_W, OPP_H });
+
+  if (isDeal) lockMs = v.hand.length * T_DEAL_STAGGER + 560;
+  else if (pendingDraw) lockMs = (pendingDraw.source === "stock") ? T_REVEAL + 120 : T_TAKE + 120;
+  lockMs = Math.max(lockMs, oppEnd);
 
   // ---- buttons ----
   setBtn("btn-draw", !v.done && v.legal.draw_stock, () => send(A_DRAW));
