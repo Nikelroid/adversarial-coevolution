@@ -230,15 +230,33 @@ body {
   100% { transform: none; opacity: 1; }
 }
 
-/* combined FLY + 3D FLIP for cards entering the hand (deal + draw): the card
-   starts at the source pile (translate by the --dx/--dy delta set inline),
-   edge-on and small, then flies to its slot while flipping open. */
-.fly-flip-in { animation: flyFlipIn .6s cubic-bezier(.2,.85,.25,1) both; }
-@keyframes flyFlipIn {
-  0%   { transform: translate(var(--dx,0px), var(--dy,0px)) rotateY(-90deg) scale(.8); opacity: 0; }
-  55%  { opacity: 1; }
-  100% { transform: translate(0px, 0px) rotateY(0deg) scale(1); opacity: 1; }
+/* Plain FLY-IN (no rotation): the real card travels from the source pile to its
+   slot. Used for the deal and for taking the (already-visible) discard. */
+.fly-only { animation: flyOnly var(--flydur, 520ms) cubic-bezier(.25,.8,.3,1) both; }
+@keyframes flyOnly {
+  0%   { transform: translate(var(--dx,0px), var(--dy,0px)) scale(.92); opacity: .35; }
+  100% { transform: translate(0px, 0px) scale(1); opacity: 1; }
 }
+
+/* The real card stays hidden while its reveal-flip ghost flies in, then appears. */
+.hold-appear { animation: holdAppear var(--appdur, 1000ms) linear both; }
+@keyframes holdAppear { 0%, 82% { opacity: 0; } 100% { opacity: 1; } }
+
+/* A free-flying card used for travel between zones. With .reveal it is two-faced
+   (shows the back, then turns to the front) for the reveal cases. */
+.fly-card { position: fixed; z-index: 70; pointer-events: none; }
+.fly-card.plain {
+  background-size: cover; background-position: center; border-radius: 9px;
+  box-shadow: 0 16px 28px rgba(0,0,0,.55);
+}
+.fc-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
+.fc-face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  background-size: cover; background-position: center; border-radius: 9px;
+  box-shadow: 0 16px 28px rgba(0,0,0,.55);
+}
+.fc-back  { transform: rotateY(0deg); }
+.fc-front { transform: rotateY(180deg); }
 
 /* felt depth + soft vignette */
 .table { position: relative; }
