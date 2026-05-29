@@ -194,14 +194,17 @@ body {
 }
 .card.flip-turn { animation: flipTurn .45s cubic-bezier(.2,.8,.3,1) both; }
 
-/* melded cards: gold rim + gentle pulse */
-.card.melded {
-  outline-color: var(--gold);
-  animation: meldGlow 2.2s ease-in-out infinite;
+/* melded cards: gold rim + gentle pulse. The glow lives on a pseudo-element so it
+   NEVER occupies the card's own `animation` property -- otherwise it would clobber
+   the fly-in / reveal / flip-turn entry animations (a single `animation` slot). */
+.card.melded { outline-color: var(--gold); }
+.card.melded::after {
+  content: ""; position: absolute; inset: 0; border-radius: 9px;
+  pointer-events: none; animation: meldGlow 2.2s ease-in-out infinite;
 }
 @keyframes meldGlow {
-  0%,100% { box-shadow: 0 0 0 1px var(--gold), 0 0 10px rgba(244,193,69,.40), 0 6px 12px rgba(0,0,0,.4); }
-  50%     { box-shadow: 0 0 0 1px var(--gold), 0 0 22px rgba(244,193,69,.80), 0 6px 14px rgba(0,0,0,.45); }
+  0%,100% { box-shadow: 0 0 0 1px var(--gold), 0 0 10px rgba(244,193,69,.40); }
+  50%     { box-shadow: 0 0 0 1px var(--gold), 0 0 22px rgba(244,193,69,.80); }
 }
 
 /* hover lift */

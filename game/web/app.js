@@ -139,6 +139,14 @@ function oppCardEl(card, showOpp) {
   return d;
 }
 
+// Add the gold meld highlight AFTER the card's entry animation finishes, so the
+// rim never appears mid-flight (and never competes with the fly/reveal anim).
+function meldOn(el, delay) {
+  if (!el) return;
+  if (delay > 0) setTimeout(() => el.classList.add("melded"), delay);
+  else el.classList.add("melded");
+}
+
 function setDiscImg(card) {
   const d = $("discard");
   if (card) {
@@ -294,7 +302,7 @@ function runOppTurn(o) {
 
   // STEP 1 — open a space for the incoming card
   setTimeout(() => {
-    if (gen !== renderGen) return;
+    if (gen !== renderGen || !drawnCard) return;   // no draw event -> nothing to bring in
     const old = snap();
     placeholder = oppCardEl(drawnCard, showOpp);
     placeholder.style.visibility = "hidden";          // reserve the slot, invisible for now
@@ -319,6 +327,9 @@ function runOppTurn(o) {
     flyCard({ from, to: slot, img: flyImg, reveal: drawReveal, slow: drawReveal,
               reverseFlip: drawReverse,
               fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
+    // the top discard was just taken -> clear it so it doesn't appear to stay
+    // (STEP 5 will set the opponent's new discard when it lands).
+    if (drawSource === "discard") setDiscImg(null);
   }, flyAt);
   setTimeout(() => { if (gen === renderGen && placeholder) placeholder.style.visibility = ""; },
              flyAt + drawDur);
@@ -327,11 +338,9 @@ function runOppTurn(o) {
   // STEP 3/4/5 — choose a card, take it out, send it to the pile
   const chooseAt = t;
   setTimeout(() => {
-    if (gen !== renderGen) return;
-    let discEl = null;
-    if (discCard) {  // find the discard at its TRUE slot (hidden backs carry idx too)
-      discEl = Array.from(oppEl.children).find((k) => Number(k.dataset.idx) === discCard.idx);
-    }
+    if (gen !== renderGen || !discCard) return;        // no discard -> nothing leaves the hand
+    // find the discard at its TRUE slot (hidden backs carry idx too)
+    let discEl = Array.from(oppEl.children).find((k) => Number(k.dataset.idx) === discCard.idx);
     if (!discEl) {                                     // fallback: rightmost card
       const kids = Array.from(oppEl.children);
       discEl = kids[kids.length - 1];
@@ -408,14 +417,22 @@ function render(v) {
   // their TRUE sorted slots (shown as backs), not bunched on the right.
   let oppCards = (v.opponent_hand_live || []).slice();
   if (playTurn) {
-    oppCards = oppCards.filter((c) => !drawnCard || c.idx !== drawnCard.idx);
-    if (discCard) oppCards.push(discCard);
+    // pre-turn hand = live, minus the drawn card (the opp picked it up), plus the
+    // discarded card (it was in hand before). If the opp drew AND discarded the
+    // SAME card, the hand is unchanged -- do NOT double-count it (that produced
+    // duplicate/missing cards in the visible hand).
+    if (drawnCard) {
+      const i = oppCards.findIndex((c) => c.idx === drawnCard.idx);
+      if (i >= 0) oppCards.splice(i, 1);
+    }
+    if (discCard && (!drawnCard || discCard.idx !== drawnCard.idx)) oppCards.push(discCard);
   }
   oppCards.sort((a, b) => a.idx - b.idx);
   if (oppCards.length) {
-    oppCards.forEach((c) => {
+    oppCards.forEach((c, i) => {
       const el = oppCardEl(c, showOpp);
-      if (showOpp && oppMelded.has(c.idx)) el.classList.add("melded");
+      // gold rim only when revealed; after the flip on a toggle, immediately otherwise.
+      if (showOpp && oppMelded.has(c.idx)) meldOn(el, isToggle ? (i * 45 + 470) : 0);
       opp.appendChild(el);
       oppNewEls[c.idx] = el;
     });
@@ -490,7 +507,6 @@ function render(v) {
   const newEls = {};
   v.hand.forEach((card) => {
     const el = cardEl(card, false);
-    if (melded.has(card.idx)) el.classList.add("melded");
     if (!v.done && v.phase === "discard") {
       if (knockArmed && knockable.has(card.idx)) {
         el.classList.add("knockable");
@@ -510,8 +526,10 @@ function render(v) {
     (Object.keys(oldRects).length === 0 && v.hand.length > 1);
   v.hand.forEach((card, i) => {
     const el = newEls[card.idx];
+    let meldDelay = 0;                       // when to show the gold rim (after the anim)
     if (isDeal) {
       flyOnlyCard(el, pileRect, i * T_DEAL_STAGGER);
+      meldDelay = i * T_DEAL_STAGGER + T_FLY;
     } else if (oldRects[card.idx]) {
       flip(el, oldRects[card.idx]);
     } else if (pendingDraw && pendingDraw.source === "stock") {
@@ -520,9 +538,12 @@ function render(v) {
       el.classList.add("hold-appear");
       flyCard({ from: pileRect, to: slot, reveal: true, slow: true, img: card.img,
                 fw: PILE_W, fh: PILE_H, tw: slot.width, th: slot.height });
+      meldDelay = T_REVEAL;                  // a freshly drawn card reveals before it glows
     } else if (pendingDraw) {
       flyOnlyCard(el, disc.getBoundingClientRect(), 0, T_TAKE);
+      meldDelay = T_TAKE;
     }
+    if (melded.has(card.idx)) meldOn(el, meldDelay);
   });
   dealNext = false;
 
@@ -569,7 +590,7 @@ function render(v) {
     if (v.opponent_reveal && v.opponent_reveal.length) {
       v.opponent_reveal.forEach((c, i) => {
         const el = cardEl(c, true);
-        if (oppMelded.has(c.idx)) el.classList.add("melded");
+        if (oppMelded.has(c.idx)) meldOn(el, i * 55 + 560);   // gold rim after the flip-in
         el.classList.add("flip-in");
         el.style.animationDelay = (i * 55) + "ms";
         oh.appendChild(el);
