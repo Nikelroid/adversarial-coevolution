@@ -49,8 +49,10 @@ IMAGES_DIR = os.path.join(GAME_DIR, "images")
 #   reward  -> run_2 (highest mean reward, 0.54)
 # Both ship in game/model/ so a fresh clone has them.
 OPPONENTS = {
-    "selfplay": {"label": "Self-play champion", "stat": "strongest so far",
+    "selfplay": {"label": "Self-play champion", "stat": "all-rounder",
                  "file": "ppo_gin_rummy_selfplay.zip"},
+    "pool": {"label": "Pool champion", "stat": "self-play hardened",
+             "file": "ppo_gin_rummy_pool.zip"},
     "winrate": {"label": "Highest win rate", "stat": "99.6% vs random",
                 "file": "ppo_gin_rummy_winrate.zip"},
     "reward": {"label": "Highest reward", "stat": "0.54 avg reward",
