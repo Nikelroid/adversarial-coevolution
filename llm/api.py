@@ -3,6 +3,7 @@ Ollama API wrapper for LLM agent interactions.
 """
 import requests
 import json
+import os
 import re  # ### MODIFIED ###
 from typing import Dict, Any, Optional, List, Tuple  # ### MODIFIED ###
 import numpy as np  # ### MODIFIED ###
@@ -22,23 +23,36 @@ class OllamaAPI:
     Wrapper for Ollama API to generate actions based on game observations.
     """
 
-    def __init__(self, model: str = "llama3.2:1b", base_url: str = "http://localhost:11434"):
+    def __init__(self, model: str = "llama3.2:1b", base_url: Optional[str] = None):
         """
         Initialize Ollama API client.
-        
+
         Args:
             model: Name of the Ollama model to use (default: llama3.2:1b - lightweight)
-            base_url: Base URL for Ollama API (default: http://localhost:11434)
+            base_url: Base URL for the API. Defaults to $GINLLM_MASTER_URL, then
+                http://localhost:11434. The env-var default lets every forked
+                SubprocVecEnv worker reach the Phase-2 master on another node
+                without threading the URL through the agent constructors.
         """
         logging.basicConfig(filename='app.log',level=logging.INFO, format='%(message)s')
         self.model = model
-        self.base_url = base_url
+        self.base_url = base_url or os.environ.get(
+            "GINLLM_MASTER_URL", "http://localhost:11434"
+        )
         self.api_endpoint = f"{self.base_url}/api/generate"
 
         # ### NEW ### Build action translation maps
         self.action_to_string, self.string_to_action = self._build_action_maps()
         # This map will be populated *during* prompt formatting
         self.current_action_map: Dict[str, int] = {}
+
+        # Suit-symmetry canonicalization: Gin Rummy suits are interchangeable, so
+        # we relabel suits to a canonical order before building the prompt. This
+        # makes suit-equivalent game states hash to the SAME prompt, so the
+        # master's cache serves them from one entry (big hit-rate gain), and we
+        # map the LLM's chosen card-suit back afterwards. Lossless. Disable with
+        # GINLLM_SUIT_CANONICAL=0.
+        self.suit_canonical = os.environ.get("GINLLM_SUIT_CANONICAL", "1") != "0"
 
     # ### NEW ###
     def _build_action_maps(self) -> Tuple[Dict[int, str], Dict[str, int]]:
@@ -79,6 +93,60 @@ class OllamaAPI:
             return (suit_index, rank_index)
         except ValueError:
             return (99, 99) # Put invalid cards at the end
+
+    # ### NEW ### Suit-symmetry canonicalization helpers
+    def _canonical_suit_perm(self, board: np.ndarray) -> List[int]:
+        """Return perm with perm[real_suit] = canonical_suit. Suits are ordered
+        by their full (plane, rank) occupancy signature, so any two states that
+        differ only by a relabeling of suits map to the same canonical board.
+        Ties (identical signatures) are interchangeable, so the result is
+        well-defined regardless of tie-break."""
+        if board.ndim == 3 and board.shape[0] == 1:
+            board = board[0]
+        sigs = []
+        for s in range(4):
+            block = board[:, s * 13:(s + 1) * 13]
+            sigs.append(tuple(int(v) for v in block.reshape(-1)))
+        # Sort real suits by signature (desc); canonical index = sorted position.
+        order = sorted(range(4), key=lambda s: sigs[s], reverse=True)
+        perm = [0, 0, 0, 0]
+        for canon_idx, real_s in enumerate(order):
+            perm[real_s] = canon_idx
+        return perm
+
+    @staticmethod
+    def _inverse_perm(perm: List[int]) -> List[int]:
+        inv = [0, 0, 0, 0]
+        for real_s, canon_s in enumerate(perm):
+            inv[canon_s] = real_s
+        return inv
+
+    @staticmethod
+    def _map_card(idx: int, perm: List[int]) -> int:
+        return perm[idx // 13] * 13 + idx % 13
+
+    def _permute_board(self, board: np.ndarray, perm: List[int]) -> np.ndarray:
+        if board.ndim == 3 and board.shape[0] == 1:
+            board = board[0]
+        out = np.zeros_like(board)
+        for c in range(52):
+            out[:, self._map_card(c, perm)] = board[:, c]
+        return out
+
+    def _permute_action(self, a: int, perm: List[int]) -> int:
+        if 6 <= a <= 57:
+            return 6 + self._map_card(a - 6, perm)
+        if 58 <= a <= 109:
+            return 58 + self._map_card(a - 58, perm)
+        return a  # 0,1 score / 2 draw / 3 pick / 4 dead / 5 gin are suit-agnostic
+
+    def _invert_action(self, a: int, perm: List[int]) -> int:
+        inv = self._inverse_perm(perm)
+        if 6 <= a <= 57:
+            return 6 + self._map_card(a - 6, inv)
+        if 58 <= a <= 109:
+            return 58 + self._map_card(a - 58, inv)
+        return a
 
     def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 8192) -> str:
         """
@@ -126,6 +194,17 @@ class OllamaAPI:
         Returns:
             Selected action index or None if parsing fails
         """
+        # Suit-symmetry: canonicalize the board + valid actions so suit-equivalent
+        # states share one cache entry. We invert the chosen action's suit below.
+        perm = None
+        board = observation.get('observation')
+        if self.suit_canonical and board is not None:
+            board = np.asarray(board)
+            perm = self._canonical_suit_perm(board)
+            observation = dict(observation)
+            observation['observation'] = self._permute_board(board, perm)
+            valid_actions = [self._permute_action(a, perm) for a in valid_actions]
+
         # Format the full prompt with observation and valid actions
         full_prompt = self._format_prompt(prompt, observation, valid_actions)
         logging.info ('='*80)
@@ -152,6 +231,10 @@ class OllamaAPI:
         # Parse action from response
         # ### MODIFIED ### Pass valid_actions for context, though parser uses class map
         action = self._parse_action(response, valid_actions)
+
+        # Map the canonical action back to the real (un-permuted) action.
+        if action is not None and perm is not None:
+            action = self._invert_action(action, perm)
 
         return action
 

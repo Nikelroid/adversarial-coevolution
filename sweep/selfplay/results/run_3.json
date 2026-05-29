@@ -1,0 +1,18 @@
+{
+  "combo": 3,
+  "knock_reward": 0.25,
+  "gin_reward": 2.0,
+  "steps": 3000000,
+  "train_seconds": 1989.7582716941833,
+  "model_path": "/home1/kelidari/Adversarial-CoEvolution/sweep/selfplay/models/run_3/final.zip",
+  "vs_run5": {
+    "win_rate": 0.597,
+    "loss_rate": 0.403,
+    "n": 1000
+  },
+  "vs_random": {
+    "win_rate": 0.991,
+    "loss_rate": 0.009,
+    "n": 1000
+  }
+}

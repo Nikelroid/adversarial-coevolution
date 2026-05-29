@@ -11,6 +11,10 @@ class CurriculumManager:
     def __init__(self, save_dir='./curriculum_policies', max_pool_size=20):
         self.save_dir = save_dir
         self.max_pool_size = max_pool_size
+        # Phase thresholds (steps): phase 1 = vs random, phase 2 = + pool,
+        # phase 3 = + self-play. Overridable so pool self-play can start early.
+        self.phase2_step = int(os.environ.get("CURRICULUM_PHASE2_STEP", 5_000_000))
+        self.phase3_step = int(os.environ.get("CURRICULUM_PHASE3_STEP", 15_000_000))
         self.state_file = os.path.join(save_dir, 'curriculum_state.json')
         self.policy_cache: dict[str, BaseAlgorithm] = {}
         os.makedirs(save_dir, exist_ok=True)
@@ -221,9 +225,9 @@ class CurriculumManager:
     
     def _get_current_phase(self, steps: int) -> int:
         """Determine current training phase given a step count"""
-        if steps < 5_000_000:
+        if steps < self.phase2_step:
             return 1
-        elif steps < 15_000_000:
+        elif steps < self.phase3_step:
             return 2
         else:
             return 3
