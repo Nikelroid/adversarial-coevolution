@@ -236,6 +236,14 @@ function pop(el) {
   el.classList.add("pop");
 }
 
+// Keep a real card hidden until its fly-in ghost lands, then reveal it.
+function holdAppear(el, dur, delay) {
+  if (!el) return;
+  el.style.setProperty("--appdur", dur + "ms");
+  el.style.animationDelay = (delay || 0) + "ms";
+  el.classList.add("hold-appear");
+}
+
 // Animate the opponent's turn (draw then discard) and return its total ms.
 function animateOpponentEvents(events, gen, finalTop, pileWasMine, ctx) {
   if (!events || !events.length) {
@@ -254,28 +262,41 @@ function animateOpponentEvents(events, gen, finalTop, pileWasMine, ctx) {
     let lastDiscardLand = null;
     events.forEach((ev) => {
       if (ev.type === "opp_draw") {
-        const src = ev.source === "discard" ? discRect : stockRect;
-        const revealCase = (ev.source === "stock") && showOpp;     // CASE 3
         const dest = (showOpp && ev.card) ? slotOf(ev.card.idx) : oppRect;
-        // hold the real drawn card hidden until the fly lands
-        if (showOpp && ev.card && oppNewEls[ev.card.idx]) {
-          const el = oppNewEls[ev.card.idx];
-          el.style.setProperty("--appdur", (revealCase ? T_REVEAL : T_FLY) + "ms");
-          el.style.animationDelay = t + "ms";
-          el.classList.add("hold-appear");
+        if (ev.source === "discard") {
+          // already face-up on the pile -> plain fly straight into his hand
+          if (showOpp) holdAppear(oppNewEls[ev.card && ev.card.idx], T_FLY, t);
+          flyCard({ from: discRect, to: dest, img: ev.card ? ev.card.img : null,
+                    reveal: false, delay: t, fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
+          t += T_FLY + T_OPP_GAP;
+        } else if (showOpp) {
+          // CASE 3: from the stock, turns around and reveals to me, into his hand
+          holdAppear(oppNewEls[ev.card && ev.card.idx], T_REVEAL, t);
+          flyCard({ from: stockRect, to: dest, img: ev.card ? ev.card.img : null,
+                    reveal: true, slow: true, delay: t,
+                    fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
+          t += T_REVEAL + T_OPP_GAP;
+        } else {
+          // hidden: a face-down card rotates as it goes into his hidden hand
+          flyCard({ from: stockRect, to: dest, img: null, reveal: true, slow: true,
+                    delay: t, fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
+          t += T_REVEAL + T_OPP_GAP;
         }
-        flyCard({ from: src, to: dest, img: ev.card ? ev.card.img : null,
-                  reveal: revealCase, slow: revealCase, delay: t,
-                  fw: PILE_W, fh: PILE_H, tw: OPP_W, th: OPP_H });
-        t += (revealCase ? T_REVEAL : T_FLY) + T_OPP_GAP;
       } else if (ev.type === "opp_discard" && ev.card) {
-        const revealCase = !showOpp;                                // CASE 2
         const src = (showOpp && oppOldRects[ev.card.idx]) ? oppOldRects[ev.card.idx] : oppRect;
-        flyCard({ from: src, to: discRect, img: ev.card.img,
-                  reveal: revealCase, slow: revealCase, delay: t,
-                  fw: OPP_W, fh: OPP_H, tw: PILE_W, th: PILE_H });
-        lastDiscardLand = t + (revealCase ? T_REVEAL : T_FLY);
-        t += (revealCase ? T_REVEAL : T_FLY) + T_OPP_GAP;
+        if (!showOpp) {
+          // CASE 2: hidden card is revealed as it flips onto the pile
+          flyCard({ from: src, to: discRect, img: ev.card.img, reveal: true, slow: true,
+                    delay: t, fw: OPP_W, fh: OPP_H, tw: PILE_W, th: PILE_H });
+          lastDiscardLand = t + T_REVEAL;
+          t += T_REVEAL + T_OPP_GAP;
+        } else {
+          // revealed hand: the visible card flies straight to the pile (no spin)
+          flyCard({ from: src, to: discRect, img: ev.card.img, reveal: false,
+                    delay: t, fw: OPP_W, fh: OPP_H, tw: PILE_W, th: PILE_H });
+          lastDiscardLand = t + T_FLY;
+          t += T_FLY + T_OPP_GAP;
+        }
       }
     });
     const at = lastDiscardLand != null ? lastDiscardLand : t;
@@ -379,7 +400,7 @@ function render(v) {
   }
   if (pendingDiscard && prevCardsByIdx[pendingDiscard.idx]) {
     const fr = oldRects[pendingDiscard.idx];
-    discardGhost(prevCardsByIdx[pendingDiscard.idx], fr, pileRect);
+    discardGhost(prevCardsByIdx[pendingDiscard.idx], fr, disc.getBoundingClientRect());
   }
 
   const melded = new Set();
