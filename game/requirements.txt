@@ -1,0 +1,8 @@
+# Minimal dependencies to run the "play vs PPO" web app locally.
+# CPU-only is fine — no GPU required. (The web server itself uses only the
+# Python standard library; these are what the trained model + env need.)
+numpy>=1.24
+torch>=2.2.0
+stable-baselines3>=2.3.2
+gymnasium>=0.29.1
+pettingzoo[classic]>=1.24.3

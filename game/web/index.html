@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gin Rummy — You vs PPO</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Gin&nbsp;Rummy <span class="vs">— You vs PPO</span></h1>
+    <div class="legend">
+      <span class="chip meld-chip">meld</span>
+      <span class="chip dead-chip">deadwood</span>
+      <span id="deadwood-badge" class="chip dw-chip">deadwood: 0</span>
+    </div>
+  </header>
+
+  <main class="table">
+    <!-- Opponent -->
+    <section class="zone opponent-zone">
+      <div class="zone-label">PPO Agent</div>
+      <div id="opponent" class="hand opponent-hand"></div>
+    </section>
+
+    <!-- Center piles -->
+    <section class="zone center-zone">
+      <div class="pile">
+        <div class="pile-label">Stock</div>
+        <div id="stock" class="card-slot stock" title="Draw from stock"></div>
+      </div>
+      <div class="status">
+        <div id="message" class="message">Loading…</div>
+      </div>
+      <div class="pile">
+        <div class="pile-label">Discard</div>
+        <div id="discard" class="card-slot discard" title="Take the top discard"></div>
+      </div>
+    </section>
+
+    <!-- Player -->
+    <section class="zone player-zone">
+      <div class="zone-label">Your hand</div>
+      <div id="hand" class="hand player-hand"></div>
+    </section>
+  </main>
+
+  <footer class="actionbar">
+    <button id="btn-draw" class="btn">Draw from stock</button>
+    <button id="btn-take" class="btn">Take discard</button>
+    <button id="btn-knock" class="btn btn-amber">Knock</button>
+    <button id="btn-gin" class="btn btn-gold">Gin!</button>
+    <button id="btn-dead" class="btn btn-ghost">Declare dead hand</button>
+    <button id="btn-new" class="btn btn-ghost">New game</button>
+  </footer>
+
+  <!-- End-of-round overlay -->
+  <div id="overlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h2 id="overlay-title">Round over</h2>
+      <p id="overlay-sub"></p>
+      <div class="reveal">
+        <div class="reveal-label">PPO's hand</div>
+        <div id="overlay-opphand" class="hand reveal-hand"></div>
+      </div>
+      <button id="overlay-again" class="btn btn-gold">Play again</button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
