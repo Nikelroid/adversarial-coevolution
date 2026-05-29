@@ -95,10 +95,11 @@ Open **http://localhost:8000** in your browser and play. 🎉
 A dropdown at the top of the page lets you pick which trained agent to play
 against (switching it starts a fresh game). Both ship in `game/model/`:
 
-| Opponent | Model | Strength (vs random, 1000 games) |
+| Opponent | Model | Notes |
 |---|---|---|
-| **Highest win rate** (default) | `run_5` | **99.6%** wins |
-| **Highest reward** | `run_2` | 0.54 avg reward (98.3% wins) |
+| **Self-play champion** (default) | self-play gen-1 (fine-tuned from run_5) | **strongest so far** — beats the base agents ~61%, 98.7% vs random |
+| **Highest win rate** | `run_5` | 99.6% wins vs random |
+| **Highest reward** | `run_2` | 0.54 avg reward |
 
 ### Options
 
