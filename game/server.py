@@ -283,6 +283,7 @@ def build_view(session: GameSession) -> dict:
     opp_hand = session._opp_snapshot if session.done else o_hand
 
     deadwood, melds = best_melds_deadwood(player_hand)
+    opp_deadwood, opp_melds = best_melds_deadwood(opp_hand) if opp_hand else (None, [])
 
     return {
         "hand": [card_obj(i) for i in player_hand],
@@ -302,11 +303,11 @@ def build_view(session: GameSession) -> dict:
         # debug "see opponent" view (live, exact); only while in play
         "opponent_hand_live": ([card_obj(i) for i in o_hand]
                                if (o_hand and not session.done) else None),
+        "opponent_melds": opp_melds,   # melded (matched) opponent cards to highlight
         # end-of-game reveal + both deadwoods
         "opponent_reveal": ([card_obj(i) for i in session._opp_snapshot]
                             if session.done else None),
-        "opponent_deadwood": (best_melds_deadwood(session._opp_snapshot)[0]
-                              if (session.done and session._opp_snapshot) else None),
+        "opponent_deadwood": opp_deadwood if session.done else None,
     }
 
 
