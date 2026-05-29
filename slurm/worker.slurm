@@ -40,7 +40,7 @@ MAXTOK="${WORKER_MAXTOK:-1024}"   # cap generation; set low (e.g. 64) for fast t
 # Unique port per array task: two tasks can share a 2-GPU node, so they must not
 # both bind the same port. The worker registers (host, port) so the master finds
 # whichever node/port it actually landed on.
-PORT=$((8001 + SLURM_ARRAY_TASK_ID))
+PORT=$(( ${WORKER_PORT_BASE:-8001} + SLURM_ARRAY_TASK_ID ))
 
 echo "=========================================================="
 echo "host=$(hostname)  job=${SLURM_JOB_ID}  array=${SLURM_ARRAY_TASK_ID}"
