@@ -155,6 +155,20 @@ function flip(el, fromRect, opts) {
   } catch (e) { /* end-state already correct */ }
 }
 
+// Combined fly + 3D flip on the REAL card: set the pile->slot delta as CSS
+// custom props and let the keyframe animate translate + rotateY together.
+function flyFlipInCard(el, srcRect, delay) {
+  try {
+    const r = el.getBoundingClientRect();
+    const dx = (srcRect.left + srcRect.width / 2) - (r.left + r.width / 2);
+    const dy = (srcRect.top + srcRect.height / 2) - (r.top + r.height / 2);
+    el.style.setProperty("--dx", dx + "px");
+    el.style.setProperty("--dy", dy + "px");
+    el.style.animationDelay = (delay || 0) + "ms";
+    el.classList.add("fly-flip-in");
+  } catch (e) { /* end-state already correct */ }
+}
+
 // A free-flying ghost card from one screen rect to another (body-level overlay).
 function flyGhost(o) {
   try {
@@ -178,7 +192,9 @@ function flyGhost(o) {
     setTimeout(() => {
       g.style.opacity = "1";
       requestAnimationFrame(() => {
-        g.style.transform = `translate(${dx}px, ${dy}px) ${o.rotate || ""}`;
+        g.style.transform = o.flip
+          ? `perspective(900px) translate(${dx}px, ${dy}px) rotateY(360deg)`
+          : `translate(${dx}px, ${dy}px) ${o.rotate || ""}`;
         if (o.fade) g.style.opacity = "0";
       });
     }, o.delay || 0);
@@ -190,7 +206,7 @@ function flyGhost(o) {
 function discardGhost(card, fromRect) {
   if (!card || !fromRect) return;
   flyGhost({ img: card.img, from: fromRect, to: $("discard").getBoundingClientRect(),
-             rotate: "rotate(8deg)" });
+             w: fromRect.width, h: fromRect.height, flip: true });
 }
 
 function pop(el) {
@@ -223,7 +239,7 @@ function animateOpponentEvents(events, gen, finalTop, pileWasMine) {
                    img: show ? ev.card.img : null, back: !show });
         t += 380;
       } else if (ev.type === "opp_discard" && ev.card) {
-        flyGhost({ from: oppRect, to: discRect, delay: t, small: true, img: ev.card.img });
+        flyGhost({ from: oppRect, to: discRect, delay: t, small: true, img: ev.card.img, flip: true });
         lastDiscardLand = t + 460;
         t += 380;
       }
@@ -339,18 +355,12 @@ function render(v) {
   v.hand.forEach((card, i) => {
     const el = newEls[card.idx];
     if (isDeal) {
-      el.classList.add("flip-in");                  // deal: each card flips open
-      el.style.animationDelay = (i * 55) + "ms";
+      flyFlipInCard(el, stock.getBoundingClientRect(), i * 55);   // fly from deck + flip
     } else if (oldRects[card.idx]) {
-      flip(el, oldRects[card.idx]);                 // existing card slides to new slot
+      flip(el, oldRects[card.idx]);                                // slide to new slot
     } else if (pendingDraw) {
-      el.classList.add("flip-in");                  // drawn card flips open in place
       const src = pendingDraw.source === "discard" ? disc : stock;
-      const toRect = el.getBoundingClientRect();
-      flyGhost({ from: src.getBoundingClientRect(), to: toRect,
-                 w: toRect.width, h: toRect.height, fade: true,
-                 img: pendingDraw.source === "discard" ? card.img : null,
-                 back: pendingDraw.source !== "discard" });
+      flyFlipInCard(el, src.getBoundingClientRect(), 0);           // fly from pile + flip
     }
   });
   dealNext = false;
