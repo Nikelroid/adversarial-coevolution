@@ -14,11 +14,12 @@ let knockArmed = false;
 let busy = false;
 
 // animation bookkeeping
-let prevCardsByIdx = {};     // idx -> card obj (for ghosts)
-let prevTopIdx = null;       // last discard-top idx (to pop on change)
-let pendingDraw = null;      // {source:'stock'|'discard'} set when we draw/take
-let pendingDiscard = null;   // {idx} set when we discard/knock
-let dealNext = false;        // animate a fresh deal on the next render
+let prevCardsByIdx = {};   // idx -> card obj (for ghosts)
+let prevTopIdx = null;     // last discard-top idx
+let pendingDraw = null;    // {source:'stock'|'discard'} when we draw/take
+let pendingDiscard = null; // {idx} when we discard/knock
+let dealNext = false;      // animate a fresh deal on the next render
+let renderGen = 0;         // bumped each render; guards stale scheduled DOM writes
 
 const $ = (id) => document.getElementById(id);
 
@@ -98,11 +99,10 @@ async function loadOpponents() {
 // ---------------------------------------------------------------- card DOM
 function cardEl(card, small) {
   const d = document.createElement("div");
-  d.className = "card";
+  d.className = "card" + (small ? " small" : "");
   d.style.backgroundImage = `url(/deck_images/${card.img})`;
   d.title = card.label;
   d.dataset.idx = card.idx;
-  if (small) d.classList.add("small");
   return d;
 }
 
@@ -113,8 +113,22 @@ function backEl() {
   return d;
 }
 
+function setDiscImg(card) {
+  const d = $("discard");
+  if (card) {
+    d.style.backgroundImage = `url(/deck_images/${card.img})`;
+    d.textContent = "";
+    d.title = card.label;
+    d.classList.remove("empty-label");
+  } else {
+    d.style.backgroundImage = "none";
+    d.textContent = "empty";
+    d.classList.add("empty-label");
+  }
+}
+
 // ---------------------------------------------------------------- animation
-// FLIP: animate `el` from a previous rectangle into its current layout slot.
+// FLIP a hand card from a previous rect into its slot; `grow` adds a 3D flip.
 function flip(el, fromRect, opts) {
   opts = opts || {};
   try {
@@ -125,38 +139,53 @@ function flip(el, fromRect, opts) {
     const sx = opts.grow ? (fromRect.width / to.width) || 1 : 1;
     const sy = opts.grow ? (fromRect.height / to.height) || 1 : 1;
     const delay = opts.delay || 0;
+    const rot = opts.grow ? " rotateY(90deg)" : "";
     el.style.transition = "none";
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
-    if (opts.grow) el.style.opacity = "0.35";
-    el.getBoundingClientRect(); // force reflow
+    el.style.transform =
+      `translate(${dx}px, ${dy}px) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})${rot}`;
+    if (opts.grow) el.style.opacity = "0.25";
+    el.getBoundingClientRect(); // reflow
     requestAnimationFrame(() => {
       el.style.transition =
-        `transform .45s cubic-bezier(.2,.85,.25,1) ${delay}ms, opacity .35s ${delay}ms`;
+        `transform .5s cubic-bezier(.2,.85,.25,1) ${delay}ms, opacity .4s ${delay}ms`;
       el.style.transform = "";
       el.style.opacity = "";
-      setTimeout(() => { el.style.transition = ""; }, 520 + delay);
+      setTimeout(() => { el.style.transition = ""; }, 580 + delay);
     });
   } catch (e) { /* end-state already correct */ }
 }
 
-// A card flying from the hand to the discard pile when we discard.
-function discardGhost(card, fromRect) {
+// A free-flying ghost card from one screen rect to another (body-level overlay).
+function flyGhost(o) {
   try {
-    if (!card || !fromRect) return;
-    const disc = $("discard").getBoundingClientRect();
     const g = document.createElement("div");
-    g.className = "card ghost-card";
-    g.style.cssText =
-      `position:fixed; left:${fromRect.left}px; top:${fromRect.top}px;` +
-      `width:${fromRect.width}px; height:${fromRect.height}px;` +
-      `background-image:url(/deck_images/${card.img});`;
+    g.className = "card ghost-card" + (o.small ? " small" : "");
+    g.style.backgroundImage = (o.back || !o.img)
+      ? `url(${CARD_BACK})` : `url(/deck_images/${o.img})`;
+    g.style.left = o.from.left + "px";
+    g.style.top = o.from.top + "px";
+    g.style.width = o.from.width + "px";
+    g.style.height = o.from.height + "px";
+    g.style.opacity = "0";
     document.body.appendChild(g);
-    requestAnimationFrame(() => {
-      g.style.transform =
-        `translate(${disc.left - fromRect.left}px, ${disc.top - fromRect.top}px) rotate(9deg)`;
-    });
-    setTimeout(() => g.remove(), 480);
+    const dx = o.to.left - o.from.left;
+    const dy = o.to.top - o.from.top;
+    setTimeout(() => {
+      g.style.opacity = "1";
+      requestAnimationFrame(() => {
+        g.style.transform = `translate(${dx}px, ${dy}px) ${o.rotate || ""}`;
+        if (o.fade) g.style.opacity = "0";
+      });
+    }, o.delay || 0);
+    setTimeout(() => g.remove(), (o.delay || 0) + 640);
   } catch (e) { /* cosmetic */ }
+}
+
+// My discarded card flying from its hand slot onto the discard pile.
+function discardGhost(card, fromRect) {
+  if (!card || !fromRect) return;
+  flyGhost({ img: card.img, from: fromRect, to: $("discard").getBoundingClientRect(),
+             rotate: "rotate(8deg)" });
 }
 
 function pop(el) {
@@ -166,22 +195,59 @@ function pop(el) {
   el.classList.add("pop");
 }
 
+// Animate the opponent's turn (draw + discard) from the server-reported events,
+// honouring hidden (face-down) vs visible (debug) hands.
+function animateOpponentEvents(events, gen, finalTop, pileWasMine) {
+  if (!events || !events.length) {
+    if (pileWasMine) setDiscImg(finalTop);
+    return;
+  }
+  try {
+    const oppRect = $("opponent").getBoundingClientRect();
+    const stockRect = $("stock").getBoundingClientRect();
+    const discRect = $("discard").getBoundingClientRect();
+    const showOpp = $("debug-toggle") && $("debug-toggle").checked;
+    let t = 480;            // begin after my own discard ghost settles
+    let lastDiscardLand = null;
+    events.forEach((ev) => {
+      if (ev.type === "opp_draw") {
+        const from = ev.source === "discard" ? discRect : stockRect;
+        const isPublic = ev.source === "discard";           // taken card is visible
+        const show = (isPublic || showOpp) && ev.card;
+        flyGhost({ from, to: oppRect, delay: t, small: true, fade: true,
+                   rotate: "rotateY(180deg)",
+                   img: show ? ev.card.img : null, back: !show });
+        t += 380;
+      } else if (ev.type === "opp_discard" && ev.card) {
+        flyGhost({ from: oppRect, to: discRect, delay: t, small: true, img: ev.card.img });
+        lastDiscardLand = t + 460;
+        t += 380;
+      }
+    });
+    const at = lastDiscardLand != null ? lastDiscardLand : t + 150;
+    setTimeout(() => {
+      if (gen !== renderGen) return;          // a newer render happened; skip
+      if (pileWasMine) setDiscImg(finalTop);  // reveal the opponent's actual discard
+      pop($("discard"));
+    }, at);
+  } catch (e) {
+    if (pileWasMine) setDiscImg(finalTop);
+  }
+}
+
 // ---------------------------------------------------------------- render
 function render(v) {
   view = v;
+  const gen = ++renderGen;
 
   if (v.opponent_key) {
     const sel = $("opponent-select");
     if (sel && sel.value !== v.opponent_key) sel.value = v.opponent_key;
   }
-
-  const msg = $("message");
-  if (msg.textContent !== (v.message || "")) {
-    msg.textContent = v.message || "";
-  }
+  $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
 
-  // ---- opponent zone (face-down, or face-up with melds in debug) ----
+  // ---- opponent zone ----
   const oppMelded = new Set();
   (v.opponent_melds || []).forEach((m) => m.forEach((i) => oppMelded.add(i)));
   const opp = $("opponent");
@@ -198,7 +264,7 @@ function render(v) {
     for (let i = 0; i < n; i++) opp.appendChild(backEl());
   }
 
-  // ---- stock + discard ----
+  // ---- stock ----
   const stock = $("stock");
   stock.className = "card-slot stock";
   stock.style.backgroundImage = `url(${CARD_BACK})`;
@@ -208,34 +274,33 @@ function render(v) {
     stock.onclick = () => send(A_DRAW);
   }
 
+  // ---- discard (with choreography: my card lands first, opponent's reveals later) ----
   const disc = $("discard");
   disc.className = "card-slot discard";
   disc.onclick = null;
-  if (v.top_discard) {
-    disc.style.backgroundImage = `url(/deck_images/${v.top_discard.img})`;
-    disc.textContent = "";
-    disc.title = v.top_discard.label;
+  const myDiscard = pendingDiscard && prevCardsByIdx[pendingDiscard.idx];
+  const oppTurn = (v.events || []).length > 0;
+  const topIdx = v.top_discard ? v.top_discard.idx : null;
+  if (myDiscard && oppTurn) {
+    setDiscImg(myDiscard);                  // show my discard; opp sequence reveals the final top
+    pop(disc);
   } else {
-    disc.style.backgroundImage = "none";
-    disc.textContent = "empty";
-    disc.classList.add("empty-label");
+    setDiscImg(v.top_discard);
+    if (topIdx !== prevTopIdx && topIdx !== null) pop(disc);
   }
+  prevTopIdx = topIdx;
   if (!v.done && v.legal.take_discard) {
     disc.classList.add("clickable");
     disc.onclick = () => send(A_TAKE);
   }
-  const topIdx = v.top_discard ? v.top_discard.idx : null;
-  if (topIdx !== prevTopIdx && topIdx !== null) pop(disc);
-  prevTopIdx = topIdx;
 
-  // ---- hand (with FLIP animation) ----
+  // ---- hand (FLIP + 3D flip-in) ----
   const handDiv = $("hand");
   const oldRects = {};
   for (const el of Array.from(handDiv.children)) {
     const i = Number(el.dataset.idx);
     if (!Number.isNaN(i)) oldRects[i] = el.getBoundingClientRect();
   }
-  // a card we just discarded flies to the pile
   if (pendingDiscard && prevCardsByIdx[pendingDiscard.idx]) {
     discardGhost(prevCardsByIdx[pendingDiscard.idx], oldRects[pendingDiscard.idx]);
   }
@@ -270,18 +335,21 @@ function render(v) {
   const stockRect = stock.getBoundingClientRect();
   v.hand.forEach((card, i) => {
     const el = newEls[card.idx];
-    if (isDeal) {                                          // new-game deal cascade
-      flip(el, stockRect, { grow: true, delay: i * 50 });
+    if (isDeal) {
+      flip(el, stockRect, { grow: true, delay: i * 55 });
     } else if (oldRects[card.idx]) {
-      flip(el, oldRects[card.idx]);                        // existing card slides
-    } else if (pendingDraw) {                              // drawn card flies in
+      flip(el, oldRects[card.idx]);
+    } else if (pendingDraw) {
       const src = pendingDraw.source === "discard" ? disc : stock;
       flip(el, src.getBoundingClientRect(), { grow: true });
     }
   });
   dealNext = false;
 
-  // ---- action buttons ----
+  // ---- opponent move animations ----
+  animateOpponentEvents(v.events || [], gen, v.top_discard, !!(myDiscard && oppTurn));
+
+  // ---- buttons ----
   setBtn("btn-draw", !v.done && v.legal.draw_stock, () => send(A_DRAW));
   setBtn("btn-take", !v.done && v.legal.take_discard, () => send(A_TAKE));
   setBtn("btn-gin", !v.done && v.legal.gin, () => send(A_GIN));
@@ -308,9 +376,11 @@ function render(v) {
     const oh = $("overlay-opphand");
     oh.innerHTML = "";
     if (v.opponent_reveal && v.opponent_reveal.length) {
-      v.opponent_reveal.forEach((c) => {
+      v.opponent_reveal.forEach((c, i) => {
         const el = cardEl(c, true);
         if (oppMelded.has(c.idx)) el.classList.add("melded");
+        el.classList.add("flip-in");
+        el.style.animationDelay = (i * 55) + "ms";
         oh.appendChild(el);
       });
       reveal.style.display = "";
@@ -322,7 +392,7 @@ function render(v) {
     overlay.classList.add("hidden");
   }
 
-  // ---- bookkeeping for next render's animations ----
+  // ---- bookkeeping ----
   prevCardsByIdx = {};
   v.hand.forEach((c) => { prevCardsByIdx[c.idx] = c; });
   if (v.opponent_reveal) v.opponent_reveal.forEach((c) => { prevCardsByIdx[c.idx] = c; });

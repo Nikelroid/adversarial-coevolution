@@ -213,9 +213,21 @@ body {
 
 /* ghost card flying from hand to the discard pile */
 .ghost-card {
-  border-radius: 9px; background-size: cover; background-position: center;
-  z-index: 60; pointer-events: none; box-shadow: 0 14px 24px rgba(0,0,0,.55);
-  transition: transform .46s cubic-bezier(.2,.85,.25,1), opacity .46s; opacity: .96;
+  position: fixed; border-radius: 9px; background-size: cover; background-position: center;
+  z-index: 60; pointer-events: none; box-shadow: 0 16px 28px rgba(0,0,0,.6);
+  transition: transform .5s cubic-bezier(.2,.85,.25,1), opacity .5s; opacity: .96;
+}
+
+/* 3D: cards flip around their vertical axis when revealed / drawn / dealt */
+.hand { perspective: 1400px; }
+.opponent-hand { perspective: 1100px; }
+.reveal-hand { perspective: 1100px; }
+.card { transform-style: preserve-3d; }
+.flip-in { animation: flipIn .55s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes flipIn {
+  0%   { transform: rotateY(90deg) scale(.9); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: none; opacity: 1; }
 }
 
 /* felt depth + soft vignette */

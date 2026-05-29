@@ -173,6 +173,7 @@ class GameSession:
         self._opp_snapshot = []        # last opponent hand seen while in play
         self._human_snapshot = []      # last human hand (for end-of-game deadwood)
         self.last_reward = 0.0
+        self.events = []               # opponent moves during the last step (for UI)
         self._auto_advance()
         if not self.done:
             self._set_turn_message()
@@ -181,9 +182,19 @@ class GameSession:
         mask = self.obs["action_mask"]
         if action < 0 or action >= len(mask) or not mask[action]:
             return False, "That move isn't legal right now."
+        self.events = []
+        try:
+            _, opp_before = self._player_hands()
+        except Exception:
+            opp_before = []
         obs, reward, done, trunc, _ = self.wrapper.step(action)
         self.obs = obs
         self.last_reward = float(reward)
+        try:
+            if not (done or trunc):
+                self.events = self._opponent_events(action, set(opp_before))
+        except Exception:
+            self.events = []
         if done or trunc:
             self.done = True
             self._finish(float(reward))
@@ -245,6 +256,35 @@ class GameSession:
             return pz(players[h_pid]), pz(players[o_pid])
         except Exception:
             return [], []
+
+    def _top_idx(self):
+        board = np.asarray(self.obs["observation"])
+        t = np.where(board[1] == 1)[0]
+        return int(t[0]) if len(t) else None
+
+    def _opponent_events(self, action, opp_before):
+        """Infer what the opponent did this turn (draw source + discard) by
+        diffing its hand, so the UI can animate it. Only meaningful after a human
+        discard/knock (the opponent doesn't move after a draw)."""
+        is_discard = 6 <= action <= 57
+        is_knock = 58 <= action <= 109
+        if not (is_discard or is_knock):
+            return []
+        human_discard = (action - 6) if is_discard else (action - 58)
+        _, opp_after = self._player_hands()
+        opp_after = set(opp_after)
+        drawn = list(opp_after - opp_before)
+        top_after = self._top_idx()
+        events = []
+        if len(drawn) == 1:
+            d = drawn[0]
+            source = "discard" if d == human_discard else "stock"
+            events.append({"type": "opp_draw", "source": source, "card": card_obj(d)})
+        else:
+            events.append({"type": "opp_draw", "source": "stock", "card": None})
+        if top_after is not None and top_after != human_discard:
+            events.append({"type": "opp_discard", "card": card_obj(top_after)})
+        return events
 
 
 def build_view(session: GameSession) -> dict:
@@ -310,6 +350,7 @@ def build_view(session: GameSession) -> dict:
         "opponent_reveal": ([card_obj(i) for i in session._opp_snapshot]
                             if session.done else None),
         "opponent_deadwood": opp_deadwood if session.done else None,
+        "events": session.events,   # opponent moves during the last step (for UI)
     }
 
 
