@@ -258,6 +258,14 @@ body {
 .fc-back  { transform: rotateY(0deg); }
 .fc-front { transform: rotateY(180deg); }
 
+/* While a move's animation is playing, the board is non-interactive so a
+   draw/take can't happen mid-discard (for either player). */
+body.locked .card.playable,
+body.locked .card.knockable,
+body.locked .card-slot.clickable,
+body.locked .btn:not(#btn-new) { pointer-events: none; }
+body.locked .card-slot.clickable { filter: brightness(.92); }
+
 /* felt depth + soft vignette */
 .table { position: relative; }
 .table::after {
