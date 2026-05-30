@@ -6,3 +6,17 @@ dist/
 wandb/
 __pycache__/
 logs/
+
+# notebooks, logs & runtime artifacts
+.ipynb_checkpoints/
+*.log
+app.log
+slurm/logs/
+runtime/
+
+# local training scratch (large checkpoints; publish models deliberately)
+sweep/llmplay/ckpts/
+
+# OS / editor
+.DS_Store
+*.swp
