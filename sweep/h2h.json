@@ -5,49 +5,49 @@
     "pool",
     "winrate",
     "reward",
-    "llm_40k"
+    "llm_full"
   ],
   "matrix": {
     "selfplay": {
       "selfplay": null,
-      "pool": 0.477,
-      "winrate": 0.613,
-      "reward": 0.59,
-      "llm_40k": 0.457,
+      "pool": 0.457,
+      "winrate": 0.557,
+      "reward": 0.617,
+      "llm_full": 0.523,
       "random": 0.99
     },
     "pool": {
-      "selfplay": 0.527,
+      "selfplay": 0.55,
       "pool": null,
-      "winrate": 0.557,
-      "reward": 0.583,
-      "llm_40k": 0.55,
-      "random": 0.897
+      "winrate": 0.577,
+      "reward": 0.563,
+      "llm_full": 0.573,
+      "random": 0.85
     },
     "winrate": {
-      "selfplay": 0.387,
-      "pool": 0.447,
+      "selfplay": 0.423,
+      "pool": 0.457,
       "winrate": null,
-      "reward": 0.473,
-      "llm_40k": 0.39,
-      "random": 0.997
+      "reward": 0.517,
+      "llm_full": 0.397,
+      "random": 1.0
     },
     "reward": {
-      "selfplay": 0.403,
-      "pool": 0.44,
-      "winrate": 0.437,
+      "selfplay": 0.4,
+      "pool": 0.43,
+      "winrate": 0.473,
       "reward": null,
-      "llm_40k": 0.37,
-      "random": 0.973
+      "llm_full": 0.39,
+      "random": 0.983
     },
-    "llm_40k": {
-      "selfplay": 0.43,
-      "pool": 0.45,
-      "winrate": 0.6,
-      "reward": 0.62,
-      "llm_40k": null,
-      "random": 0.987
+    "llm_full": {
+      "selfplay": 0.433,
+      "pool": 0.447,
+      "winrate": 0.553,
+      "reward": 0.613,
+      "llm_full": null,
+      "random": 0.99
     }
   },
-  "seconds": 348
+  "seconds": 342
 }

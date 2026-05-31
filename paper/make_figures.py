@@ -187,6 +187,54 @@ def fig_throughput():
     fig.tight_layout(); _save(fig, "throughput")
 
 
+def fig_rlvsllm():
+    p = os.path.join(ROOT, "sweep", "llmplay", "curve.json")
+    if not os.path.exists(p):
+        print("  [skip] fig_rlvsllm: no curve.json")
+        return
+    d = json.load(open(p))
+    steps = np.array(d["steps"]) / 1e6
+    rew = d["ep_rew"]
+    fig, ax = plt.subplots(figsize=(6.2, 3.0))
+    ax.plot(steps, rew, color="#2171b5", lw=1.6, marker="o", ms=2.5, label="ep reward (vs LLM)")
+    ax.axhline(0.5, ls=":", color="green", lw=1.2, label="knock value")
+    ax.axhline(1.5, ls=":", color="red", lw=1.2, label="gin value")
+    ax.set_ylim(0, 1.6)
+    ax.set_xlabel("training steps (millions)"); ax.set_ylabel("mean episode reward")
+    ax.set_title("RL-vs-LLM: episode reward stays at the knock value")
+    ax.legend(fontsize=8, loc="center right"); ax.grid(alpha=0.3)
+    fig.tight_layout(); _save(fig, "rlvsllm_curve")
+
+
+def fig_h2h():
+    p = os.path.join(ROOT, "sweep", "h2h.json")
+    if not os.path.exists(p):
+        print("  [skip] fig_h2h: no h2h.json")
+        return
+    d = json.load(open(p))
+    M = d["matrix"]
+    heroes = list(M.keys())
+    opps = heroes + (["random"] if any("random" in M[h] for h in heroes) else [])
+    Z = np.full((len(heroes), len(opps)), np.nan)
+    for i, h in enumerate(heroes):
+        for j, o in enumerate(opps):
+            v = M[h].get(o)
+            if v is not None:
+                Z[i, j] = 100 * v
+    fig, ax = plt.subplots(figsize=(6.0, 4.0))
+    im = ax.imshow(Z, cmap="RdYlGn", vmin=0, vmax=100, aspect="auto")
+    ax.set_xticks(range(len(opps))); ax.set_xticklabels(opps, rotation=30, ha="right", fontsize=8.5)
+    ax.set_yticks(range(len(heroes))); ax.set_yticklabels(heroes, fontsize=8.5)
+    ax.set_xlabel("opponent (column)"); ax.set_ylabel("hero (row)")
+    for i in range(len(heroes)):
+        for j in range(len(opps)):
+            if not np.isnan(Z[i, j]):
+                ax.text(j, i, f"{Z[i, j]:.0f}", ha="center", va="center", fontsize=8)
+    ax.set_title(f"Head-to-head win-rate (row agent vs column, {d.get('n','?')} games)")
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="win %")
+    fig.tight_layout(); _save(fig, "h2h")
+
+
 def write_summary_csv(rs):
     out = os.path.join(FIGS, "sweep_summary.csv")
     with open(out, "w") as f:
@@ -202,7 +250,8 @@ def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
-    for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput):
+    for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
+               fig_rlvsllm, fig_h2h):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
