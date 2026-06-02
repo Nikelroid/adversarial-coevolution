@@ -249,19 +249,23 @@ throughput, and we have not measured a strong-prompt / larger-model teacher;
 (iii) single seed per run and a small ($N{=}5$) LLM-strength sample; (iv) the
 prompt cache yields no speedup at current volume; (v) pool self-play diverged
 past 10M; (vi) the midterm's negative DAgger and dense-reward-shaping results
-remain code-unaudited. Phase~3 (below) directly addresses (i)/(ii) with a stronger
-Qwen3-30B teacher and (iii) with a three-seed reward-shaping sweep.
+remain code-unaudited. Phase~3 (below) adds three-seed evidence on (iii); a stronger
+teacher for (i)/(ii) is deferred.
 
-\paragraph{Phase~3 (in progress).} Two experiments are now running; results will be
-folded in as they land. \textbf{(A) Closing the gin headroom:} since the agent always
-knocks and never gins, we sweep six reward configs (gin incentive escalating to
-gin-only) $\times$ three seeds, fine-tuning the champion 8M steps each, with a gin-rate
-eval every 1M steps (curve + best-by-gin-rate checkpoint, so late divergence can't hurt
-a longer run); the decisive metric is the gin rate under \emph{fixed} eval rewards.
-\textbf{(B) A stronger teacher:} we test whether Qwen3-30B beats the self-play
-champion---if so it becomes the teacher for a fine-tune; if a 30B still loses to a
-12M-step specialist, that bounds the LLM-teacher thesis and (A) carries the result.
-Further out: offline CQL distillation and a strong- vs.\ terse-prompt ablation.
+\paragraph{Phase~3 (first result: reward shaping).} We tested whether reward shaping
+can close the gin headroom. Resuming the champion, we ran six reward configs (gin
+incentive escalating from baseline to gin-only) across three seeds, 8M self-play steps
+each, scoring the gin rate under \emph{fixed} eval rewards so configs stay comparable.
+\textbf{The result is flat and negative.} The gin rate vs random holds in the $1.1$ to
+$1.5\%$ band for every config, statistically identical from the baseline (knock $0.5$,
+gin $1.5$: $1.40\%$) to the most extreme incentive (knock $0.25$, gin $4.0$: $1.40\%$),
+while win rate stays near $98\%$ and the agents still beat their progenitor ($57$ to
+$60\%$). Terminal reward shaping is not the lever: the bottleneck is exploration and
+credit assignment, not the size of the incentive, since a near-saturated policy seldom
+visits the long held-card sequence a gin requires. The next step is dense,
+potential-based shaping that rewards each unit of deadwood reduction. The stronger
+Qwen3-30B teacher (the co-evolution test) is deferred: at two GPUs per worker it did not
+schedule under the shared quota.
 
 \paragraph{Reproducibility.} Sweeps run as SLURM arrays under \texttt{sweep/};
 the LLM stack is three \texttt{slurm/} jobs --- master, a worker array

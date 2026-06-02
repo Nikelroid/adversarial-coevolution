@@ -1,0 +1,102 @@
+{
+  "combo": 0,
+  "seed": 200,
+  "knock_reward": 0.5,
+  "gin_reward": 1.5,
+  "steps": 8000000,
+  "train_seconds": 5420.007418394089,
+  "model_path": "/home1/kelidari/Adversarial-CoEvolution/sweep/selfplay/models/run_0_s200/final.zip",
+  "vs_run5": {
+    "win_rate": 0.562,
+    "loss_rate": 0.438,
+    "gin_rate": 0.004,
+    "knock_rate": 0.558,
+    "gin_share": 0.0071174377224199285,
+    "n": 1000
+  },
+  "vs_random": {
+    "win_rate": 0.979,
+    "loss_rate": 0.021,
+    "gin_rate": 0.017,
+    "knock_rate": 0.962,
+    "gin_share": 0.017364657814096015,
+    "n": 1000
+  },
+  "curve": [
+    {
+      "win_rate": 0.99,
+      "loss_rate": 0.01,
+      "gin_rate": 0.02,
+      "knock_rate": 0.97,
+      "gin_share": 0.020202020202020204,
+      "n": 300,
+      "step": 1000032
+    },
+    {
+      "win_rate": 0.9966666666666667,
+      "loss_rate": 0.0033333333333333335,
+      "gin_rate": 0.03666666666666667,
+      "knock_rate": 0.96,
+      "gin_share": 0.03678929765886288,
+      "n": 300,
+      "step": 2000064
+    },
+    {
+      "win_rate": 0.9766666666666667,
+      "loss_rate": 0.023333333333333334,
+      "gin_rate": 0.006666666666666667,
+      "knock_rate": 0.97,
+      "gin_share": 0.006825938566552901,
+      "n": 300,
+      "step": 3000096
+    },
+    {
+      "win_rate": 0.9733333333333334,
+      "loss_rate": 0.02666666666666667,
+      "gin_rate": 0.0033333333333333335,
+      "knock_rate": 0.97,
+      "gin_share": 0.003424657534246575,
+      "n": 300,
+      "step": 4000128
+    },
+    {
+      "win_rate": 0.9733333333333334,
+      "loss_rate": 0.02666666666666667,
+      "gin_rate": 0.0033333333333333335,
+      "knock_rate": 0.97,
+      "gin_share": 0.003424657534246575,
+      "n": 300,
+      "step": 5000160
+    },
+    {
+      "win_rate": 0.9566666666666667,
+      "loss_rate": 0.043333333333333335,
+      "gin_rate": 0.0033333333333333335,
+      "knock_rate": 0.9533333333333334,
+      "gin_share": 0.003484320557491289,
+      "n": 300,
+      "step": 6000192
+    },
+    {
+      "win_rate": 0.9633333333333334,
+      "loss_rate": 0.03666666666666667,
+      "gin_rate": 0.006666666666666667,
+      "knock_rate": 0.9566666666666667,
+      "gin_share": 0.006920415224913495,
+      "n": 300,
+      "step": 7000224
+    },
+    {
+      "win_rate": 0.97,
+      "loss_rate": 0.03,
+      "gin_rate": 0.013333333333333334,
+      "knock_rate": 0.9566666666666667,
+      "gin_share": 0.013745704467353952,
+      "n": 300,
+      "step": 8000256
+    }
+  ],
+  "best_gin_rate": 0.03666666666666667,
+  "best_step": 2000064,
+  "best_model_path": "/home1/kelidari/Adversarial-CoEvolution/sweep/selfplay/models/run_0_s200/best.zip"
+}

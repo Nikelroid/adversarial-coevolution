@@ -113,14 +113,14 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <ol>
     <li><b>Phase 1</b> &mdash; train a strong RL agent against a random opponent.</li>
     <li><b>Phase 2</b> &mdash; train it further against an LLM opponent that should play smarter.</li>
-    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other <i>(now running &mdash; see below)</i>.</li>
+    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other <i>(first result below)</i>.</li>
   </ol>
-  <p>This report covers Phases 1&ndash;2 in full, with <b>Phase 3 now underway</b> (the experiments are
-  queued/running on the cluster &mdash; details at the end). The headline so far: the RL agent already plays
-  near-perfectly against simple opponents, and the 7B LLM we used turned out to be a <i>weaker</i> player
-  than it &mdash; so training against the LLM did not make the agent better. The whole serving system works;
-  the open problem &mdash; a teacher actually stronger than the student &mdash; is exactly what Phase 3
-  attacks (a 30B teacher, and rewarding the gin directly).</p>
+  <p>This report covers Phases 1&ndash;2 in full, plus the <b>first Phase 3 result</b> (see the end). The
+  headline so far: the RL agent already plays near-perfectly against simple opponents, and the 7B LLM we
+  used turned out to be a <i>weaker</i> player than it, so training against the LLM did not make the agent
+  better. We then asked whether rewarding the gin directly would help, and found it does not: the gin rate
+  stays flat no matter how large the bonus. The open problem, a teacher actually stronger than the student
+  plus a denser learning signal for the gin, is what the next phase attacks.</p>
   <h3>One bug we fixed first</h3>
   <p>The game library (PettingZoo) quietly reset our custom scoring (the knock/gin reward values) every
   time the environment was re-seeded. We found and fixed this upstream (PettingZoo PR #1312); all results
@@ -283,23 +283,29 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 </section>
 
 <section id="next">
-  <h2><span class="n">7</span>Phase 3 &mdash; in progress</h2>
-  <p><b>Two experiments are running on the cluster right now</b> (launched June 2026); this page will be
-  updated with real numbers as they finish. No results are claimed yet.</p>
-  <ol>
-    <li><b>Close the gin gap (reward shaping).</b> Phase 1 showed the agent always knocks and never gins, so
-    we sweep <b>6 reward settings &times; 3 seeds</b> (pushing the gin reward from baseline up to "gin-only"),
-    fine-tuning the champion for <b>8M steps</b> each. We check the gin rate every 1M steps &mdash; giving a
-    gin-rate-over-training curve and keeping the best checkpoint, so a longer run can't be hurt if it
-    destabilizes late. The decisive number is the gin rate scored with fixed rewards (so it's comparable
-    across settings).</li>
-    <li><b>Try a stronger teacher (Qwen3-30B).</b> The first question is the decisive one: <b>does a 30B model
-    beat our self-play champion?</b> If yes, it becomes the teacher and we fine-tune against it &mdash; the
-    real co-evolution payoff. If a 30B still loses to a 12M-step specialist, that's an honest finding about
-    the ceiling of general LLMs at a niche game, and the reward-shaping result carries the headline.</li>
-    <li><b>Still ahead:</b> learning from bulk LLM-vs-LLM games offline (CQL distillation), and a
-    smart-prompt vs. fast-prompt teacher comparison.</li>
-  </ol>
+  <h2><span class="n">7</span>Phase 3: first result</h2>
+  <p><b>Can reward shaping make the agent go for gin?</b> Phase 1 showed it always knocks and never gins.
+  We resumed the champion and trained <b>6 reward settings &times; 3 seeds</b> (pushing the gin reward from
+  baseline up to "gin only"), 8M steps each, then scored the gin rate with fixed rewards so the settings
+  are comparable.</p>
+  <figure class="fig" style="max-width:520px;margin:0 auto;">{img("ginshape.png","gin rate flat across reward settings")}<figcaption>The gin rate stays flat across every reward setting; win rate stays high.</figcaption></figure>
+  <p><b>The answer is no.</b> The gin rate sits at about 1.1 to 1.5% for every setting, the same at the
+  baseline (1.40%) as at the most extreme incentive (1.40%), while the win rate vs random stays near 98%
+  and the agents still beat the version they started from (57 to 60%). Shaping the final reward is not the
+  lever. The agent rarely even attempts the long run of held cards a gin needs, so the gap is about
+  exploration and credit assignment, not the size of the bonus.</p>
+  <table>
+    <tr><th>Reward setting (knock / gin)</th><th class="n">gin% vs random</th><th class="n">win% vs random</th><th class="n">win% vs champ</th></tr>
+    <tr><td>0.5 / 1.5 (baseline)</td><td class="n">1.40</td><td class="n">97.5</td><td class="n">58.7</td></tr>
+    <tr><td>0.25 / 2.5</td><td class="n">1.10</td><td class="n">98.0</td><td class="n">58.8</td></tr>
+    <tr><td>0.1 / 3.0</td><td class="n">1.30</td><td class="n">97.4</td><td class="n">59.8</td></tr>
+    <tr><td>0.0 / 2.0 (gin only)</td><td class="n">1.47</td><td class="n">98.2</td><td class="n">56.9</td></tr>
+    <tr><td>0.25 / 4.0 (extreme)</td><td class="n">1.40</td><td class="n">98.1</td><td class="n">58.6</td></tr>
+  </table>
+  <p><b>What's next.</b> (1) Dense, step by step shaping that rewards every point of deadwood removed, not
+  just the final outcome. (2) A stronger teacher (Qwen3-30B): this needs two GPUs per worker and did not get
+  scheduled under the shared quota, so it moves to the next phase. (3) Learning from bulk LLM games offline
+  (CQL distillation).</p>
 </section>
 
 <section id="repro">
