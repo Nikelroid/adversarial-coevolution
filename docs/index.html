@@ -1,26 +1,32 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gin Rummy: RL vs LLM — results</title>
+<title>Gin Rummy: RL vs LLM — project report</title>
 <style>
 :root{--green:#0b5b39;--green2:#073d27;--gold:#d9a521;--ink:#16242d;--muted:#5c6b73;
 --card:#fff;--line:#e3e8e6;--good:#1f8a5a;--bad:#c0392b;}
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 color:var(--ink);background:#f4f6f5;line-height:1.65;}
-.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:50px 24px 42px;
+.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:48px 24px 40px;
 text-align:center;border-bottom:4px solid var(--gold);}
 .hero h1{margin:0 0 10px;font-size:29px;letter-spacing:.3px;}
-.hero p{margin:6px auto;max-width:760px;opacity:.93;font-size:15.5px;}
+.hero p{margin:6px auto;max-width:770px;opacity:.93;font-size:15.5px;}
 .hero .by{font-size:13px;opacity:.8;margin-top:12px;}
 .links{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 .links a{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;
 padding:7px 16px;font-size:13.5px;font-weight:600;color:#fff;text-decoration:none;}
 .links a:hover{background:rgba(255,255,255,.28);}
+.nav{position:sticky;top:0;z-index:20;background:#08311f;border-bottom:1px solid rgba(255,255,255,.12);
+display:flex;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px 10px;}
+.nav a{color:#cfe9dc;text-decoration:none;font-size:12.5px;padding:4px 9px;border-radius:6px;}
+.nav a:hover{background:rgba(255,255,255,.12);color:#fff;}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px 70px;}
 section{background:var(--card);margin:20px 0;padding:24px 28px;border-radius:14px;
-box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);}
+box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);scroll-margin-top:48px;}
 h2{color:var(--green);border-bottom:2px solid var(--line);padding-bottom:8px;margin-top:2px;font-size:21px;}
 h2 .n{color:var(--gold);font-weight:800;margin-right:8px;}
+h3{color:var(--green2);font-size:15.5px;margin:18px 0 4px;}
 p,li{font-size:15px;}
 code{background:#eef2f0;padding:1.5px 6px;border-radius:5px;font-size:13px;color:#0a3b27;}
 .fig{margin:16px 0;text-align:center;}
@@ -29,7 +35,7 @@ code{background:#eef2f0;padding:1.5px 6px;border-radius:5px;font-size:13px;color
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:680px){.g2{grid-template-columns:1fr;}}
 table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
-th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;}
+th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;}
 th{background:#f0f4f2;color:var(--green2);font-weight:700;}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;}
 tr:hover td{background:#fafcfb;}
@@ -41,7 +47,7 @@ tr:hover td{background:#fafcfb;}
 .kpi{background:var(--green);color:#fff;border-radius:12px;padding:15px;text-align:center;}
 .kpi .v{font-size:23px;font-weight:800;}.kpi .l{font-size:12px;opacity:.92;margin-top:3px;}
 .kpi.warn{background:#9a6b00;}
-pre{background:#0e2c1f;color:#d6f5e6;padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px;}
+pre{background:#0e2c1f;color:#d6f5e6;padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px;line-height:1.5;}
 ol li,ul li{margin:4px 0;}
 .foot{text-align:center;color:var(--muted);font-size:13px;padding:22px;}
 </style></head><body>
@@ -49,8 +55,8 @@ ol li,ul li{margin:4px 0;}
 <div class="hero">
   <h1>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
   <p>We trained a small reinforcement-learning (RL) agent to play Gin Rummy, then tried to make it
-  stronger by training it against a large language model (LLM). This page is the honest story of what
-  worked, what didn't, and what's next.</p>
+  stronger by training it against a large language model (LLM). This is the full, honest story &mdash;
+  what we built, what worked, what didn't, and what's next.</p>
   <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &mdash; University of Southern California</div>
   <div class="links">
     <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">&#128196; 4-page PDF</a>
@@ -58,72 +64,130 @@ ol li,ul li{margin:4px 0;}
     <a href="https://github.com/Nikelroid/adversarial-coevolution/tree/main/game">&#127918; Web game</a>
   </div>
 </div>
+<div class="nav">
+  <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
+  <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
+  <a href="#limits">Limitations</a><a href="#next">Next steps</a><a href="#repro">Reproduce</a>
+</div>
 
 <div class="wrap">
 
-<section>
-  <h2>The short version</h2>
+<section id="overview">
+  <h2>Overview</h2>
   <div class="kpis">
     <div class="kpi"><div class="v">99.6%</div><div class="l">RL agent beats random</div></div>
     <div class="kpi"><div class="v">5 / 5</div><div class="l">Qwen2.5-7B beats random</div></div>
     <div class="kpi"><div class="v">62&times;</div><div class="l">faster model loading</div></div>
     <div class="kpi warn"><div class="v">no gain</div><div class="l">from LLM fine-tuning</div></div>
   </div>
-  <p>The plan has three phases: <b>(1)</b> train a strong RL agent against a random opponent,
-  <b>(2)</b> train it further against an LLM opponent, <b>(3)</b> let the RL agent and the LLM improve
-  each other. We finished Phases&nbsp;1&ndash;2. The headline: the RL agent already plays near-perfectly,
-  and a 7B LLM turned out to be a <i>weaker</i> player than it &mdash; so training against the LLM did
-  not make the agent better. The infrastructure all works; the open problem is getting a teacher that is
-  actually stronger.</p>
+  <p>Gin Rummy is a card game that rewards two skills at once: quick counting (how many "deadwood" points
+  are left in your hand) and longer-term planning (building "melds" &mdash; sets and runs). Our plan has
+  three phases:</p>
+  <ol>
+    <li><b>Phase 1</b> &mdash; train a strong RL agent against a random opponent.</li>
+    <li><b>Phase 2</b> &mdash; train it further against an LLM opponent that should play smarter.</li>
+    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other.</li>
+  </ol>
+  <p>This report covers Phases 1&ndash;2. The headline: the RL agent already plays near-perfectly against
+  simple opponents, and the 7B LLM we used turned out to be a <i>weaker</i> player than it &mdash; so
+  training against the LLM did not make the agent better. The whole serving system works; the open problem
+  is getting a teacher that is actually stronger than the student.</p>
+  <h3>One bug we fixed first</h3>
+  <p>The game library (PettingZoo) quietly reset our custom scoring (the knock/gin reward values) every
+  time the environment was re-seeded. We found and fixed this upstream (PettingZoo PR #1312); all results
+  below use the correct rewards (knock = 0.5, gin = 1.5).</p>
 </section>
 
-<section>
+<section id="phase1">
   <h2><span class="n">1</span>The RL agent crushes a random opponent</h2>
-  <p>We use PPO (a standard RL method) with "action masking" so it can only pick legal moves. We tried
-  8 settings, each trained for 2 million steps, then played 1000 games against a random opponent.
-  <b>Every setting wins 98.3&ndash;99.6% of games</b> &mdash; they're all basically tied. But notice the
-  reward sits at the "knock" value (0.5), not the bigger "gin" value (1.5): the agent always takes the
-  safe knock and never holds out for a gin. <b>That gap is the room to improve</b>, and a random opponent
-  can't teach it &mdash; you need a thinking opponent. That's the whole reason for Phase&nbsp;2.</p>
+  <p>We use PPO (a standard RL algorithm) with <b>action masking</b> &mdash; we block illegal moves so the
+  agent can only choose legal ones. We swept 8 settings (3 learning rates &times; 2 exploration values, plus
+  2 extra variants), trained each for 2 million steps with 96 games running in parallel, and tested each on
+  1000 fresh games against a random opponent.</p>
+  <p><b>Result:</b> every setting wins <b>98.3&ndash;99.6%</b> of games &mdash; statistically they're all
+  tied. The interesting part is the reward: it sits at the "knock" value (0.5), not the larger "gin" value
+  (1.5). In plain terms, the agent always takes the safe early finish and never holds out for the bigger
+  gin bonus. <b>That gap is the room to improve</b>, and a random opponent simply can't teach it &mdash;
+  which is exactly why we move to a thinking opponent in Phase 2.</p>
   <div class="g2">
     <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/win_rate.png" alt="win rate" loading="lazy"/><figcaption>Win rate vs random &mdash; all 8 settings tied near the top.</figcaption></figure>
     <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/mean_reward.png" alt="mean reward" loading="lazy"/><figcaption>Reward stuck at the knock value, far below gin.</figcaption></figure>
   </div>
+  <figure class="fig" style="max-width:430px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/lr_vs_reward.png" alt="lr vs reward" loading="lazy"/><figcaption>Learning rate &times; exploration barely moves the result.</figcaption></figure>
+
+  <h3>Full leaderboard (1000 games vs random)</h3>
   <table>
     <tr><th>Setting</th><th class="n">win%</th><th class="n">loss%</th><th>note</th></tr>
-    <tr><td>cfg5 (lr 5e-5, ent .03)</td><td class="n good">99.6</td><td class="n">0.4</td><td>best</td></tr>
+    <tr><td>cfg5 (lr 5e-5, ent .03)</td><td class="n good">99.6</td><td class="n">0.4</td><td>best of sweep</td></tr>
     <tr><td>cfg7 (lr 1e-4, 10 epochs)</td><td class="n">99.5</td><td class="n">0.5</td><td>ablation</td></tr>
     <tr><td>cfg0 (lr 3e-4, ent .01)</td><td class="n">99.4</td><td class="n">0.6</td><td>baseline</td></tr>
-    <tr><td>cfg3 / cfg6 / cfg4</td><td class="n">99.4 / 99.3 / 99.2</td><td class="n">&mdash;</td><td>middle</td></tr>
+    <tr><td>cfg3 (lr 1e-4, ent .03)</td><td class="n">99.4</td><td class="n">0.6</td><td></td></tr>
+    <tr><td>cfg6 (lr 1e-4, n&#95;steps 1024)</td><td class="n">99.3</td><td class="n">0.7</td><td>ablation</td></tr>
+    <tr><td>cfg4 (lr 5e-5, ent .01)</td><td class="n">99.2</td><td class="n">0.8</td><td></td></tr>
     <tr><td>cfg1 (lr 3e-4, ent .03)</td><td class="n">98.8</td><td class="n">1.2</td><td></td></tr>
-    <tr><td>cfg2 (lr 1e-4, ent .01)</td><td class="n">98.3</td><td class="n">1.7</td><td>worst</td></tr>
+    <tr><td>cfg2 (lr 1e-4, ent .01)</td><td class="n">98.3</td><td class="n">1.7</td><td>worst of sweep</td></tr>
+  </table>
+
+  <h3>Settings held fixed across the sweep</h3>
+  <table>
+    <tr><th>Setting</th><th>Value</th></tr>
+    <tr><td>Policy</td><td>masked actor&ndash;critic (illegal moves set to &minus;&infin;)</td></tr>
+    <tr><td>Network</td><td>MLP [512, 512, 256, 128], Tanh</td></tr>
+    <tr><td>Discount &gamma; / GAE &lambda;</td><td>0.99 / 0.95</td></tr>
+    <tr><td>Clip range / value coef.</td><td>0.2 / 0.5</td></tr>
+    <tr><td>Batch / parallel games</td><td>1024 / 96</td></tr>
+    <tr><td>Steps / eval games</td><td>2,000,000 / 1000 (deterministic)</td></tr>
   </table>
 </section>
 
-<section>
+<section id="phase2">
   <h2><span class="n">2</span>Serving the LLM fast enough to train against</h2>
   <p>One training pass asks the opponent for a move up to ~50,000 times. At a few seconds per LLM call,
-  that's hours. So we built a small serving system: many GPU <b>workers</b> each hold a copy of the model
-  and register themselves; a CPU <b>master</b> finds them, spreads the work, and caches repeated questions;
-  the RL training just talks to the master. No changes to the RL code.</p>
+  that's hours of waiting. So we built a small serving system with three parts:</p>
+  <ul>
+    <li><b>Workers</b> &mdash; one per GPU, each holding a copy of the model. On startup each worker writes
+    its address to a shared folder so it can be found (no central database needed).</li>
+    <li><b>Master</b> &mdash; a single CPU process that discovers the live workers, spreads requests across
+    them, and keeps a <b>cache</b> of answers. The cache uses a "suit-symmetry" trick: Gin Rummy plays the
+    same if you swap the suits, so equivalent positions share one cache entry.</li>
+    <li><b>Client</b> &mdash; the RL training just talks to the master using the same API it already spoke,
+    so none of the RL code changed.</li>
+  </ul>
+  <p>We run the model with HuggingFace (not vLLM) because the installed vLLM version clashed with our
+  Transformers version.</p>
   <pre>  env (asks for a move) --&gt; Master (CPU): cache hit? return ;  miss --&gt; pick a worker
                                   |
               +-------------------+-------------------+
               v                   v                   v
-          GPU worker          GPU worker     ...   GPU worker     (each runs Qwen2.5-7B)</pre>
-  <div class="note"><b>Useful finding:</b> loading a 7B model from the home filesystem took ~28&nbsp;minutes
-  (so slow the workers timed out). Loading from fast scratch storage took <b>27&nbsp;seconds &mdash; 62&times;
-  faster</b>. Essential when launching dozens of workers.</div>
+          GPU worker          GPU worker     ...   GPU worker     (each runs Qwen2.5-7B)
+          self-registers in a shared folder; master checks health + balances load</pre>
+  <div class="note"><b>Useful finding:</b> loading a 7B model from the home filesystem ran at ~11 MB/s and
+  took ~28 minutes &mdash; so slow the workers timed out before they were ready. Loading from fast "scratch"
+  storage took <b>27 seconds &mdash; 62&times; faster</b>. This is essential when launching dozens of workers.
+  (Also handy: which model the opponent uses is decided entirely by what a worker loads, so swapping
+  opponents is a one-line change.)</div>
   <figure class="fig" style="max-width:430px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/infra_load.png" alt="load time" loading="lazy"/><figcaption>Model load time: home filesystem vs scratch (log scale).</figcaption></figure>
 </section>
 
-<section>
+<section id="opponents">
   <h2><span class="n">3</span>The opponents we tried</h2>
+  <h3>Self-play and a pool of past versions</h3>
+  <p>Training the Phase-1 agent against a <b>frozen copy of itself</b> for 3M steps made it beat that copy
+  58&ndash;61% of the time while still crushing random (~98.7%) &mdash; a real, clean step up. We also tried
+  training against a growing <b>pool</b> of past versions (AlphaZero-style), but past ~10M steps it
+  <b>broke</b>: its win rate against random fell from ~98.5% to 85.8%. We kept the earlier, healthy
+  checkpoints and use self-play as the production opponent.</p>
+  <h3>LLM opponents</h3>
+  <p>A tiny model (OLMoE-1B) couldn't follow the move format &mdash; most of its answers failed to parse and
+  fell back to a random move, so it effectively played at chance and taught nothing. <b>Qwen2.5-7B</b>, on
+  the other hand, played genuinely well (beat random 5/5 in our check). Its careful "think out loud" prompt
+  was slow (~16 s/call), so for training we switched to a short "just give the move" prompt and capped the
+  output length, cutting the time per call by about 40&times;.</p>
   <div class="g2">
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/selfplay.png" alt="self-play" loading="lazy"/><figcaption><b>Self-play:</b> the agent trained on a frozen copy of itself beats that copy (58&ndash;61%) &mdash; real improvement.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/pool.png" alt="pool" loading="lazy"/><figcaption><b>Pool of past versions:</b> trained too long and broke &mdash; win rate vs random fell from ~98.5% to 85.8%.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/llm_opponent.png" alt="LLM strength" loading="lazy"/><figcaption><b>LLM opponents:</b> OLMoE-1B plays like random; Qwen2.5-7B actually plays well (5/5 vs random).</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/throughput.png" alt="throughput" loading="lazy"/><figcaption><b>Speed:</b> the worker pool serves ~32 LLM calls/second &mdash; ~500&times; faster than a naive single stream.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/selfplay.png" alt="self-play" loading="lazy"/><figcaption><b>Self-play</b> beats its own progenitor.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/pool.png" alt="pool" loading="lazy"/><figcaption><b>Pool</b> training broke after ~10M steps.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/llm_opponent.png" alt="LLM strength" loading="lazy"/><figcaption><b>OLMoE</b> = chance; <b>Qwen2.5-7B</b> = competent.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/throughput.png" alt="throughput" loading="lazy"/><figcaption><b>Serving speed</b>: ~32 LLM calls/s, ~500&times; a single stream.</figcaption></figure>
   </div>
   <table>
     <tr><th>Agent / opponent</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
@@ -135,66 +199,91 @@ ol li,ul li{margin:4px 0;}
   </table>
 </section>
 
-<section>
+<section id="game">
   <h2><span class="n">4</span>Play it yourself</h2>
-  <p>There's a simple web game (no install) to play any of the trained agents, with card animations. The
-  same code path that serves the RL training can also put an LLM in the seat.</p>
+  <p>There's a no-install web game to play any of the trained agents, with smooth card animations (draw,
+  reveal, discard). The same code that feeds the RL training can also put an LLM opponent in the seat. It
+  was tested automatically in a headless browser.</p>
   <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/game_ui.png" alt="web game" loading="lazy"/><figcaption>The web game (debug view, opponent's hand shown).</figcaption></figure>
 </section>
 
-<section>
+<section id="bigrun">
   <h2><span class="n">5</span>The big experiment: RL vs LLM (and the honest result)</h2>
   <p>We took the best self-play agent and trained it for <b>1.5 million steps</b> against the Qwen2.5-7B
-  opponent through the worker pool. The serving stack delivered: per-call time dropped from ~16&nbsp;s to
-  ~0.4&nbsp;s, ~32 calls/second, and the whole run finished in a few hours.</p>
-  <div class="miss"><b>Honest result: it did not help.</b> Across all 1.5M steps the reward stayed flat at
-  the knock value (~0.49) and never moved toward gin (left plot). The fine-tuned agent still beats random
-  (99%) and the weak agents, but it's only even with the champion it started from (43% &mdash; right plot).
+  opponent through the worker pool. The serving side delivered: time per call dropped from ~16 s to
+  ~0.4 s, the master handled ~32 calls/second, the agent ran at ~39 steps/second, and the whole run
+  finished in a few hours.</p>
+  <div class="miss"><b>Honest result: it did not help.</b> Over all 1.5M steps the reward stayed flat at the
+  knock value (~0.49) and never moved toward gin (left plot). The fine-tuned agent still beats random (99%)
+  and the weaker agents, but it only ties the champion it started from (43% &mdash; right plot).
   <b>Why:</b> the 7B LLM is a <i>weaker</i> Gin Rummy player than our self-play champion, so it can't teach
-  an already near-perfect agent anything new.</p>
+  an already near-perfect agent anything new. Training against a weaker teacher just holds the agent in
+  place (and nudges it slightly off).</p>
   <div class="g2">
     <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/rlvsllm_curve.png" alt="training curve" loading="lazy"/><figcaption>Reward never leaves the knock value over 1.5M steps.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/h2h.png" alt="head to head" loading="lazy"/><figcaption>Everyone vs everyone: the LLM-fine-tuned agent (<code>llm_full</code>) sits at champion level.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/h2h.png" alt="head to head" loading="lazy"/><figcaption>Everyone vs everyone &mdash; the fine-tuned agent (<code>llm_full</code>) sits at champion level.</figcaption></figure>
   </div>
+  <h3>How the fine-tuned agent does</h3>
   <table>
     <tr><th>LLM-fine-tuned agent (1.5M)</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
     <tr><td>vs random</td><td>random</td><td class="n good">99.0</td><td>stays strong</td></tr>
     <tr><td>vs self-play champion</td><td>champion</td><td class="n">43.3</td><td>no net gain</td></tr>
     <tr><td>vs weaker agents</td><td>winrate / reward</td><td class="n">55 / 61</td><td>still beats them</td></tr>
   </table>
+  <h3>Head-to-head, every agent vs every agent (win %, 300 games)</h3>
+  <table>
+    <tr><th>row plays vs &rarr;</th><th class="n">selfplay</th><th class="n">pool</th><th class="n">winrate</th><th class="n">reward</th><th class="n">llm&#95;full</th><th class="n">random</th></tr>
+    <tr><td>selfplay</td><td class="n">&mdash;</td><td class="n">46</td><td class="n">56</td><td class="n">62</td><td class="n">52</td><td class="n">99</td></tr>
+    <tr><td>pool</td><td class="n">55</td><td class="n">&mdash;</td><td class="n">58</td><td class="n">56</td><td class="n">57</td><td class="n">85</td></tr>
+    <tr><td>winrate</td><td class="n">42</td><td class="n">46</td><td class="n">&mdash;</td><td class="n">52</td><td class="n">40</td><td class="n">100</td></tr>
+    <tr><td>reward</td><td class="n">40</td><td class="n">43</td><td class="n">47</td><td class="n">&mdash;</td><td class="n">39</td><td class="n">98</td></tr>
+    <tr><td>llm&#95;full</td><td class="n">43</td><td class="n">45</td><td class="n">55</td><td class="n">61</td><td class="n">&mdash;</td><td class="n">99</td></tr>
+  </table>
 </section>
 
-<section>
+<section id="limits">
   <h2><span class="n">6</span>Limitations</h2>
   <ul>
     <li><b>The teacher is weaker than the student.</b> This is the main reason there's no improvement.</li>
     <li>We used a short "just give the move" prompt for speed; we haven't tested a slower, smarter prompt or a bigger model as the teacher.</li>
     <li>One training seed per run, and the "Qwen beats random 5/5" check is a small sample.</li>
-    <li>The prompt cache gave almost no speedup at this scale (early game states rarely repeat).</li>
+    <li>The prompt cache gave almost no speedup at this scale (early-game positions rarely repeat).</li>
     <li>The "pool of past versions" training diverged after ~10M steps.</li>
     <li>Two earlier negative results (DAgger, dense reward shaping) still need a code audit before we trust them.</li>
   </ul>
 </section>
 
-<section>
+<section id="next">
   <h2><span class="n">7</span>Next steps</h2>
   <ol>
     <li><b>Make the teacher stronger / co-evolving (Phase 3):</b> give the LLM example games from the RL
     agent's best play, or use a bigger model (e.g. Qwen2.5-32B), then alternate turns so both improve.</li>
-    <li><b>Reward the gin directly:</b> add a bonus for holding out for a gin / a penalty for knocking too
-    early, since the gin decision is exactly the gap Phase&nbsp;1 found.</li>
-    <li><b>Learn from bulk LLM games offline</b> (distillation with CQL), avoiding live LLM latency.</li>
-    <li><b>Tighten the science:</b> 3 seeds, and a direct "smart prompt vs fast prompt" comparison.</li>
+    <li><b>Reward the gin directly:</b> add a bonus for holding out for a gin and/or a penalty for knocking
+    too early &mdash; the gin decision is exactly the gap Phase 1 found.</li>
+    <li><b>Learn from bulk LLM games offline</b> (distillation with CQL), so training doesn't wait on live
+    LLM calls.</li>
+    <li><b>Tighten the science:</b> run 3 seeds, and directly compare a "smart prompt" teacher against the
+    fast prompt.</li>
   </ol>
 </section>
 
-<section>
+<section id="repro">
   <h2>How to reproduce</h2>
-  <p>Sweeps run as SLURM array jobs (<code>sweep/*.slurm</code>); the LLM stack is three SLURM jobs in
-  <code>slurm/</code> (master, a worker array with weights staged on scratch, and the trainer). Every plot
-  on this page is regenerated by <code>paper/make_figures.py</code> from the saved JSON results, and this
-  page by <code>paper/make_report_html.py</code>. The typeset 4-page version is
-  <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">paper/main.pdf</a>.</p>
+  <p>Sweeps run as SLURM array jobs (<code>sweep/*.slurm</code>). The LLM stack is three SLURM jobs in
+  <code>slurm/</code>: the master, a worker array (with model weights staged on fast scratch storage), and
+  the trainer. Every plot on this page is regenerated by <code>paper/make_figures.py</code> from saved JSON
+  results, and this page by <code>paper/make_report_html.py</code>.</p>
+  <pre># play the web game
+python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
+
+# Phase-1 sweep
+sbatch sweep/sweep.slurm
+
+# LLM stack: master + GPU worker pool, then train against it
+sbatch slurm/master.slurm
+sbatch --array=0-31 --export=ALL,WORKER_PRESET=qwen2.5-7b,WORKER_MAXTOK=64 slurm/worker.slurm
+sbatch slurm/llm_train.slurm</pre>
+  <p>The typeset 4-page version of this report is <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">paper/main.pdf</a>.</p>
 </section>
 
 <div class="foot">Built from measured results &middot; Adversarial Co-Evolution project &middot; USC</div>
