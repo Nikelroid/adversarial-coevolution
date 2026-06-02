@@ -1,27 +1,7 @@
-"""Generate docs/index.html: a plain-language results page for the project.
-
-Figures are referenced by their RAW GitHub URL (not base64), so the page is tiny
-(~15 KB) and renders reliably via htmlpreview.github.io and GitHub Pages alike;
-the images load straight from raw.githubusercontent. Run after make_figures.py.
-Mirrors paper/main.tex but in simple, to-the-point language.
-"""
-from __future__ import annotations
-
-import os
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "docs", "index.html")
-RAW = ("https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/"
-       "main/paper/figures")
-PDF = ("https://github.com/Nikelroid/adversarial-coevolution/blob/main/"
-       "paper/main.pdf")
-
-
-def img(name, alt=""):
-    return f'<img src="{RAW}/{name}" alt="{alt}" loading="lazy"/>'
-
-
-CSS = """
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gin Rummy: RL vs LLM — results</title>
+<style>
 :root{--green:#0b5b39;--green2:#073d27;--gold:#d9a521;--ink:#16242d;--muted:#5c6b73;
 --card:#fff;--line:#e3e8e6;--good:#1f8a5a;--bad:#c0392b;}
 *{box-sizing:border-box}
@@ -64,12 +44,7 @@ tr:hover td{background:#fafcfb;}
 pre{background:#0e2c1f;color:#d6f5e6;padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px;}
 ol li,ul li{margin:4px 0;}
 .foot{text-align:center;color:var(--muted);font-size:13px;padding:22px;}
-"""
-
-HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gin Rummy: RL vs LLM — results</title>
-<style>{CSS}</style></head><body>
+</style></head><body>
 
 <div class="hero">
   <h1>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
@@ -78,7 +53,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   worked, what didn't, and what's next.</p>
   <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &mdash; University of Southern California</div>
   <div class="links">
-    <a href="{PDF}">&#128196; 4-page PDF</a>
+    <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">&#128196; 4-page PDF</a>
     <a href="https://github.com/Nikelroid/adversarial-coevolution">&#128025; GitHub repo</a>
     <a href="https://github.com/Nikelroid/adversarial-coevolution/tree/main/game">&#127918; Web game</a>
   </div>
@@ -111,8 +86,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   safe knock and never holds out for a gin. <b>That gap is the room to improve</b>, and a random opponent
   can't teach it &mdash; you need a thinking opponent. That's the whole reason for Phase&nbsp;2.</p>
   <div class="g2">
-    <figure class="fig">{img("win_rate.png","win rate")}<figcaption>Win rate vs random &mdash; all 8 settings tied near the top.</figcaption></figure>
-    <figure class="fig">{img("mean_reward.png","mean reward")}<figcaption>Reward stuck at the knock value, far below gin.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/win_rate.png" alt="win rate" loading="lazy"/><figcaption>Win rate vs random &mdash; all 8 settings tied near the top.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/mean_reward.png" alt="mean reward" loading="lazy"/><figcaption>Reward stuck at the knock value, far below gin.</figcaption></figure>
   </div>
   <table>
     <tr><th>Setting</th><th class="n">win%</th><th class="n">loss%</th><th>note</th></tr>
@@ -139,16 +114,16 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <div class="note"><b>Useful finding:</b> loading a 7B model from the home filesystem took ~28&nbsp;minutes
   (so slow the workers timed out). Loading from fast scratch storage took <b>27&nbsp;seconds &mdash; 62&times;
   faster</b>. Essential when launching dozens of workers.</div>
-  <figure class="fig" style="max-width:430px;margin:0 auto;">{img("infra_load.png","load time")}<figcaption>Model load time: home filesystem vs scratch (log scale).</figcaption></figure>
+  <figure class="fig" style="max-width:430px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/infra_load.png" alt="load time" loading="lazy"/><figcaption>Model load time: home filesystem vs scratch (log scale).</figcaption></figure>
 </section>
 
 <section>
   <h2><span class="n">3</span>The opponents we tried</h2>
   <div class="g2">
-    <figure class="fig">{img("selfplay.png","self-play")}<figcaption><b>Self-play:</b> the agent trained on a frozen copy of itself beats that copy (58&ndash;61%) &mdash; real improvement.</figcaption></figure>
-    <figure class="fig">{img("pool.png","pool")}<figcaption><b>Pool of past versions:</b> trained too long and broke &mdash; win rate vs random fell from ~98.5% to 85.8%.</figcaption></figure>
-    <figure class="fig">{img("llm_opponent.png","LLM strength")}<figcaption><b>LLM opponents:</b> OLMoE-1B plays like random; Qwen2.5-7B actually plays well (5/5 vs random).</figcaption></figure>
-    <figure class="fig">{img("throughput.png","throughput")}<figcaption><b>Speed:</b> the worker pool serves ~32 LLM calls/second &mdash; ~500&times; faster than a naive single stream.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/selfplay.png" alt="self-play" loading="lazy"/><figcaption><b>Self-play:</b> the agent trained on a frozen copy of itself beats that copy (58&ndash;61%) &mdash; real improvement.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/pool.png" alt="pool" loading="lazy"/><figcaption><b>Pool of past versions:</b> trained too long and broke &mdash; win rate vs random fell from ~98.5% to 85.8%.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/llm_opponent.png" alt="LLM strength" loading="lazy"/><figcaption><b>LLM opponents:</b> OLMoE-1B plays like random; Qwen2.5-7B actually plays well (5/5 vs random).</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/throughput.png" alt="throughput" loading="lazy"/><figcaption><b>Speed:</b> the worker pool serves ~32 LLM calls/second &mdash; ~500&times; faster than a naive single stream.</figcaption></figure>
   </div>
   <table>
     <tr><th>Agent / opponent</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
@@ -164,7 +139,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <h2><span class="n">4</span>Play it yourself</h2>
   <p>There's a simple web game (no install) to play any of the trained agents, with card animations. The
   same code path that serves the RL training can also put an LLM in the seat.</p>
-  <figure class="fig">{img("game_ui.png","web game")}<figcaption>The web game (debug view, opponent's hand shown).</figcaption></figure>
+  <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/game_ui.png" alt="web game" loading="lazy"/><figcaption>The web game (debug view, opponent's hand shown).</figcaption></figure>
 </section>
 
 <section>
@@ -178,8 +153,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <b>Why:</b> the 7B LLM is a <i>weaker</i> Gin Rummy player than our self-play champion, so it can't teach
   an already near-perfect agent anything new.</p>
   <div class="g2">
-    <figure class="fig">{img("rlvsllm_curve.png","training curve")}<figcaption>Reward never leaves the knock value over 1.5M steps.</figcaption></figure>
-    <figure class="fig">{img("h2h.png","head to head")}<figcaption>Everyone vs everyone: the LLM-fine-tuned agent (<code>llm_full</code>) sits at champion level.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/rlvsllm_curve.png" alt="training curve" loading="lazy"/><figcaption>Reward never leaves the knock value over 1.5M steps.</figcaption></figure>
+    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/h2h.png" alt="head to head" loading="lazy"/><figcaption>Everyone vs everyone: the LLM-fine-tuned agent (<code>llm_full</code>) sits at champion level.</figcaption></figure>
   </div>
   <table>
     <tr><th>LLM-fine-tuned agent (1.5M)</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
@@ -219,19 +194,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <code>slurm/</code> (master, a worker array with weights staged on scratch, and the trainer). Every plot
   on this page is regenerated by <code>paper/make_figures.py</code> from the saved JSON results, and this
   page by <code>paper/make_report_html.py</code>. The typeset 4-page version is
-  <a href="{PDF}">paper/main.pdf</a>.</p>
+  <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">paper/main.pdf</a>.</p>
 </section>
 
 <div class="foot">Built from measured results &middot; Adversarial Co-Evolution project &middot; USC</div>
-</div></body></html>"""
-
-
-def main():
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w") as f:
-        f.write(HTML)
-    print(f"wrote {OUT} ({len(HTML)//1024} KB, figures via raw URL)")
-
-
-if __name__ == "__main__":
-    main()
+</div></body></html>
