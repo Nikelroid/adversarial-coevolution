@@ -168,6 +168,40 @@
 
 ---
 
+<h2 align="center">Phase 3 — in progress 🔬</h2>
+
+<p align="center">
+  Two experiments are <b>running on the cluster now</b> (launched Jun 2026). No results claimed yet —
+  this section updates as runs land.
+</p>
+
+<div align="center">
+
+<table align="center">
+<tr><th>Experiment</th><th>Question</th><th>Design</th></tr>
+<tr>
+  <td><b>A · Close the gin gap</b></td>
+  <td>Can reward shaping make the agent <i>gin</i> instead of always knocking?</td>
+  <td>6 reward configs × 3 seeds, 8M self-play steps each; gin-rate eval every 1M steps (curve + best checkpoint)</td>
+</tr>
+<tr>
+  <td><b>B · Stronger teacher</b></td>
+  <td>Does <b>Qwen3-30B</b> beat the self-play champion (i.e. can it teach)?</td>
+  <td>30B-as-opponent eval vs champion + random; fine-tune against it if it wins</td>
+</tr>
+</table>
+
+</div>
+
+<p align="center">
+  <b>Why this design:</b> Phase 1 proved the agent always knocks and never gins — so <b>A</b> attacks that
+  headroom directly, and <b>B</b> gives the co-evolution thesis a teacher that might actually be stronger
+  than the student. Both honest: if shaping stays flat or a 30B still loses to the specialist, those are
+  findings, not failures.
+</p>
+
+---
+
 <h2 align="center">Repository layout</h2>
 
 <div align="center">
@@ -175,13 +209,13 @@
 <table align="center">
 <tr><th>Path</th><th>What</th></tr>
 <tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>masked-PPO policy + single-agent wrapper over <code>gin_rummy_v4</code></td></tr>
-<tr><td><code>sweep/</code></td><td>Phase-1 sweep, self-play, pool, and <code>llmplay_one.py</code> (RL-vs-LLM) training</td></tr>
+<tr><td><code>sweep/</code></td><td>Phase-1 sweep, self-play, pool, <code>llmplay_one.py</code> (RL-vs-LLM), and the Phase-3 <code>ginshape.slurm</code> reward-shaping sweep</td></tr>
 <tr><td><code>llm/</code></td><td>master / worker / cache / discovery + <code>eval_opponent.py</code></td></tr>
 <tr><td><code>agents/</code></td><td><code>RandomAgent</code>, <code>PPOAgent</code>, <code>LLMAgent</code>, <code>FastLLMAgent</code></td></tr>
 <tr><td><code>slurm/</code></td><td>SLURM jobs: <code>master</code>, <code>worker</code> (array), <code>llm_train</code>, <code>llm_eval</code></td></tr>
 <tr><td><code>game/</code></td><td>zero-dependency human-vs-RL web client (server + HTML/JS)</td></tr>
 <tr><td><code>paper/</code></td><td>report (<code>main.tex</code> → <code>main.pdf</code>), figures, <code>make_figures.py</code>, <code>make_report_html.py</code></td></tr>
-<tr><td><code>docs/</code></td><td><code>report.html</code> (full report), <code>llm_architecture.md</code></td></tr>
+<tr><td><code>docs/</code></td><td><code>index.html</code> (full report), <code>llm_architecture.md</code></td></tr>
 </table>
 
 </div>
@@ -222,5 +256,5 @@ python paper/make_figures.py && python paper/make_report_html.py
 <p align="center">
   <sub>Built on PPO + action masking, PettingZoo/RLCard, Stable-Baselines3, and Qwen2.5.<br/>
   Figures and reports regenerate from measured JSON results — see the
-  <a href="docs/report.html">full report</a>.</sub>
+  <a href="https://Nikelroid.github.io/adversarial-coevolution/">full report</a>.</sub>
 </p>
