@@ -95,7 +95,9 @@ def fig_lr_vs_reward(rs):
 
 # ----------------------------------------------------------------- Phase 2
 def fig_selfplay():
-    paths = sorted(glob.glob(os.path.join(ROOT, "sweep", "selfplay", "results", "*.json")))
+    # seedless run_N.json only (the original 3M self-play sweep); the seeded
+    # run_N_sNNN.json files belong to the Phase-3 gin-shaping sweep (fig_ginshape).
+    paths = sorted(glob.glob(os.path.join(ROOT, "sweep", "selfplay", "results", "run_[0-9].json")))
     rs = [json.load(open(p)) for p in paths]
     rs.sort(key=lambda r: r["combo"])
     labels = [f"k={r['knock_reward']}\ng={r['gin_reward']}" for r in rs]
@@ -246,12 +248,44 @@ def write_summary_csv(rs):
                     f"{r['mean_length']:.2f},{r['train_seconds']:.0f}\n")
 
 
+def fig_ginshape():
+    """Phase-3 reward-shaping sweep: gin rate (mean +/- sd over 3 seeds) per reward
+    config, with win rate. Reads the seeded run_<combo>_s<seed>.json files only."""
+    import collections, statistics as st
+    paths = sorted(glob.glob(os.path.join(
+        ROOT, "sweep", "selfplay", "results", "run_*_s*.json")))
+    if not paths:
+        print("  [skip] fig_ginshape: no seeded results")
+        return
+    by = collections.defaultdict(list)
+    for p in paths:
+        d = json.load(open(p)); by[d["combo"]].append(d)
+    labels, gin_r, gin_e, win_r = [], [], [], []
+    for c in sorted(by):
+        ds = by[c]
+        labels.append(f"k{ds[0]['knock_reward']}/g{ds[0]['gin_reward']}")
+        gr = [d["vs_random"]["gin_rate"] * 100 for d in ds]
+        gin_r.append(st.mean(gr)); gin_e.append(st.pstdev(gr))
+        win_r.append(st.mean([d["vs_random"]["win_rate"] * 100 for d in ds]))
+    fig, ax = plt.subplots(figsize=(5.0, 2.6))
+    x = range(len(labels))
+    ax.bar(x, gin_r, yerr=gin_e, color="#c0392b", alpha=.85, capsize=3)
+    ax.axhline(gin_r[0], ls="--", lw=.8, color="#7f8c8d")
+    ax.set_ylabel("gin rate vs random (%)", color="#c0392b")
+    ax.set_ylim(0, max(5, max(gin_r) * 2))
+    ax.set_xticks(list(x)); ax.set_xticklabels(labels, rotation=20, fontsize=7)
+    ax2 = ax.twinx(); ax2.plot(x, win_r, "o-", color="#2c3e50")
+    ax2.set_ylim(80, 100); ax2.set_ylabel("win rate vs random (%)", color="#2c3e50")
+    ax.set_title("Reward shaping does not raise the gin rate", fontsize=9)
+    fig.tight_layout(); _save(fig, "ginshape")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
-               fig_rlvsllm, fig_h2h):
+               fig_rlvsllm, fig_h2h, fig_ginshape):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
