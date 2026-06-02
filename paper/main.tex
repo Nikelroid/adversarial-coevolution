@@ -247,15 +247,22 @@ throughput, and we have not measured a strong-prompt / larger-model teacher;
 (iii) single seed per run and a small ($N{=}5$) LLM-strength sample; (iv) the
 prompt cache yields no speedup at current volume; (v) pool self-play diverged
 past 10M; (vi) the midterm's negative DAgger and dense-reward-shaping results
-remain code-unaudited.
+remain code-unaudited. Phase~3 (below) directly addresses (i)/(ii) with a stronger
+Qwen3-30B teacher and (iii) with a three-seed reward-shaping sweep.
 
-\paragraph{Next steps.} (1) \emph{Co-evolution} (Phase~3): make the LLM a stronger,
-\emph{evolving} teacher---seed its few-shot prompt with the RL agent's strongest
-games and/or use a larger model (e.g.\ Qwen2.5-32B), then alternate generations so
-both sides improve. (2) Reward-shape directly toward the headroom (penalize early
-knocks / bonus held gins), since the gin decision is exactly what Phase~1 left on
-the table. (3) Offline distillation of bulk LLM-vs-LLM games with CQL. (4)
-Three-seed confirmation and a strong- vs terse-prompt teacher ablation.
+\paragraph{Phase~3 (in progress).} Two experiments are now running on the cluster;
+results will be folded into this report as they land. \textbf{(A) Closing the gin
+headroom:} since Phase~1's agent always knocks and never gins, we sweep six reward
+configs (gin incentive escalating from baseline to gin-only) $\times$ three seeds,
+fine-tuning the champion for 8M self-play steps each, with a periodic gin-rate eval
+every 1M steps that yields a gin-rate-vs-steps curve and keeps the
+best-by-gin-rate checkpoint (so a longer run cannot be hurt by the late divergence we
+saw in pool play); the decisive metric is the gin rate scored under \emph{fixed} eval
+rewards, comparable across configs. \textbf{(B) A stronger teacher:} we test whether
+Qwen3-30B beats the self-play champion---if so it becomes the teacher for a fine-tune
+(the real co-evolution payoff); if a 30B still loses to a 12M-step specialist, that
+bounds the LLM-teacher thesis and (A) carries the result. Further out: offline CQL
+distillation of bulk LLM-vs-LLM games, and a strong- vs.\ terse-prompt teacher ablation.
 
 \paragraph{Reproducibility.} Sweeps run as SLURM arrays under \texttt{sweep/};
 the LLM stack is three \texttt{slurm/} jobs --- master, a worker array

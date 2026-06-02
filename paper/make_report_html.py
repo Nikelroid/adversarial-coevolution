@@ -3,7 +3,6 @@
 Figures are referenced by their RAW GitHub URL (not base64), so the page is small
 (~25 KB) and renders reliably via htmlpreview.github.io and GitHub Pages alike;
 images load straight from raw.githubusercontent. Run after make_figures.py.
-This supersedes the old docs/report.html.
 """
 from __future__ import annotations
 
@@ -76,7 +75,7 @@ ol li,ul li{margin:4px 0;}
 NAV = """<div class="nav">
   <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
   <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
-  <a href="#limits">Limitations</a><a href="#next">Next steps</a><a href="#repro">Reproduce</a>
+  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#repro">Reproduce</a>
 </div>"""
 
 HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
@@ -114,12 +113,14 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <ol>
     <li><b>Phase 1</b> &mdash; train a strong RL agent against a random opponent.</li>
     <li><b>Phase 2</b> &mdash; train it further against an LLM opponent that should play smarter.</li>
-    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other.</li>
+    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other <i>(now running &mdash; see below)</i>.</li>
   </ol>
-  <p>This report covers Phases 1&ndash;2. The headline: the RL agent already plays near-perfectly against
-  simple opponents, and the 7B LLM we used turned out to be a <i>weaker</i> player than it &mdash; so
-  training against the LLM did not make the agent better. The whole serving system works; the open problem
-  is getting a teacher that is actually stronger than the student.</p>
+  <p>This report covers Phases 1&ndash;2 in full, with <b>Phase 3 now underway</b> (the experiments are
+  queued/running on the cluster &mdash; details at the end). The headline so far: the RL agent already plays
+  near-perfectly against simple opponents, and the 7B LLM we used turned out to be a <i>weaker</i> player
+  than it &mdash; so training against the LLM did not make the agent better. The whole serving system works;
+  the open problem &mdash; a teacher actually stronger than the student &mdash; is exactly what Phase 3
+  attacks (a 30B teacher, and rewarding the gin directly).</p>
   <h3>One bug we fixed first</h3>
   <p>The game library (PettingZoo) quietly reset our custom scoring (the knock/gin reward values) every
   time the environment was re-seeded. We found and fixed this upstream (PettingZoo PR #1312); all results
@@ -282,16 +283,22 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 </section>
 
 <section id="next">
-  <h2><span class="n">7</span>Next steps</h2>
+  <h2><span class="n">7</span>Phase 3 &mdash; in progress</h2>
+  <p><b>Two experiments are running on the cluster right now</b> (launched June 2026); this page will be
+  updated with real numbers as they finish. No results are claimed yet.</p>
   <ol>
-    <li><b>Make the teacher stronger / co-evolving (Phase 3):</b> give the LLM example games from the RL
-    agent's best play, or use a bigger model (e.g. Qwen2.5-32B), then alternate turns so both improve.</li>
-    <li><b>Reward the gin directly:</b> add a bonus for holding out for a gin and/or a penalty for knocking
-    too early &mdash; the gin decision is exactly the gap Phase 1 found.</li>
-    <li><b>Learn from bulk LLM games offline</b> (distillation with CQL), so training doesn't wait on live
-    LLM calls.</li>
-    <li><b>Tighten the science:</b> run 3 seeds, and directly compare a "smart prompt" teacher against the
-    fast prompt.</li>
+    <li><b>Close the gin gap (reward shaping).</b> Phase 1 showed the agent always knocks and never gins, so
+    we sweep <b>6 reward settings &times; 3 seeds</b> (pushing the gin reward from baseline up to "gin-only"),
+    fine-tuning the champion for <b>8M steps</b> each. We check the gin rate every 1M steps &mdash; giving a
+    gin-rate-over-training curve and keeping the best checkpoint, so a longer run can't be hurt if it
+    destabilizes late. The decisive number is the gin rate scored with fixed rewards (so it's comparable
+    across settings).</li>
+    <li><b>Try a stronger teacher (Qwen3-30B).</b> The first question is the decisive one: <b>does a 30B model
+    beat our self-play champion?</b> If yes, it becomes the teacher and we fine-tune against it &mdash; the
+    real co-evolution payoff. If a 30B still loses to a 12M-step specialist, that's an honest finding about
+    the ceiling of general LLMs at a niche game, and the reward-shaping result carries the headline.</li>
+    <li><b>Still ahead:</b> learning from bulk LLM-vs-LLM games offline (CQL distillation), and a
+    smart-prompt vs. fast-prompt teacher comparison.</li>
   </ol>
 </section>
 
