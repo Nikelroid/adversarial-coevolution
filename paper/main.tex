@@ -16,11 +16,13 @@
 \raggedbottom
 \graphicspath{{./}{figures/}}
 % compact float + section spacing to fit 4 pages
-\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
-\setlength{\intextsep}{7pt plus 2pt minus 2pt}
-\setlength{\abovecaptionskip}{4pt}
+\setlength{\textfloatsep}{4pt plus 1pt minus 1pt}
+\setlength{\intextsep}{4pt plus 1pt minus 1pt}
+\setlength{\floatsep}{4pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{0pt}
 \usepackage{titlesec}
-\titlespacing*{\section}{0pt}{6pt}{3pt}
+\titlespacing*{\section}{0pt}{5pt}{2pt}
 
 \title{Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy:\\
        A Phase-1/2 System Report}
@@ -182,7 +184,7 @@ was validated in headless Chromium.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.9\linewidth]{game_ui.png}
+  \includegraphics[width=0.7\linewidth]{game_ui.png}
   \caption{The human-vs-RL web client (debug view, opponent hand revealed). The
   player drafts and discards against any trained agent; the board animates draws,
   reveals, and discards. The same \texttt{LLMAgent} path that the RL loop uses
@@ -192,10 +194,10 @@ was validated in headless Chromium.
 
 \begin{figure}[h]
   \centering
-  \begin{subfigure}[b]{0.25\linewidth}\includegraphics[width=\linewidth]{selfplay.png}\caption{Self-play.}\end{subfigure}\hfill
-  \begin{subfigure}[b]{0.24\linewidth}\includegraphics[width=\linewidth]{pool.png}\caption{Pool divergence.}\end{subfigure}\hfill
-  \begin{subfigure}[b]{0.235\linewidth}\includegraphics[width=\linewidth]{llm_opponent.png}\caption{LLM strength.}\end{subfigure}\hfill
-  \begin{subfigure}[b]{0.235\linewidth}\includegraphics[width=\linewidth]{infra_load.png}\caption{Worker load.}\end{subfigure}
+  \begin{subfigure}[b]{0.32\linewidth}\includegraphics[width=\linewidth]{selfplay.png}\caption{Self-play.}\end{subfigure}\hspace{0.03\linewidth}
+  \begin{subfigure}[b]{0.32\linewidth}\includegraphics[width=\linewidth]{pool.png}\caption{Pool divergence.}\end{subfigure}\\[2pt]
+  \begin{subfigure}[b]{0.32\linewidth}\includegraphics[width=\linewidth]{llm_opponent.png}\caption{LLM strength.}\end{subfigure}\hspace{0.03\linewidth}
+  \begin{subfigure}[b]{0.32\linewidth}\includegraphics[width=\linewidth]{infra_load.png}\caption{Worker load.}\end{subfigure}
   \caption{Phase-2 results. (a) self-play beats its progenitor; (b) the pool
   champion regressed vs random after divergence; (c) Qwen2.5-7B is a competent
   opponent where OLMoE-1B is not; (d) scratch staging is $62\times$ faster.}
@@ -250,19 +252,16 @@ past 10M; (vi) the midterm's negative DAgger and dense-reward-shaping results
 remain code-unaudited. Phase~3 (below) directly addresses (i)/(ii) with a stronger
 Qwen3-30B teacher and (iii) with a three-seed reward-shaping sweep.
 
-\paragraph{Phase~3 (in progress).} Two experiments are now running on the cluster;
-results will be folded into this report as they land. \textbf{(A) Closing the gin
-headroom:} since Phase~1's agent always knocks and never gins, we sweep six reward
-configs (gin incentive escalating from baseline to gin-only) $\times$ three seeds,
-fine-tuning the champion for 8M self-play steps each, with a periodic gin-rate eval
-every 1M steps that yields a gin-rate-vs-steps curve and keeps the
-best-by-gin-rate checkpoint (so a longer run cannot be hurt by the late divergence we
-saw in pool play); the decisive metric is the gin rate scored under \emph{fixed} eval
-rewards, comparable across configs. \textbf{(B) A stronger teacher:} we test whether
-Qwen3-30B beats the self-play champion---if so it becomes the teacher for a fine-tune
-(the real co-evolution payoff); if a 30B still loses to a 12M-step specialist, that
-bounds the LLM-teacher thesis and (A) carries the result. Further out: offline CQL
-distillation of bulk LLM-vs-LLM games, and a strong- vs.\ terse-prompt teacher ablation.
+\paragraph{Phase~3 (in progress).} Two experiments are now running; results will be
+folded in as they land. \textbf{(A) Closing the gin headroom:} since the agent always
+knocks and never gins, we sweep six reward configs (gin incentive escalating to
+gin-only) $\times$ three seeds, fine-tuning the champion 8M steps each, with a gin-rate
+eval every 1M steps (curve + best-by-gin-rate checkpoint, so late divergence can't hurt
+a longer run); the decisive metric is the gin rate under \emph{fixed} eval rewards.
+\textbf{(B) A stronger teacher:} we test whether Qwen3-30B beats the self-play
+champion---if so it becomes the teacher for a fine-tune; if a 30B still loses to a
+12M-step specialist, that bounds the LLM-teacher thesis and (A) carries the result.
+Further out: offline CQL distillation and a strong- vs.\ terse-prompt ablation.
 
 \paragraph{Reproducibility.} Sweeps run as SLURM arrays under \texttt{sweep/};
 the LLM stack is three \texttt{slurm/} jobs --- master, a worker array
