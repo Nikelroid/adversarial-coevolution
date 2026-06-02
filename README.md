@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  📊 <b><a href="https://kelidari.com/adversarial-coevolution/">Full HTML report</a></b>
+  📊 <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
   &nbsp;·&nbsp; 📄 <b><a href="paper/main.pdf">4-page PDF</a></b>
   &nbsp;·&nbsp; 🎮 <b><a href="game/">Play the web game</a></b>
 </p>
