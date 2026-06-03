@@ -280,12 +280,51 @@ def fig_ginshape():
     fig.tight_layout(); _save(fig, "ginshape")
 
 
+def fig_gold():
+    """Gold-standard benchmark: win rate vs every agent, and the gin/knock
+    trade-off (hold-for-gin vs random vs vs the champion)."""
+    p = os.path.join(ROOT, "sweep", "gold_bench.json")
+    if not os.path.exists(p):
+        print("  [skip] fig_gold: no gold_bench.json")
+        return
+    d = json.load(open(p))
+    order = ["random", "reward", "pool", "winrate", "llm_full", "champion"]
+    labels = [k for k in order if k in d["matchups"]]
+    wins = [d["matchups"][k]["a_win_rate"] * 100 for k in labels]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.2, 2.8))
+    colors = ["#7f8c8d"] + ["#2171b5"] * (len(labels) - 1)
+    ax1.barh(labels[::-1], wins[::-1], color=colors[::-1])
+    ax1.axvline(50, ls="--", lw=.8, color="#c0392b")
+    ax1.set_xlim(0, 100); ax1.set_xlabel("gold-standard win rate (%)")
+    ax1.set_title("Gold beats every learned agent", fontsize=9)
+    for i, w in enumerate(wins[::-1]):
+        ax1.text(w + 1, i, f"{w:.0f}", va="center", fontsize=7)
+
+    # gin/knock trade-off
+    grp = ["vs random", "vs champion"]
+    knock_win = [d["matchups"]["random"]["a_win_rate"] * 100,
+                 d["matchups"]["champion"]["a_win_rate"] * 100]
+    hold_win = [d["gold_hold_vs_random"]["a_win_rate"] * 100,
+                d.get("gold_hold_vs_champion", {}).get("a_win_rate", 0) * 100]
+    hold_gin = [d["gold_hold_vs_random"]["a_gin_rate"] * 100,
+                d.get("gold_hold_vs_champion", {}).get("a_gin_rate", 0) * 100]
+    x = np.arange(len(grp)); w = 0.27
+    ax2.bar(x - w, knock_win, w, label="knock ASAP: win", color="#2171b5")
+    ax2.bar(x, hold_win, w, label="hold for gin: win", color="#27ae60")
+    ax2.bar(x + w, hold_gin, w, label="hold for gin: gin%", color="#d9a521")
+    ax2.set_xticks(x); ax2.set_xticklabels(grp); ax2.set_ylim(0, 100)
+    ax2.set_ylabel("rate (%)"); ax2.set_title("Hold-for-gin: great vs weak,\nfatal vs strong", fontsize=9)
+    ax2.legend(fontsize=6, loc="upper right")
+    fig.tight_layout(); _save(fig, "gold_bench")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
-               fig_rlvsllm, fig_h2h, fig_ginshape):
+               fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
