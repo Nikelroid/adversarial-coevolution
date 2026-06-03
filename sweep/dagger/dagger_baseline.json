@@ -1,0 +1,32 @@
+{
+  "stub": false,
+  "llm_model": "qwen3-30b",
+  "bc_states": 0,
+  "bc_epochs": 8,
+  "rl_steps": 2000000,
+  "init": "scratch",
+  "bc": {},
+  "bc_eval": {},
+  "final_eval": {
+    "random": {
+      "win_rate": 0.645,
+      "gin_rate": 0.0175,
+      "loss_rate": 0.355,
+      "n": 400
+    },
+    "champion": {
+      "win_rate": 0.295,
+      "gin_rate": 0.0075,
+      "loss_rate": 0.705,
+      "n": 400
+    },
+    "gold": {
+      "win_rate": 0.085,
+      "gin_rate": 0.0025,
+      "loss_rate": 0.915,
+      "n": 400
+    }
+  },
+  "rl_seconds": 3693.816148519516,
+  "save_path": "game/model/ppo_gin_rummy_dagbase.zip"
+}

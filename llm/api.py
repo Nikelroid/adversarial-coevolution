@@ -174,7 +174,11 @@ class OllamaAPI:
             response = requests.post(self.api_endpoint, json=payload, timeout=1000)
             response.raise_for_status()
             result = response.json()
-            return result.get("response", "").strip()
+            text = result.get("response", "")
+            # Reasoning models (Qwen3 etc.) wrap output in <think>...</think>; even
+            # with /no_think they emit an empty block. Strip it so the action parses.
+            text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+            return text.strip()
         except requests.exceptions.RequestException as e:
             print(f"[ERROR] Ollama API request failed: {e}")
             raise

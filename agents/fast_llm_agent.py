@@ -24,7 +24,7 @@ VALID ACTIONS (pick exactly one):
 {valid_actions}
 
 Reply with ONLY the exact action string from the list above - no reasoning, no
-extra words, just the single action line."""
+extra words, just the single action line. /no_think"""
 
 
 class FastLLMAgent(LLMAgent):
