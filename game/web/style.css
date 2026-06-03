@@ -41,13 +41,17 @@ body {
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
   background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.15);
 }
-.opponent-picker { display: flex; align-items: center; gap: 8px; }
+.opponent-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .opponent-picker label {
   font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.75;
 }
 .opponent-picker select {
   background: #0c5b39; color: #fff; border: 1px solid var(--gold);
   border-radius: 8px; padding: 6px 10px; font-size: 14px; cursor: pointer;
+}
+.opponent-desc {
+  flex-basis: 100%; font-size: 12px; line-height: 1.4; opacity: 0.82;
+  max-width: 560px; margin-top: 2px;
 }
 
 .dbg-chip { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }

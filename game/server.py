@@ -39,30 +39,65 @@ from stable_baselines3 import PPO  # noqa: E402
 import ppo_train  # noqa: E402,F401  (registers MaskedGinRummyPolicy)
 from gym_wrapper import GinRummySB3Wrapper  # noqa: E402
 from agents.ppo_agent import PPOAgent  # noqa: E402
+from agents.random_agent import RandomAgent  # noqa: E402
+from agents.gold_standard_agent import GoldStandardAgent  # noqa: E402
 
 GAME_DIR = os.path.join(REPO_ROOT, "game")
 WEB_DIR = os.path.join(GAME_DIR, "web")
 DECK_DIR = os.path.join(GAME_DIR, "deck_images")
 IMAGES_DIR = os.path.join(GAME_DIR, "images")
-# Opponents the player can choose between, drawn from the Phase-1 sweep:
-#   winrate -> run_5 (highest win rate, 99.6% vs random)
-#   reward  -> run_2 (highest mean reward, 0.54)
-# Both ship in game/model/ so a fresh clone has them.
+# The opponents ("heroes") you can play against, hardest first. Each says exactly
+# what it is. type "ppo" loads the named .zip; "gold"/"random" are code agents.
+#   gold     -> hand-coded optimal expert (benchmark yardstick, never trained on)
+#   selfplay -> the strongest learned agent
+#   llm      -> champion fine-tuned against a Qwen2.5-7B opponent
+#   pool/winrate/reward -> Phase-1/2 PPO variants
+#   random   -> uniformly random legal move (easiest)
 OPPONENTS = {
-    "selfplay": {"label": "Self-play champion", "stat": "all-rounder",
-                 "file": "ppo_gin_rummy_selfplay.zip"},
-    "pool": {"label": "Pool champion", "stat": "self-play hardened",
-             "file": "ppo_gin_rummy_pool.zip"},
-    "winrate": {"label": "Highest win rate", "stat": "99.6% vs random",
-                "file": "ppo_gin_rummy_winrate.zip"},
-    "reward": {"label": "Highest reward", "stat": "0.54 avg reward",
-               "file": "ppo_gin_rummy_reward.zip"},
+    "gold": {"emoji": "🏆", "label": "Gold Standard", "type": "gold",
+             "stat": "optimal expert · benchmark",
+             "desc": "Hand-coded expert: always finds the best melds and knocks "
+                     "the moment it can. The benchmark we measure against, not a "
+                     "learned agent. Hardest."},
+    "selfplay": {"emoji": "🤖", "label": "Self-Play Champion", "type": "ppo",
+                 "file": "ppo_gin_rummy_selfplay.zip", "stat": "strongest RL agent",
+                 "desc": "PPO trained against frozen copies of itself. Our "
+                         "strongest learned agent."},
+    "llm": {"emoji": "🧠", "label": "LLM-Tutored", "type": "ppo",
+            "file": "ppo_gin_rummy_llm_full.zip", "stat": "fine-tuned vs Qwen2.5-7B",
+            "desc": "The champion fine-tuned for 1.5M steps against a Qwen2.5-7B "
+                    "language-model opponent."},
+    "pool": {"emoji": "♟️", "label": "Pool Veteran", "type": "ppo",
+             "file": "ppo_gin_rummy_pool.zip", "stat": "self-play pool (regressed)",
+             "desc": "PPO trained against a growing pool of its own past versions "
+                     "(AlphaZero-style); regressed after ~10M steps."},
+    "winrate": {"emoji": "🎯", "label": "Win-Rate Specialist", "type": "ppo",
+                "file": "ppo_gin_rummy_winrate.zip", "stat": "99.6% vs random",
+                "desc": "Phase-1 PPO tuned to beat the random player as often as "
+                        "possible (99.6%)."},
+    "reward": {"emoji": "💰", "label": "Reward Maximizer", "type": "ppo",
+               "file": "ppo_gin_rummy_reward.zip", "stat": "highest avg score",
+               "desc": "Phase-1 PPO with the highest average score per game."},
+    "random": {"emoji": "🎲", "label": "Random", "type": "random",
+               "stat": "random legal moves",
+               "desc": "Plays a uniformly random legal move every turn. Easiest."},
 }
 DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "selfplay")
 
 
 def opponent_path(key: str) -> str:
     return os.path.join(REPO_ROOT, "game", "model", OPPONENTS[key]["file"])
+
+
+def opponent_factory(key: str, models: dict):
+    """Build the opponent_policy for a given hero key (class the wrapper will
+    instantiate with the env)."""
+    kind = OPPONENTS[key]["type"]
+    if kind == "gold":
+        return GoldStandardAgent
+    if kind == "random":
+        return RandomAgent
+    return functools.partial(PPOAgent, model=models[key])
 
 # PettingZoo card index = suit*13 + rank, suits in this order, rank 0=Ace..12=King.
 _SUITS_FILE = ["spades", "hearts", "diamonds", "clubs"]
@@ -162,11 +197,11 @@ class GameSession:
     def _build_wrapper(self, key):
         self.opponent_key = key
         self.wrapper = GinRummySB3Wrapper(
-            opponent_policy=functools.partial(PPOAgent, model=self.models[key]),
+            opponent_policy=opponent_factory(key, self.models),
             randomize_position=True, turns_limit=200, curriculum_manager=None)
 
     def new_game(self, opponent_key=None):
-        key = opponent_key if opponent_key in self.models else self.opponent_key
+        key = opponent_key if opponent_key in OPPONENTS else self.opponent_key
         self._build_wrapper(key)
         obs, _ = self.wrapper.reset()
         self.obs = obs
@@ -426,7 +461,8 @@ def _make_handler(session: GameSession):
                     self._serve_image(IMAGES_DIR, path[len("/images/"):])
                 elif path == "/api/opponents":
                     self._send_json([
-                        {"key": k, "label": v["label"], "stat": v["stat"]}
+                        {"key": k, "label": v["label"], "stat": v["stat"],
+                         "emoji": v.get("emoji", ""), "desc": v.get("desc", "")}
                         for k, v in OPPONENTS.items()
                     ])
                 elif path == "/api/state":
@@ -481,12 +517,20 @@ def main():
     args = p.parse_args()
 
     models = {}
-    for key in OPPONENTS:
+    for key, spec in OPPONENTS.items():
+        if spec["type"] != "ppo":
+            print(f"Ready '{key}' opponent: {spec['label']} (code agent)")
+            continue
         path = opponent_path(key)
         if not os.path.isfile(path):
-            sys.exit(f"Model not found: {path}")
+            print(f"  [skip] '{key}': model not found at {path}")
+            continue
         print(f"Loading '{key}' opponent: {path}")
         models[key] = PPO.load(path, device="cpu")
+    # Drop any PPO opponents whose weights are missing so the UI never offers them.
+    for key in [k for k, s in OPPONENTS.items()
+                if s["type"] == "ppo" and k not in models]:
+        del OPPONENTS[key]
     print("Models loaded. Starting a game session...")
     session = GameSession(models, DEFAULT_OPPONENT)
 
