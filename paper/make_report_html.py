@@ -339,9 +339,12 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   agent, trained in self-play against strong opponents, rationally learned to knock, and why rewarding the
   gin directly (Phase 3) did not move it.</p>
 
-  <p><b>Why this matters next.</b> Unlike the 7B and 30B language models, the gold-standard agent is
-  genuinely <i>stronger</i> than our RL champion. That makes it the strong teacher the project has been
-  missing, and the target for Phase 4.</p>
+  <p><b>What this is for.</b> We use the gold-standard agent strictly as a <i>benchmark yardstick</i>, never
+  as a teacher. The project's real goal is a framework that develops strong RL using an <b>LLM</b> as the
+  guide, for tasks where no clear algorithm or gold standard exists. Gin Rummy is just the testbed where a
+  yardstick happens to exist, so we can measure how close LLM-guided RL gets. <b>Phase 4</b> starts with
+  LLM-DAgger: a language model proposes moves the RL agent learns from, then RL improves beyond it. The open
+  question, raised in Phase 2, is whether a <i>sub-optimal</i> LLM can still bootstrap a strong RL policy.</p>
 </section>
 
 <section id="repro">
