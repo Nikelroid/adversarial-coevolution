@@ -75,7 +75,7 @@ ol li,ul li{margin:4px 0;}
 NAV = """<div class="nav">
   <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
   <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
-  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#repro">Reproduce</a>
+  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#repro">Reproduce</a>
 </div>"""
 
 HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
@@ -106,6 +106,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
     <div class="kpi"><div class="v">5 / 5</div><div class="l">Qwen2.5-7B beats random</div></div>
     <div class="kpi"><div class="v">62&times;</div><div class="l">faster model loading</div></div>
     <div class="kpi warn"><div class="v">no gain</div><div class="l">from LLM fine-tuning</div></div>
+    <div class="kpi"><div class="v">70%</div><div class="l">gold-standard beats our champion</div></div>
   </div>
   <p>Gin Rummy is a card game that rewards two skills at once: quick counting (how many "deadwood" points
   are left in your hand) and longer-term planning (building "melds" &mdash; sets and runs). Our plan has
@@ -308,6 +309,41 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   (CQL distillation).</p>
 </section>
 
+<section id="gold">
+  <h2><span class="n">8</span>A gold-standard yardstick</h2>
+  <p>How good are our agents, really? To find out we built a <b>gold-standard agent</b>: it computes the
+  mathematically optimal way to arrange a hand into melds (exact deadwood minimization), takes the up-card
+  only when it lowers deadwood, goes gin when possible, and knocks as soon as it is allowed. It is
+  deterministic, fast, and plays a clean expert game. We played it against every agent we trained, 600
+  games each, swapping seats so neither side gets a dealer edge.</p>
+
+  <figure class="fig">{img("gold_bench.png","gold-standard benchmark")}<figcaption>Left: the gold-standard agent beats every learned agent. Right: holding out for a gin is great against a weak opponent and fatal against a strong one.</figcaption></figure>
+
+  <table>
+    <tr><th>Gold-standard plays vs</th><th class="n">gold win%</th><th>note</th></tr>
+    <tr><td>random</td><td class="n">99.5</td><td>near-perfect</td></tr>
+    <tr><td>reward-shaped PPO</td><td class="n">79.8</td><td></td></tr>
+    <tr><td>pool PPO</td><td class="n">75.5</td><td></td></tr>
+    <tr><td>winrate PPO</td><td class="n">74.3</td><td></td></tr>
+    <tr><td>LLM-fine-tuned PPO</td><td class="n">71.7</td><td></td></tr>
+    <tr><td>self-play champion</td><td class="n">70.2</td><td>our best RL agent</td></tr>
+    <tr><td>gold-standard (itself)</td><td class="n">51.0</td><td>sanity check, near 50%</td></tr>
+  </table>
+
+  <p><b>Two findings.</b> First, the gold-standard agent beats our best RL agent 70 to 30, so the learned
+  agents are strong but well short of optimal play; most of the gap is in how they form melds and choose
+  discards, not in the knock decision. Second, the gin question finally makes sense. A gold agent that
+  holds out for a gin gins <b>96%</b> of the time against a weak (random) opponent and still wins 96%, but
+  against the champion, who knocks early, holding for gin wins only <b>15%</b>: the opponent ends the game
+  before the gin lands. Going for gin pays off only against weak opponents. That is exactly why the RL
+  agent, trained in self-play against strong opponents, rationally learned to knock, and why rewarding the
+  gin directly (Phase 3) did not move it.</p>
+
+  <p><b>Why this matters next.</b> Unlike the 7B and 30B language models, the gold-standard agent is
+  genuinely <i>stronger</i> than our RL champion. That makes it the strong teacher the project has been
+  missing, and the target for Phase 4.</p>
+</section>
+
 <section id="repro">
   <h2>How to reproduce</h2>
   <p>Sweeps run as SLURM array jobs (<code>sweep/*.slurm</code>). The LLM stack is three SLURM jobs in
@@ -323,7 +359,10 @@ sbatch sweep/sweep.slurm
 # LLM stack: master + GPU worker pool, then train against it
 sbatch slurm/master.slurm
 sbatch --array=0-31 --export=ALL,WORKER_PRESET=qwen2.5-7b,WORKER_MAXTOK=64 slurm/worker.slurm
-sbatch slurm/llm_train.slurm</pre>
+sbatch slurm/llm_train.slurm
+
+# benchmark the gold-standard agent vs every trained agent
+python sweep/bench_gold.py</pre>
   <p>The typeset 4-page version of this report is <a href="{PDF}">paper/main.pdf</a>.</p>
 </section>
 
