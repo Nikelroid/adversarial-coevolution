@@ -1,148 +1,260 @@
+<h1 align="center">Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
 
-# Adversarial Co-Evolution of RL and VLM/LLM Agents in Multiplayer Games
+<p align="center">
+  <i>A hybrid system where a lightweight action-masked <b>PPO</b> agent and a strong-but-slow
+  <b>LLM</b> opponent train against each other —<br/>without paying full LLM latency on every RL step.</i>
+</p>
 
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)
-![Stable Baselines3](https://img.shields.io/badge/Stable%20Baselines3-2.3+-green.svg)
-![PettingZoo](https://img.shields.io/badge/PettingZoo-Gin%20Rummy-purple.svg)
+<p align="center">
+  <img src="https://img.shields.io/badge/RL-action--masked%20PPO-0b5b39"/>
+  <img src="https://img.shields.io/badge/env-PettingZoo%20%2F%20RLCard-0b5b39"/>
+  <img src="https://img.shields.io/badge/LLM-Qwen2.5--7B-0b5b39"/>
+  <img src="https://img.shields.io/badge/serving-master%2Fworker%2Fcache-0b5b39"/>
+  <img src="https://img.shields.io/badge/cluster-SLURM%20%C2%B7%20up%20to%2032%20V100-0b5b39"/>
+</p>
 
-## 📖 Overview
+<p align="center">
+  📊 <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
+  &nbsp;·&nbsp; 📄 <b><a href="paper/main.pdf">4-page PDF</a></b>
+  &nbsp;·&nbsp; 🎮 <b><a href="game/">Play the web game</a></b>
+</p>
 
-This project explores the intersection of **Reinforcement Learning (RL)** and **Large Language Models (LLMs)** in complex, imperfect-information environments (Gin Rummy). It addresses the challenge of training RL agents without reliable opponents or expensive human feedback by establishing an **adversarial co-evolutionary loop**.
+---
 
-We utilize LLMs (Llama 3, Gemma, GPT) as zero-shot strategic opponents to guide the training of efficient PPO agents. The system employs a **3-phase curriculum learning** approach to distill the broad, "common-sense" strategic knowledge of LLMs into a fast, compact RL policy.
+<h2 align="center">Highlights</h2>
 
-![Results Page](adverserial-coev.png)
+<div align="center">
 
-## 🚀 Key Features & Achievements
+<table align="center">
+<tr>
+  <td align="center"><b>99.6%</b><br/><sub>best PPO vs random</sub></td>
+  <td align="center"><b>5 / 5</b><br/><sub>Qwen2.5-7B beats random</sub></td>
+  <td align="center"><b>62×</b><br/><sub>faster worker load (scratch)</sub></td>
+  <td align="center"><b>~32 q/s</b><br/><sub>LLM throughput, 14 workers</sub></td>
+</tr>
+</table>
 
-* **High-Performance RL Pipeline:** Engineered a high-throughput, 64-96 core, multi-process PPO training pipeline with a custom action-masked policy using Stable Baselines 3 and PyTorch.
-* **Curriculum Learning System:** Built a robust 3-phase curriculum learning system (Random → Self-Play → Adversarial) with a fully cached RAM model-pool API, achieving a **99.12% win rate** vs. baseline agents.
-* **LLM Knowledge Distillation:** Architected a scalable API framework to integrate LLM strategic insights as a policy prior, enabling agents to learn from models like Llama 3 and GPT-OSS via Ollama/HuggingFace.
-* **Interactive Evaluation Suite:** Designed and built a custom evaluation environment (PettingZoo) and Web UI for critical live human-vs-agent testing and qualitative validation of learned strategies.
+</div>
 
-## 🛠️ System Architecture
+<p align="center">
+  Gin Rummy needs both short-horizon arithmetic (deadwood counting) and long-horizon planning
+  (meld formation).<br/>Our three-phase roadmap:
+  <b>(1)</b> train a strong RL backbone vs weak opponents →
+  <b>(2)</b> train it vs an LLM opponent →
+  <b>(3)</b> let them co-evolve.<br/>This repo covers <b>Phases&nbsp;1–2</b>.
+</p>
 
-The project consists of three main components:
+<div align="center">
+  <img src="paper/figures/game_ui.png" width="640" alt="Human vs RL web game"/>
+  <br/><sub><b>The human-vs-RL web client</b> — 3-D card animations, four trained opponents (debug view shown).</sub>
+</div>
 
-1.  **The RL Agent (PPO):** A custom implementation of Proximal Policy Optimization with valid action masking, trained to handle the partial observability of Gin Rummy.
-2.  **The LLM Agent:** A sophisticated wrapper that parses game states into text prompts (Chain-of-Thought) and parses LLM responses back into valid game actions.
-3.  **The Orchestrator:** Manages the training curriculum, switching opponents between random agents, prior model checkpoints, and live LLM inferences based on training progress.
+---
 
-## 📂 Project Structure
+<h2 align="center">Phase 1 — the RL backbone saturates against random</h2>
 
-```text
-.
-├── agents/                 # Agent implementations (PPO, Random, LLM, Human)
-├── artifacts/              # Trained models and checkpoints
-├── config/                 # Configuration files (paths, prompts.yaml)
-├── controller/             # Game logic and orchestration
-├── game/                   # Gin Rummy environment wrappers and assets
-├── llm/                    # API handlers for Ollama/HuggingFace interaction
-├── src/                    # Utilities, logging, and UI components
-├── templates/              # HTML templates for the Web UI
-├── app.py                  # Flask application for web-based play
-├── eval.py                 # Evaluation scripts
-├── main.py                 # Main entry point
-├── ppo_train.py            # PPO training pipeline script
-├── environment.yml         # Conda environment definition
-└── requirements.txt        # Python dependencies
+<p align="center">
+  Action-masked PPO (illegal-action logits → −∞) on PettingZoo <code>gin_rummy_v4</code>. An eight-config
+  sweep (3×2 grid over learning rate × entropy, plus two ablations), 2M steps each, 96 parallel envs,
+  evaluated over 1000 deterministic games.<br/><b>Every config lands in the 98.3–99.6% band</b> —
+  statistically indistinguishable (95% CI ±0.6 pp). Mean reward sits at the <b>knock</b> value (0.5),
+  not <b>gin</b> (1.5) — a risk/reward call only a <i>thinking</i> opponent can teach. That motivates Phase&nbsp;2.
+</p>
+
+<div align="center">
+  <img src="paper/figures/win_rate.png" width="540" alt="Phase-1 win rates"/>
+</div>
+
+<div align="center">
+
+<table align="center">
+<tr><th>Config</th><th>win%</th><th>loss%</th><th>note</th></tr>
+<tr><td>cfg5 · lr 5e-5, ent .03</td><td align="center"><b>99.6</b></td><td align="center">0.4</td><td>best of sweep</td></tr>
+<tr><td>cfg7 · lr 1e-4, 10 epochs</td><td align="center">99.5</td><td align="center">0.5</td><td>ablation</td></tr>
+<tr><td>cfg0 · lr 3e-4, ent .01</td><td align="center">99.4</td><td align="center">0.6</td><td>baseline</td></tr>
+<tr><td>cfg3 · lr 1e-4, ent .03</td><td align="center">99.4</td><td align="center">0.6</td><td>—</td></tr>
+<tr><td>cfg6 · lr 1e-4, n_steps 1024</td><td align="center">99.3</td><td align="center">0.7</td><td>ablation</td></tr>
+<tr><td>cfg4 · lr 5e-5, ent .01</td><td align="center">99.2</td><td align="center">0.8</td><td>—</td></tr>
+<tr><td>cfg1 · lr 3e-4, ent .03</td><td align="center">98.8</td><td align="center">1.2</td><td>—</td></tr>
+<tr><td>cfg2 · lr 1e-4, ent .01</td><td align="center">98.3</td><td align="center">1.7</td><td>worst of sweep</td></tr>
+</table>
+
+</div>
+
+---
+
+<h2 align="center">Phase 2 — LLM-in-the-loop infrastructure</h2>
+
+<p align="center">
+  A single PPO rollout fires up to ~50k opponent queries; at 0.5–3 s per 7B call a naïve loop takes hours.
+  We decouple inference from RL with a three-tier stack — workers self-register, the master load-balances
+  and caches, the RL client speaks the unchanged Ollama API.
+</p>
+
+<div align="center">
+
+```
+   env subprocess  ─▶  Master (CPU, FastAPI)  ─▶  suit-symmetry cache  ──(hit)──▶ return
+   (per-step query)    Ollama-compatible API            │ miss
+                              │ round-robin              ▼
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+          HF worker       HF worker   …   HF worker      (1 GPU each, Qwen2.5-7B)
+          self-registers in a shared-filesystem registry; master health-checks + balances
 ```
 
+</div>
 
-## 💻 Installation
+<div align="center">
 
-### Prerequisites
+<table align="center">
+<tr>
+  <td align="center"><img src="paper/figures/selfplay.png" width="250"/><br/><sub><b>Self-play</b> beats its progenitor</sub></td>
+  <td align="center"><img src="paper/figures/pool.png" width="250"/><br/><sub><b>Pool</b> diverged after ~10M</sub></td>
+</tr>
+<tr>
+  <td align="center"><img src="paper/figures/llm_opponent.png" width="250"/><br/><sub><b>Qwen2.5-7B</b> is competent; OLMoE isn't</sub></td>
+  <td align="center"><img src="paper/figures/throughput.png" width="250"/><br/><sub><b>Throughput</b> ~32 q/s, scales with pool</sub></td>
+</tr>
+</table>
 
-  * Python 3.10+
-  * Conda (recommended)
-  * [Ollama](https://ollama.com/) (for local LLM inference)
+</div>
 
-### Setup
+<div align="center">
 
-1.  **Clone the repository:**
+<table align="center">
+<tr><th>Agent / opponent</th><th>vs</th><th>win%</th><th>loss%</th><th>note</th></tr>
+<tr><td>Self-play (3M)</td><td>frozen run_5</td><td align="center"><b>61.1</b></td><td align="center">38.9</td><td>beats progenitor</td></tr>
+<tr><td>Self-play (3M)</td><td>random</td><td align="center">98.7</td><td align="center">1.3</td><td>stays dominant</td></tr>
+<tr><td>Pool champion (12M)</td><td>random</td><td align="center">85.8</td><td align="center">14.2</td><td>⚠️ diverged</td></tr>
+<tr><td>OLMoE-1B opponent</td><td>random</td><td align="center">≈50</td><td align="center">—</td><td>plays at chance</td></tr>
+<tr><td>Qwen2.5-7B opponent</td><td>random</td><td align="center"><b>100</b></td><td align="center">0</td><td>5/5 (small N)</td></tr>
+</table>
 
-    ```bash
-    git clone [https://github.com/nikelroid/adversarial-coevolution.git](https://github.com/nikelroid/adversarial-coevolution.git)
-    cd adversarial-coevolution
-    ```
+</div>
 
-2.  **Create the environment:**
+<p align="center">
+  💡 <b>Infra finding:</b> loading a 7B worker from home NFS runs at ~11 MB/s (~28 min — blows the
+  health-check timeout). Staging weights on <b>scratch/BeeGFS cuts this to 27 s (62×)</b> — mandatory at scale.
+</p>
 
-    ```bash
-    conda env create -f environment.yml
-    conda activate rl-llm-env
-    ```
+---
 
-    *Alternatively, using pip:*
+<h2 align="center">First RL-vs-LLM run</h2>
 
-    ```bash
-    pip install -r requirements.txt
-    pip install -e .
-    ```
+<p align="center">
+  PPO <b>warm-started from the self-play champion</b>, 64 env subprocesses, playing through the master against
+  up to 32 Qwen2.5-7B workers (14 granted under the shared GPU quota — elastic).<br/>
+  Ran <b>40k steps (~5 rollouts) in 17.5 min</b> at 39 env-steps/s; the terse prompt + 64-token cap dropped
+  per-call latency from ~16 s to ~0.4 s.
+</p>
 
-## 🏃‍♂️ Usage
+<div align="center">
 
-### 1\. Training the RL Agent
+<table align="center">
+<tr><th>Fine-tuned agent (40k steps)</th><th>vs</th><th>win%</th><th>loss%</th></tr>
+<tr><td>LLM-finetuned PPO</td><td>random</td><td align="center"><b>98.2</b></td><td align="center">1.8</td></tr>
+<tr><td>LLM-finetuned PPO</td><td>self-play champion</td><td align="center">45.4</td><td align="center">54.6</td></tr>
+</table>
 
-To start the PPO training pipeline with the default configuration (Curriculum Phase 1 & 2):
+</div>
+
+<p align="center">
+  <b>Honest read:</b> the agent <i>retains</i> 98.2% vs random but sits at 45.4% vs the champion it started
+  from — 40k steps (against 3M for self-play) is far too short to improve. This run validates the
+  <b>pipeline</b> and confirms competence is retained; showing the LLM teacher actually <i>helps</i> is the
+  <b>Phase-3</b> experiment (a much longer fine-tune to raise the gin rate, the headroom Phase 1 exposed).
+</p>
+
+---
+
+<h2 align="center">Phase 3 — in progress 🔬</h2>
+
+<p align="center">
+  Two experiments are <b>running on the cluster now</b> (launched Jun 2026). No results claimed yet —
+  this section updates as runs land.
+</p>
+
+<div align="center">
+
+<table align="center">
+<tr><th>Experiment</th><th>Question</th><th>Design</th></tr>
+<tr>
+  <td><b>A · Close the gin gap</b></td>
+  <td>Can reward shaping make the agent <i>gin</i> instead of always knocking?</td>
+  <td>6 reward configs × 3 seeds, 8M self-play steps each; gin-rate eval every 1M steps (curve + best checkpoint)</td>
+</tr>
+<tr>
+  <td><b>B · Stronger teacher</b></td>
+  <td>Does <b>Qwen3-30B</b> beat the self-play champion (i.e. can it teach)?</td>
+  <td>30B-as-opponent eval vs champion + random; fine-tune against it if it wins</td>
+</tr>
+</table>
+
+</div>
+
+<p align="center">
+  <b>Why this design:</b> Phase 1 proved the agent always knocks and never gins — so <b>A</b> attacks that
+  headroom directly, and <b>B</b> gives the co-evolution thesis a teacher that might actually be stronger
+  than the student. Both honest: if shaping stays flat or a 30B still loses to the specialist, those are
+  findings, not failures.
+</p>
+
+---
+
+<h2 align="center">Repository layout</h2>
+
+<div align="center">
+
+<table align="center">
+<tr><th>Path</th><th>What</th></tr>
+<tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>masked-PPO policy + single-agent wrapper over <code>gin_rummy_v4</code></td></tr>
+<tr><td><code>sweep/</code></td><td>Phase-1 sweep, self-play, pool, <code>llmplay_one.py</code> (RL-vs-LLM), and the Phase-3 <code>ginshape.slurm</code> reward-shaping sweep</td></tr>
+<tr><td><code>llm/</code></td><td>master / worker / cache / discovery + <code>eval_opponent.py</code></td></tr>
+<tr><td><code>agents/</code></td><td><code>RandomAgent</code>, <code>PPOAgent</code>, <code>LLMAgent</code>, <code>FastLLMAgent</code></td></tr>
+<tr><td><code>slurm/</code></td><td>SLURM jobs: <code>master</code>, <code>worker</code> (array), <code>llm_train</code>, <code>llm_eval</code></td></tr>
+<tr><td><code>game/</code></td><td>zero-dependency human-vs-RL web client (server + HTML/JS)</td></tr>
+<tr><td><code>paper/</code></td><td>report (<code>main.tex</code> → <code>main.pdf</code>), figures, <code>make_figures.py</code>, <code>make_report_html.py</code></td></tr>
+<tr><td><code>docs/</code></td><td><code>index.html</code> (full report), <code>llm_architecture.md</code></td></tr>
+</table>
+
+</div>
+
+---
+
+<h2 align="center">Quickstart</h2>
 
 ```bash
-python ppo_train.py
+# 1) Play against the trained agent (web game)
+python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
+
+# 2) Phase-1 sweep (SLURM, 64-core CPU node)
+sbatch sweep/sweep.slurm
+
+# 3) LLM opponent stack (SLURM): master + GPU worker pool
+sbatch slurm/master.slurm
+sbatch --array=0-31 --export=ALL,WORKER_PRESET=qwen2.5-7b,WORKER_MAXTOK=64 slurm/worker.slurm
+
+# 4) RL-vs-LLM fine-tune (finds the master via runtime/master.json)
+sbatch slurm/llm_train.slurm
+
+# regenerate the report figures + HTML
+python paper/make_figures.py && python paper/make_report_html.py
 ```
 
-*Check `config/` to adjust hyperparameters or curriculum stages.*
+<p align="center">
+  ⚠️ Load LLM worker weights from <b>scratch/BeeGFS</b> (<code>HF_HOME=/scratch.../hf_cache</code>), not home NFS.
+</p>
 
-### 2\. Running the LLM Interaction
+---
 
-Ensure your Ollama server is running (default port 11434). To test an LLM agent:
+<p align="center">
+  <b>Nima Kelidari · Mahdi Salmani · Mohammadsaeed Haghi</b><br/>
+  <sub>University of Southern California</sub>
+</p>
 
-```bash
-python llm_test.py
-```
-
-### 3\. Web Interface (Human vs. Agent)
-
-Launch the web application to play against the trained models:
-
-```bash
-python app.py
-```
-
-Open your browser at `http://localhost:5000`.
-
-### 4\. Evaluation
-
-To benchmark the current model against a random agent or an LLM:
-
-```bash
-python eval.py --model artifacts/models/ppo_gin_rummy/ppo_gin_rummy_final.zip
-```
-
-## 📊 Results
-
-| Agent Type | Opponent | Win Rate | Notes |
-|:---:|:---:|:---:|:---:|
-| **PPO (Baseline)** | Random | 98.9% | High win rate, but prone to local optima (Gin-biased). |
-| **PPO (Curriculum)** | Random | **99.1%** | Balanced strategy (Knock vs. Gin). |
-| **GPT-OSS (20B)** | Random | 100% | Zero-shot performance (5-0 match). |
-| **GPT-OSS (20B)** | PPO (Knock) | 60% | Competitive match (3-2 score). |
-
-## 👥 Authors
-
-  * **Nima Kelidari** - *Lead Engineer & RL Architecture* - [kelidari@usc.edu](mailto:kelidari@usc.edu)
-  * **Mahdi Salmani** - *LLM Integration & Evaluation* - [salmanis@usc.edu](mailto:salmanis@usc.edu)
-  * **Mohammadsaeed Haghi** - *Game Environment & API* - [haghim@usc.edu](mailto:haghim@usc.edu)
-
-## 📄 License
-
-This project is licensed under the MIT License - see the `LICENSE` file for details.
-
-## 🙏 Acknowledgments
-
-  * [PettingZoo](https://pettingzoo.farama.org/) for the Multi-Agent RL environments.
-  * [Stable-Baselines3](https://stable-baselines3.readthedocs.io/) for reliable PPO implementations.
-  * [RLCard](https://github.com/datamllab/rlcard) for game logic inspiration.
-
-<!-- end list -->
-
+<p align="center">
+  <sub>Built on PPO + action masking, PettingZoo/RLCard, Stable-Baselines3, and Qwen2.5.<br/>
+  Figures and reports regenerate from measured JSON results — see the
+  <a href="https://Nikelroid.github.io/adversarial-coevolution/">full report</a>.</sub>
+</p>
