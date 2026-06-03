@@ -319,15 +319,18 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 
   <figure class="fig">{img("gold_bench.png","gold-standard benchmark")}<figcaption>Left: the gold-standard agent beats every learned agent. Right: holding out for a gin is great against a weak opponent and fatal against a strong one.</figcaption></figure>
 
+  <p><b>Meet the agents (also the opponents in the playable game).</b> Lower "gold win%"
+  means a tougher opponent for the gold standard, so the self-play champion is the strongest
+  of the learned agents.</p>
   <table>
-    <tr><th>Gold-standard plays vs</th><th class="n">gold win%</th><th>note</th></tr>
-    <tr><td>random</td><td class="n">99.5</td><td>near-perfect</td></tr>
-    <tr><td>reward-shaped PPO</td><td class="n">79.8</td><td></td></tr>
-    <tr><td>pool PPO</td><td class="n">75.5</td><td></td></tr>
-    <tr><td>winrate PPO</td><td class="n">74.3</td><td></td></tr>
-    <tr><td>LLM-fine-tuned PPO</td><td class="n">71.7</td><td></td></tr>
-    <tr><td>self-play champion</td><td class="n">70.2</td><td>our best RL agent</td></tr>
-    <tr><td>gold-standard (itself)</td><td class="n">51.0</td><td>sanity check, near 50%</td></tr>
+    <tr><th>Hero</th><th>What it is</th><th class="n">gold win% vs it</th></tr>
+    <tr><td>🏆 Gold Standard</td><td>Hand-coded expert: optimal melds, knocks as soon as it can. The benchmark, never trained on.</td><td class="n">&mdash;</td></tr>
+    <tr><td>🤖 Self-Play Champion</td><td>PPO trained against frozen copies of itself. Our strongest learned agent.</td><td class="n">70.2</td></tr>
+    <tr><td>🧠 LLM-Tutored</td><td>The champion fine-tuned for 1.5M steps against a Qwen2.5-7B opponent.</td><td class="n">71.7</td></tr>
+    <tr><td>🎯 Win-Rate Specialist</td><td>Phase-1 PPO tuned to beat random as often as possible (99.6%).</td><td class="n">74.3</td></tr>
+    <tr><td>♟️ Pool Veteran</td><td>PPO trained against a pool of its past versions; regressed after ~10M steps.</td><td class="n">75.5</td></tr>
+    <tr><td>💰 Reward Maximizer</td><td>Phase-1 PPO with the highest average score per game.</td><td class="n">79.8</td></tr>
+    <tr><td>🎲 Random</td><td>Plays a uniformly random legal move. Easiest.</td><td class="n">99.5</td></tr>
   </table>
 
   <p><b>Two findings.</b> First, the gold-standard agent beats our best RL agent 70 to 30, so the learned

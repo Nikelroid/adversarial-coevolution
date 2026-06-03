@@ -100,17 +100,30 @@ function selectedOpponent() {
   return sel && sel.value ? sel.value : undefined;
 }
 
+let OPP_INFO = {};   // key -> {emoji, label, stat, desc}
+
+function showOpponentDesc() {
+  const sel = $("opponent-select");
+  const d = $("opponent-desc");
+  if (!sel || !d) return;
+  const o = OPP_INFO[sel.value];
+  d.textContent = o ? `${o.emoji} ${o.label}: ${o.desc}` : "";
+}
+
 async function loadOpponents() {
   const list = await api("GET", "/api/opponents");
   const sel = $("opponent-select");
   sel.innerHTML = "";
+  OPP_INFO = {};
   list.forEach((o) => {
+    OPP_INFO[o.key] = o;
     const opt = document.createElement("option");
     opt.value = o.key;
-    opt.textContent = `${o.label} · ${o.stat}`;
+    opt.textContent = `${o.emoji ? o.emoji + " " : ""}${o.label} · ${o.stat}`;
     sel.appendChild(opt);
   });
-  sel.onchange = () => newGame();
+  sel.onchange = () => { showOpponentDesc(); newGame(); };
+  showOpponentDesc();
 }
 
 // ---------------------------------------------------------------- card DOM
@@ -379,7 +392,7 @@ function render(v) {
 
   if (v.opponent_key) {
     const sel = $("opponent-select");
-    if (sel && sel.value !== v.opponent_key) sel.value = v.opponent_key;
+    if (sel && sel.value !== v.opponent_key) { sel.value = v.opponent_key; showOpponentDesc(); }
   }
   $("message").textContent = v.message || "";
   $("deadwood-badge").textContent = `deadwood: ${v.deadwood}`;
