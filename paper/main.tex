@@ -60,8 +60,11 @@ conclusion is that a 7B opponent is \emph{weaker} than our self-play champion,
 so it cannot lift a near-saturated policy. \textbf{Phase~3} confirms that reward
 shaping alone does not raise the gin rate, and a \textbf{gold-standard} expert
 agent (exact meld optimisation) beats our best RL agent $70\%$ of the time, so
-the learned agents are far from optimal; this agent becomes the strong teacher
-that Phase~4 trains against.
+the learned agents are far from optimal. This agent is a \emph{benchmark yardstick
+only}: the project's aim is a framework that develops strong RL with an \textbf{LLM}
+as the guide (never the optimal solver) for tasks that lack any clear algorithm or
+gold standard, and \textbf{Phase~4} measures how close LLM-guided RL gets to that
+yardstick.
 \end{abstract}
 
 \section{Goal and roadmap}
@@ -283,9 +286,9 @@ winrate $74.3\%$, LLM-fine-tuned $71.7\%$, and the self-play champion $70.2\%$
 optimal, mainly in melding and discard quality rather than the knock call. A gin-seeking
 variant gins $96\%$ and wins $96\%$ vs random but wins only $15\%$ vs the champion, who
 knocks before the gin lands: going for gin pays only against weak opponents, which is why
-a self-play agent rationally knocks and why Phase~3 shaping did not move it. Being
-genuinely stronger than the champion, this agent is the strong teacher for Phase~4 that
-the 7B/30B LLMs were not.
+a self-play agent rationally knocks and why Phase~3 shaping did not move it. We use this
+agent strictly as a \emph{benchmark yardstick}: it is never used to train, because the
+project targets tasks where no such optimal solver exists.
 
 \begin{figure}[h]
   \centering
@@ -297,16 +300,17 @@ the 7B/30B LLMs were not.
   \label{fig:gold}
 \end{figure}
 
-\paragraph{Phase~4: learning from the gold standard.} The gold-standard agent is the
-strong, stable, GPU-free teacher that Phases~2--3 lacked, and Phase~4 turns it into a
-training signal three ways. (1) \emph{Opponent}: fine-tune the champion against the
-gold-standard agent, which knocks fast and melds well, forcing the RL agent to sharpen
-its own melding to compete. (2) \emph{Imitation / DAgger}: supervise the policy on the
-gold-standard move at states the RL agent actually visits, injecting the optimal melding
-and discard decisions exploration never found. (3) \emph{Potential-based shaping}: use
-the gold-standard deadwood as a dense per-step potential, rewarding progress toward a
-meldable hand rather than only the terminal knock. Headline metrics will be win rate vs
-the gold standard and vs the champion, plus the gin rate against weak opponents.
+\paragraph{Phase~4: an LLM-guided RL framework.} The project's real goal is a reusable
+framework, an environment plus an RL base plus an \textbf{LLM guide}, that develops a
+strong RL policy for tasks where no clear algorithm or gold standard exists. Gin Rummy is
+the testbed where a gold standard happens to exist, so we can measure how close
+LLM-guided RL gets to it; in the target domains the yardstick would be absent. The
+training signal therefore comes from the LLM, never from the optimal solver. The first
+mechanism is \emph{LLM-DAgger}: a chain-of-thought LLM proposes the move at states the RL
+agent visits, the RL agent imitates these labels as a prior and then improves by RL
+beyond the (imperfect) LLM. The open question Phase~2 raised, whether a \emph{sub-optimal}
+LLM can still bootstrap a strong RL policy, is exactly what this measures, scored as win
+rate against the gold-standard yardstick and the champion.
 
 \paragraph{Reproducibility.} Sweeps run as SLURM arrays under \texttt{sweep/}; the LLM
 stack is three \texttt{slurm/} jobs (master, a scratch-staged worker array, and the
