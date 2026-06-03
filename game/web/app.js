@@ -119,7 +119,7 @@ async function loadOpponents() {
     OPP_INFO[o.key] = o;
     const opt = document.createElement("option");
     opt.value = o.key;
-    opt.textContent = `${o.emoji ? o.emoji + " " : ""}${o.label} · ${o.stat}`;
+    opt.textContent = `${o.emoji ? o.emoji + " " : ""}${o.label}`;
     sel.appendChild(opt);
   });
   sel.onchange = () => { showOpponentDesc(); newGame(); };

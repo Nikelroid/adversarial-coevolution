@@ -12,7 +12,6 @@
     <div class="opponent-picker">
       <label for="opponent-select">Opponent</label>
       <select id="opponent-select"></select>
-      <div id="opponent-desc" class="opponent-desc"></div>
     </div>
     <div class="legend">
       <label class="chip dbg-chip"><input type="checkbox" id="debug-toggle"> see opponent</label>
@@ -21,11 +20,12 @@
       <span id="deadwood-badge" class="chip dw-chip">deadwood: 0</span>
     </div>
   </header>
+  <div id="opponent-desc" class="opponent-desc"></div>
 
   <main class="table">
     <!-- Opponent -->
     <section class="zone opponent-zone">
-      <div class="zone-label">PPO Agent</div>
+      <div class="zone-label">Opponent</div>
       <div id="opponent" class="hand opponent-hand"></div>
     </section>
 
