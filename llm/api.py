@@ -376,6 +376,26 @@ class OllamaAPI:
                  print(f"[INFO] Parsed partial action '{action_string}' from response.")
                  return action_id
 
+        # 4. Lenient normalized match: the LLM often drops the "(9 of Clubs)" detail
+        #    ("pick top card from discard pile") or adds words. Normalize both sides
+        #    (lowercase, strip the parenthetical + punctuation) and match by
+        #    containment; pick the most specific (longest) option. Avoids the
+        #    all-or-nothing exact match that was forcing random fallback.
+        def _norm(s):
+            s = re.sub(r"\(.*?\)", "", s.lower())
+            return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", s)).strip()
+        nresp = _norm(last_line) or _norm(response.strip().split("\n")[-1])
+        if nresp:
+            cands = []
+            for action_string, action_id in self.current_action_map.items():
+                nact = _norm(action_string)
+                if nact and (nact == nresp or nact in nresp or nresp in nact):
+                    cands.append((len(nact), action_id, action_string))
+            if cands:
+                cands.sort(reverse=True)
+                print(f"[INFO] Lenient-matched '{cands[0][2]}' from '{last_line}'.")
+                return cands[0][1]
+
         # If no valid action found, return None
         print(f"[WARNING] Could not parse valid action string from response: {response[-200:]}...")
         print(f"       Valid options were: {list(self.current_action_map.keys())}")
