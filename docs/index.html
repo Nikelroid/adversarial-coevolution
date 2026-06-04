@@ -67,7 +67,7 @@ ol li,ul li{margin:4px 0;}
 <div class="nav">
   <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
   <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
-  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#repro">Reproduce</a>
+  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#algo">Algorithm</a><a href="#repr">Representation</a><a href="#repro">Reproduce</a>
 </div>
 
 <div class="wrap">
@@ -321,6 +321,47 @@ ol li,ul li{margin:4px 0;}
   yardstick happens to exist, so we can measure how close LLM-guided RL gets. <b>Phase 4</b> starts with
   LLM-DAgger: a language model proposes moves the RL agent learns from, then RL improves beyond it. The open
   question, raised in Phase 2, is whether a <i>sub-optimal</i> LLM can still bootstrap a strong RL policy.</p>
+</section>
+
+<section id="algo">
+  <h2><span class="n">9</span>Is plain PPO the right algorithm?</h2>
+  <p>We trained the same masked self-play task (from scratch vs the champion, 2M steps) with two
+  on-policy RL algorithms, 2 seeds each, to isolate the algorithm. <b>TRPO clearly beats PPO</b>,
+  consistently across both seeds and every opponent.</p>
+  <figure class="fig" style="max-width:480px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/algo_compare.png" alt="PPO vs TRPO" loading="lazy"/><figcaption>TRPO outperforms PPO on every metric.</figcaption></figure>
+  <table>
+    <tr><th>Algorithm</th><th class="n">win% vs random</th><th class="n">vs champion</th><th class="n">vs gold</th></tr>
+    <tr><td>PPO (2 seeds)</td><td class="n">81.1</td><td class="n">31.0</td><td class="n">15.0</td></tr>
+    <tr><td><b>TRPO (2 seeds)</b></td><td class="n"><b>91.8</b></td><td class="n"><b>50.5</b></td><td class="n"><b>22.5</b></td></tr>
+  </table>
+  <p><b>Honest read.</b> A different RL algorithm does help here: TRPO's trust-region update gives a
+  ~50% larger win rate vs the gold standard than plain PPO. Two caveats also worth stating plainly:
+  (1) these agents train from scratch in only 2M steps, so absolute numbers are modest (the 12M-step
+  champion itself wins ~30% vs gold) &mdash; the valid signal is the <i>comparison</i>, not the absolute
+  strength; (2) <b>GRPO and DPO do not apply</b> here &mdash; they are LLM-alignment methods
+  (group-relative reward-model / preference fine-tuning) with no per-step environment interaction, so
+  "they would do better" is false by construction. The genuinely promising next variant is
+  <b>RecurrentPPO</b> (LSTM memory for the imperfect-information state).</p>
+</section>
+
+<section id="repr">
+  <h2><span class="n">10</span>Does a learned state embedding help?</h2>
+  <p>The observation is a large, sparse 208-d vector. We tried compressing it to a dense 20-d embedding
+  two ways and using it (frozen) as the RL policy's input: a <b>temporal</b> embedding (self-supervised:
+  states near each other in a game are similar) and an <b>LLM-similarity</b> embedding (an LLM judges
+  how strategically similar two states are). Compared against the raw sparse vector, same RL.</p>
+  <figure class="fig" style="max-width:520px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/phase5_compare.png" alt="representation comparison" loading="lazy"/><figcaption>Sparse vs the learned embeddings (LLM embedding still running).</figcaption></figure>
+  <table>
+    <tr><th>Representation</th><th class="n">win% vs random</th><th class="n">vs champion</th><th class="n">vs gold</th></tr>
+    <tr><td>sparse (208-d)</td><td class="n">77.5</td><td class="n">31.5</td><td class="n">15.0</td></tr>
+    <tr><td>temporal embed (20-d, frozen)</td><td class="n">64.5</td><td class="n">17.7</td><td class="n">13.8</td></tr>
+    <tr><td>LLM-similarity embed (20-d)</td><td class="n" colspan="3"><i>pending (L40S queue)</i></td></tr>
+  </table>
+  <p><b>Honest read so far.</b> The temporal embedding <i>hurts</i>: a frozen 20-d bottleneck that is good
+  at "are these two states similar" (val-corr 0.71) still discards detail the policy needs, so it loses to
+  the raw sparse vector. The open question is whether the <b>LLM-similarity embedding</b> (pending) keeps
+  more strategically-relevant structure, and whether a <b>larger embedding</b> or an <b>un-frozen</b> one
+  recovers the lost information. That ablation is next.</p>
 </section>
 
 <section id="repro">

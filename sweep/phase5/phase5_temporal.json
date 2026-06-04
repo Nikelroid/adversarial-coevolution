@@ -1,0 +1,24 @@
+{
+  "tag": "temporal",
+  "embedder": "/scratch1/kelidari/advcoev_store/embed/temporal_dataset_embedder.pt",
+  "rl_steps": 2000000,
+  "train_seconds": 3931.4370605945587,
+  "vs_random": {
+    "win_rate": 0.645,
+    "gin_rate": 0.01,
+    "loss_rate": 0.355,
+    "n": 400
+  },
+  "vs_champion": {
+    "win_rate": 0.1775,
+    "gin_rate": 0.0025,
+    "loss_rate": 0.8225,
+    "n": 400
+  },
+  "vs_gold": {
+    "win_rate": 0.1375,
+    "gin_rate": 0.0025,
+    "loss_rate": 0.8625,
+    "n": 400
+  }
+}
