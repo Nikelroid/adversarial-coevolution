@@ -147,26 +147,31 @@ def make_pairs(pool, n_pairs, near_frac):
 
 # --------------------------------------------------------------- LLM scoring
 def _score_prompt(desc1, desc2):
+    # Ask on a FINE 0-100 scale; we rank-bin to 0-5 later (debiases the LLM's
+    # tendency to cluster coarse scores).
     return (f"You are a Gin Rummy expert. {RULES}\n\n"
             f"Two game situations follow. Judge how STRATEGICALLY SIMILAR they are: "
             f"would the optimal next move, the available options, and the strategy to "
             f"follow be the same kind of decision?\n\n"
             f"SITUATION 1:\n{desc1}\n\nSITUATION 2:\n{desc2}\n\n"
-            f"Reply with ONLY a single integer 0-5 (0 = not relevant at all, "
-            f"5 = strategically near-identical). /no_think")
+            f"Reply with ONLY a single integer 0-100 (0 = not relevant at all, "
+            f"100 = strategically near-identical). Use the full range. /no_think")
 
 
 def llm_score(desc1, desc2, model, url, stub=False):
+    """Return a raw 0-100 similarity from the LLM (rank-binned to 0-5 at train time)."""
     if stub:
-        return int(np.random.randint(0, 6))
+        return int(np.random.randint(0, 101))
     payload = {"model": model, "prompt": _score_prompt(desc1, desc2),
                "stream": False, "options": {"num_predict": 64, "temperature": 0.2}}
     r = requests.post(f"{url}/api/generate", json=payload, timeout=300)
     r.raise_for_status()
     txt = r.json().get("response", "")
     txt = re.sub(r"<think>.*?</think>", "", txt, flags=re.DOTALL)
-    m = re.search(r"[0-5]", txt)
-    return int(m.group()) if m else None
+    m = re.search(r"\d{1,3}", txt)
+    if not m:
+        return None
+    return max(0, min(100, int(m.group())))
 
 
 def main():
@@ -208,12 +213,16 @@ def main():
         list(ex.map(work, pairs))
 
     O1 = np.stack(O1).astype(np.int8); O2 = np.stack(O2).astype(np.int8)
-    S = np.array(S, dtype=np.int8)
+    S = np.array(S, dtype=np.int16)            # RAW 0-100 (rank-binned to 0-5 at train)
     np.savez_compressed(out, obs1=O1, obs2=O2, score=S)
-    import collections
-    hist = collections.Counter(S.tolist())
     print(f"[done] {len(S)} labeled pairs in {time.time()-t0:.0f}s -> {out}", flush=True)
-    print(f"[score histogram] {dict(sorted(hist.items()))}", flush=True)
+    print(f"[raw 0-100] min={S.min()} max={S.max()} mean={S.mean():.1f} "
+          f"std={S.std():.1f} uniques={len(np.unique(S))}", flush=True)
+    # preview the debiased 0-5 rank-bins (should be ~equal counts)
+    ranks = np.argsort(np.argsort(S)); bins = (ranks * 6 // max(len(S), 1)).clip(0, 5)
+    import collections
+    print(f"[rank-binned 0-5 counts] {dict(sorted(collections.Counter(bins.tolist()).items()))}",
+          flush=True)
 
 
 if __name__ == "__main__":
