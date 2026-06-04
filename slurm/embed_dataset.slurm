@@ -52,5 +52,14 @@ export N_PAIRS="${N_PAIRS:-20000}"
 export NEAR_FRAC="${NEAR_FRAC:-0.35}"
 export COLLECT_THREADS="${COLLECT_THREADS:-24}"
 export OUT="${OUT:-sweep/embed/sim_dataset.npz}"
-echo "host=$(hostname) model=$LLM_MODEL n_pairs=$N_PAIRS out=$OUT"
+DS="$OUT"
+echo "host=$(hostname) model=$LLM_MODEL n_pairs=$N_PAIRS out=$DS"
 "$PY" sweep/embed_dataset.py
+
+# Train the embedder on the dataset we just built, in the SAME job, so the val
+# correlation lands autonomously even if the interactive session has ended.
+if [ -f "$DS" ]; then
+  echo "=== training embedder on $DS ==="
+  DATASET="$DS" OUT="${DS%.npz}_embedder.pt" EMB_DIM="${EMB_DIM:-20}" \
+    EPOCHS="${EPOCHS:-80}" "$PY" sweep/embed_train.py
+fi
