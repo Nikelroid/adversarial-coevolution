@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=80G
-#SBATCH --time=04:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=/home1/kelidari/Adversarial-CoEvolution/slurm/logs/embed_%j.out
 #SBATCH --error=/home1/kelidari/Adversarial-CoEvolution/slurm/logs/embed_%j.err
 
@@ -51,7 +51,10 @@ export N_STATES="${N_STATES:-5000}"
 export N_PAIRS="${N_PAIRS:-20000}"
 export NEAR_FRAC="${NEAR_FRAC:-0.35}"
 export COLLECT_THREADS="${COLLECT_THREADS:-24}"
-export OUT="${OUT:-sweep/embed/sim_dataset.npz}"
+# Big dataset lives on SCRATCH (home1 is tight). Shards: pass OUT + SEED per job.
+export OUT="${OUT:-/scratch1/kelidari/advcoev_store/embed/sim_dataset.npz}"
+export TIME_BUDGET="${TIME_BUDGET:-39600}"   # collect ~11h, leave margin in a 12h job
+mkdir -p "$(dirname "$OUT")"
 DS="$OUT"
 echo "host=$(hostname) model=$LLM_MODEL n_pairs=$N_PAIRS out=$DS"
 "$PY" sweep/embed_dataset.py

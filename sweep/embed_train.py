@@ -9,13 +9,26 @@ predicted cosine vs the LLM score on a held-out split.
     python sweep/embed_train.py            # reads sweep/embed/sim_dataset.npz
     EMB_DIM=20 EPOCHS=60 python sweep/embed_train.py
 """
-import os, sys, json
+import os, sys, json, glob
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 import numpy as np
 import torch as th
 import torch.nn as nn
+
+
+def _load_dataset(ds_path):
+    """Load one .npz or merge a glob of shards (sim_dataset_shard*.npz)."""
+    files = sorted(glob.glob(ds_path)) if any(c in ds_path for c in "*?[") else [ds_path]
+    files = [f for f in files if os.path.exists(f)]
+    if not files:
+        sys.exit(f"no dataset files match {ds_path}")
+    O1 = np.concatenate([np.load(f)["obs1"] for f in files])
+    O2 = np.concatenate([np.load(f)["obs2"] for f in files])
+    raw = np.concatenate([np.load(f)["score"] for f in files]).astype(np.float64)
+    print(f"loaded {len(files)} shard(s) -> {len(raw)} pairs", flush=True)
+    return O1, O2, raw
 
 
 class Embedder(nn.Module):
@@ -45,10 +58,9 @@ def main():
     seed = int(os.environ.get("SEED", 0))
     th.manual_seed(seed); np.random.seed(seed)
 
-    d = np.load(ds_path)
-    O1 = th.tensor(d["obs1"], dtype=th.float32)
-    O2 = th.tensor(d["obs2"], dtype=th.float32)
-    raw = d["score"].astype(np.float64)
+    o1, o2, raw = _load_dataset(ds_path)
+    O1 = th.tensor(o1, dtype=th.float32)
+    O2 = th.tensor(o2, dtype=th.float32)
     # DEBIAS: the LLM clusters its raw scores, so rank-bin them into 6 equal-frequency
     # buckets 0-5 (it's the RANK that matters, not the absolute number), then map to a
     # cosine target in [-1,1].

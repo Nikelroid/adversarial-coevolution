@@ -195,8 +195,10 @@ def llm_score(desc1, desc2, model, url, stub=False):
 
 
 def main():
-    n_states = int(os.environ.get("N_STATES", 4000))
-    n_pairs = int(os.environ.get("N_PAIRS", 20000))
+    import collections
+    from queue import Queue, Empty
+    n_states = int(os.environ.get("N_STATES", 8000))
+    n_pairs = int(os.environ.get("N_PAIRS", 60000))      # MAX cap; TIME_BUDGET is the real limit
     near_frac = float(os.environ.get("NEAR_FRAC", 0.35))
     model = os.environ.get("LLM_MODEL", "gpt-oss:20b")
     threads = int(os.environ.get("COLLECT_THREADS", 24))
@@ -204,45 +206,68 @@ def main():
     stub = os.environ.get("STUB_LLM", "0") == "1"
     out = os.environ.get("OUT", os.path.join(PROJECT_ROOT, "sweep", "embed",
                                               "sim_dataset.npz"))
+    time_budget = int(os.environ.get("TIME_BUDGET", 10800))   # collect ~3h, then stop
+    ckpt_every = int(os.environ.get("CKPT_EVERY", 2000))
     seed = int(os.environ.get("SEED", 0)); np.random.seed(seed)
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
-    print(f"=== embed-dataset states={n_states} pairs={n_pairs} near={near_frac} "
-          f"model={model} stub={stub} ===", flush=True)
+    print(f"=== embed-dataset states={n_states} max_pairs={n_pairs} near={near_frac} "
+          f"model={model} budget={time_budget}s stub={stub} ===", flush=True)
     t0 = time.time()
     pool = build_pool(n_states, seed0=seed)
     print(f"[pool] {len(pool)} legit states in {time.time()-t0:.0f}s", flush=True)
     pairs = make_pairs(pool, n_pairs, near_frac)
-    print(f"[pairs] {len(pairs)} sampled", flush=True)
+    print(f"[pairs] {len(pairs)} candidates queued", flush=True)
 
+    q = Queue()
+    for pr in pairs:
+        q.put(pr)
     O1, O2, S = [], [], []
-    lock = threading.Lock(); done = [0]
-    def work(pr):
-        v1, d1, v2, d2 = pr
-        try:
-            sc = llm_score(d1, d2, model, url, stub)
-        except Exception:
-            sc = None
-        if sc is not None:
-            with lock:
-                O1.append(v1); O2.append(v2); S.append(sc); done[0] += 1
-                if done[0] % 500 == 0:
-                    print(f"  scored {done[0]}/{len(pairs)} "
-                          f"({done[0]/(time.time()-t0):.1f}/s)", flush=True)
-    with ThreadPoolExecutor(max_workers=threads) as ex:
-        list(ex.map(work, pairs))
+    lock = threading.Lock()
+    deadline = t0 + time_budget
 
-    O1 = np.stack(O1).astype(np.int8); O2 = np.stack(O2).astype(np.int8)
-    S = np.array(S, dtype=np.int16)            # RAW 0-100 (rank-binned to 0-5 at train)
-    np.savez_compressed(out, obs1=O1, obs2=O2, score=S)
-    print(f"[done] {len(S)} labeled pairs in {time.time()-t0:.0f}s -> {out}", flush=True)
-    print(f"[raw 0-100] min={S.min()} max={S.max()} mean={S.mean():.1f} "
-          f"std={S.std():.1f} uniques={len(np.unique(S))}", flush=True)
-    # preview the debiased 0-5 rank-bins (should be ~equal counts)
-    ranks = np.argsort(np.argsort(S)); bins = (ranks * 6 // max(len(S), 1)).clip(0, 5)
-    import collections
-    print(f"[rank-binned 0-5 counts] {dict(sorted(collections.Counter(bins.tolist()).items()))}",
-          flush=True)
+    def save():
+        if S:
+            np.savez_compressed(out, obs1=np.stack(O1).astype(np.int8),
+                                obs2=np.stack(O2).astype(np.int8),
+                                score=np.array(S, dtype=np.int16))
+
+    def worker():
+        # Pull pairs until the queue empties or the time budget is hit. Checkpoints
+        # mean a SLURM timeout never loses the collected data.
+        while time.time() < deadline:
+            try:
+                v1, d1, v2, d2 = q.get_nowait()
+            except Empty:
+                break
+            try:
+                sc = llm_score(d1, d2, model, url, stub)
+            except Exception:
+                sc = None
+            if sc is None:
+                continue
+            with lock:
+                O1.append(v1); O2.append(v2); S.append(sc)
+                if len(S) % ckpt_every == 0:
+                    save()
+                    print(f"  scored {len(S)} ({len(S)/(time.time()-t0):.1f}/s) [ckpt]",
+                          flush=True)
+
+    ts = [threading.Thread(target=worker, daemon=True) for _ in range(threads)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    save()
+
+    Sa = np.array(S, dtype=np.int16)
+    print(f"[done] {len(Sa)} labeled pairs in {time.time()-t0:.0f}s -> {out}", flush=True)
+    if len(Sa):
+        print(f"[raw 0-100] min={Sa.min()} max={Sa.max()} mean={Sa.mean():.1f} "
+              f"std={Sa.std():.1f} uniques={len(np.unique(Sa))}", flush=True)
+        ranks = np.argsort(np.argsort(Sa)); bins = (ranks * 6 // max(len(Sa), 1)).clip(0, 5)
+        print(f"[rank-binned 0-5 counts] "
+              f"{dict(sorted(collections.Counter(bins.tolist()).items()))}", flush=True)
 
 
 if __name__ == "__main__":
