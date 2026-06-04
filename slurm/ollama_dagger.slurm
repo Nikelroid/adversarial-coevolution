@@ -46,8 +46,15 @@ export OLLAMA_MODELS=/scratch1/kelidari/ollama/models
 export OLLAMA_TMPDIR=/scratch1/kelidari/ollama/tmp
 export PATH="$OLLAMA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$OLLAMA_HOME/lib/ollama:${LD_LIBRARY_PATH:-}"
+# Throughput tuning: batch concurrent requests + a small context (our prompts are
+# short). The default 32k context + NUM_PARALLEL=1 made bulk collection crawl.
+export OLLAMA_NUM_PARALLEL="${OLLAMA_NUM_PARALLEL:-8}"
+export OLLAMA_CONTEXT_LENGTH="${OLLAMA_CONTEXT_LENGTH:-4096}"
+export OLLAMA_KEEP_ALIVE="${OLLAMA_KEEP_ALIVE:-30m}"
 OPORT=$(( 11434 + (SLURM_JOB_ID % 1000) ))
-LLM_MODEL="${LLM_MODEL:-gpt-oss:20b}"
+# Default to a FAST non-reasoning model: gpt-oss:20b reasoning is 2-5 min/call on a
+# V100 (too slow for thousands of labels). qwen2.5:7b emits the action directly.
+LLM_MODEL="${LLM_MODEL:-qwen2.5:7b}"
 
 OLLAMA_HOST=127.0.0.1:$OPORT ollama serve > "slurm/logs/olladag_serve_${SLURM_JOB_ID}.log" 2>&1 &
 SV=$!
