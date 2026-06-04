@@ -48,8 +48,16 @@ def main():
     d = np.load(ds_path)
     O1 = th.tensor(d["obs1"], dtype=th.float32)
     O2 = th.tensor(d["obs2"], dtype=th.float32)
-    # map score 0..5 -> target cosine in [-1, 1]
-    tgt = th.tensor(d["score"], dtype=th.float32) / 5.0 * 2.0 - 1.0
+    raw = d["score"].astype(np.float64)
+    # DEBIAS: the LLM clusters its raw scores, so rank-bin them into 6 equal-frequency
+    # buckets 0-5 (it's the RANK that matters, not the absolute number), then map to a
+    # cosine target in [-1,1].
+    ranks = np.argsort(np.argsort(raw))
+    bins = (ranks * 6 // len(raw)).clip(0, 5)
+    tgt = th.tensor(bins, dtype=th.float32) / 5.0 * 2.0 - 1.0
+    import collections
+    print(f"[debias] raw 0-100 mean={raw.mean():.1f} std={raw.std():.1f} -> 0-5 bin "
+          f"counts {dict(sorted(collections.Counter(bins.tolist()).items()))}", flush=True)
     n = len(tgt); idx = np.random.permutation(n); nval = max(1, n // 5)
     vi, ti = idx[:nval], idx[nval:]
     print(f"=== embed-train n={n} emb_dim={emb_dim} epochs={epochs} "
