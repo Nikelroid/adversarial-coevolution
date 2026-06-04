@@ -319,12 +319,67 @@ def fig_gold():
     fig.tight_layout(); _save(fig, "gold_bench")
 
 
+def fig_algo():
+    """Algorithm study: PPO vs TRPO win rate vs random/champion/gold (mean +/- sd
+    over seeds). Reads sweep/algo/algo_<algo>_s<seed>.json (skips smokes)."""
+    import collections, statistics as st
+    files = [f for f in glob.glob(os.path.join(ROOT, "sweep", "algo", "algo_*.json"))
+             if "smoke" not in f]
+    by = collections.defaultdict(lambda: collections.defaultdict(list))
+    for f in files:
+        d = json.load(open(f))
+        for o in ("random", "champion", "gold"):
+            by[d["algo"]][o].append(d[f"vs_{o}"]["win_rate"] * 100)
+    algos = [a for a in ("ppo", "trpo") if a in by]
+    if not algos:
+        print("  [skip] fig_algo: no results")
+        return
+    opps = ["random", "champion", "gold"]
+    fig, ax = plt.subplots(figsize=(5.2, 3.0))
+    x = np.arange(len(opps)); w = 0.36
+    col = {"ppo": "#7f8c8d", "trpo": "#2171b5"}
+    for i, a in enumerate(algos):
+        m = [st.mean(by[a][o]) for o in opps]
+        e = [st.pstdev(by[a][o]) for o in opps]
+        ax.bar(x + (i - 0.5) * w, m, w, yerr=e, capsize=3, label=a.upper(), color=col[a])
+    ax.set_xticks(x); ax.set_xticklabels([f"vs {o}" for o in opps])
+    ax.set_ylabel("win rate (%)"); ax.set_ylim(0, 100)
+    ax.set_title("Algorithm: TRPO beats PPO (2 seeds)", fontsize=10); ax.legend()
+    fig.tight_layout(); _save(fig, "algo_compare")
+
+
+def fig_phase5():
+    """Representation study: sparse vs temporal-embed vs LLM-embed win rate. Reads
+    sweep/phase5/phase5_{sparse,temporal,llm}.json; missing condition shown 'pending'."""
+    cond = [("sparse", "sparse 208-d", "#7f8c8d"),
+            ("temporal", "temporal embed 20-d", "#27ae60"),
+            ("llm", "LLM embed 20-d", "#c0392b")]
+    opps = ["random", "champion", "gold"]
+    fig, ax = plt.subplots(figsize=(5.8, 3.0))
+    x = np.arange(len(opps)); n = len(cond); w = 0.8 / n
+    for i, (tag, label, c) in enumerate(cond):
+        f = os.path.join(ROOT, "sweep", "phase5", f"phase5_{tag}.json")
+        off = (i - (n - 1) / 2) * w
+        if os.path.exists(f):
+            d = json.load(open(f))
+            vals = [d[f"vs_{o}"]["win_rate"] * 100 for o in opps]
+            ax.bar(x + off, vals, w, label=label, color=c)
+        else:
+            ax.bar(x + off, [0, 0, 0], w, label=label + " (pending)", color=c,
+                   alpha=0.25, hatch="//")
+    ax.set_xticks(x); ax.set_xticklabels([f"vs {o}" for o in opps])
+    ax.set_ylabel("win rate (%)"); ax.set_ylim(0, 100)
+    ax.set_title("Representation: sparse vs learned embeddings", fontsize=10)
+    ax.legend(fontsize=7)
+    fig.tight_layout(); _save(fig, "phase5_compare")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
-               fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold):
+               fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
