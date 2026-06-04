@@ -154,24 +154,44 @@ def _score_prompt(desc1, desc2):
             f"would the optimal next move, the available options, and the strategy to "
             f"follow be the same kind of decision?\n\n"
             f"SITUATION 1:\n{desc1}\n\nSITUATION 2:\n{desc2}\n\n"
-            f"Reply with ONLY a single integer 0-100 (0 = not relevant at all, "
-            f"100 = strategically near-identical). Use the full range. /no_think")
+            f"Think briefly about the optimal move and strategy in each, then reply on "
+            f"the LAST line with ONLY a single integer 0-100 (0 = not relevant at all, "
+            f"100 = strategically near-identical). Use the full range.")
+
+
+def _extract_score(text):
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    nums = re.findall(r"\d{1,3}", text)
+    return max(0, min(100, int(nums[-1]))) if nums else None  # last number = the answer
 
 
 def llm_score(desc1, desc2, model, url, stub=False):
-    """Return a raw 0-100 similarity from the LLM (rank-binned to 0-5 at train time)."""
+    """Raw 0-100 similarity from the LLM (rank-binned to 0-5 at train time). Lets the
+    model reason at LOW effort (good judgment, still fast on an L40S)."""
     if stub:
         return int(np.random.randint(0, 101))
-    payload = {"model": model, "prompt": _score_prompt(desc1, desc2),
-               "stream": False, "options": {"num_predict": 64, "temperature": 0.2}}
-    r = requests.post(f"{url}/api/generate", json=payload, timeout=300)
-    r.raise_for_status()
-    txt = r.json().get("response", "")
-    txt = re.sub(r"<think>.*?</think>", "", txt, flags=re.DOTALL)
-    m = re.search(r"\d{1,3}", txt)
-    if not m:
-        return None
-    return max(0, min(100, int(m.group())))
+    prompt = _score_prompt(desc1, desc2)
+    base = {"model": model, "prompt": prompt, "stream": False,
+            "options": {"num_predict": int(os.environ.get("NUM_PREDICT", 512)),
+                        "temperature": 0.2}}
+    timeout = int(os.environ.get("LLM_TIMEOUT", 90))
+
+    def _call(extra):
+        r = requests.post(f"{url}/api/generate", json={**base, **extra}, timeout=timeout)
+        r.raise_for_status()
+        return r.json()
+
+    think = os.environ.get("THINK", "low")   # brief reasoning, not runaway
+    try:
+        j = _call({"think": think})           # gpt-oss reasoning effort (low/medium/high)
+    except requests.HTTPError:
+        try:
+            j = _call({"think": True})         # some versions only accept a bool
+        except requests.HTTPError:
+            j = _call({})                      # last resort: model's default
+    # prefer the final answer; fall back to the reasoning channel if needed
+    return _extract_score(j.get("response", "") or "") or \
+        _extract_score(j.get("thinking", "") or "")
 
 
 def main():
