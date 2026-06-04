@@ -2,7 +2,7 @@
 #SBATCH --job-name=gin-olladag
 #SBATCH --account=liu32_1378
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:v100:1
+#SBATCH --gres=gpu:a40:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
