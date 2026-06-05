@@ -18,6 +18,7 @@ echo "[publish] regenerating figures + report..."
 # identity MUST be Nikelroid for the commit to count on the profile
 git config user.name  "Nima Kelidari"
 git config user.email "68930046+Nikelroid@users.noreply.github.com"
+git pull --rebase --autostash origin main 2>&1 | tail -1 || true   # stay current with remote
 git add -A sweep/curriculum sweep/collect_curriculum.py sweep/curriculum_train.py \
            sweep/curriculum_configs.py sweep/curriculum_cfgs slurm/curriculum*.slurm \
            sweep/curriculum_publish.sh docs/ paper/ 2>/dev/null || true
