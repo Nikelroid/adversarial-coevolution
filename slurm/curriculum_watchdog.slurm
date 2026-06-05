@@ -54,6 +54,12 @@ resubmit_one() {                                 # $1 = cell name; resubmit its 
 }
 
 while true; do
+  # self-heal: SLURM's requeue-after-preemption can leave a task 'held' (user env retrieval
+  # failed). Release any held gin-curr task so the sweep keeps moving with no human in the loop.
+  for hj in $(squeue -u "$USER" -h -r -n gin-curr -o "%i %r" | awk '/held|env retrieval/{print $1}'); do
+     scontrol release "$hj" 2>/dev/null && echo "[wd] released held $hj"
+  done
+
   total=$(grep -cve '^[[:space:]]*$' "$IDX")
   missing=(); pending=()
   while IFS= read -r name; do
