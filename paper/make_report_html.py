@@ -21,72 +21,107 @@ def img(name, alt=""):
     return f'<img src="{RAW}/{name}" alt="{alt}" loading="lazy"/>'
 
 
+_CURR_LABEL = {
+    "01_base_trpo": "TRPO baseline", "02_base_ppo": "PPO (vs TRPO)", "03_rew_R0_highgin": "reward: pay 3&times; for gin",
+    "04_rew_R2_knockfwd": "reward: knock-forward", "05_rew_R4_earlyknk": "reward: early-knock (best)",
+    "06_cur_noRandTail": "curriculum: drop random late", "07_cur_pfsp": "curriculum: PFSP",
+    "08_trpo_gamma_high": "longer memory (&gamma;=0.997)", "09_trpo_kl_small": "smaller steps",
+    "10_trpo_kl_large": "larger steps", "11_trpo_gae_batch": "GAE + bigger batch",
+    "12_ppo_ent_hi": "PPO, more exploration",
+}
+
+
 def _curriculum_results_table():
-    """Results table from sweep/curriculum/_summary.json (written by collect_curriculum.py),
-    or a 'pending' note while the 30 runs are still on the cluster."""
-    import json
-    p = os.path.join(HERE, "..", "sweep", "curriculum", "_summary.json")
-    try:
-        s = json.load(open(p))
-        rows = [r for r in s.get("rows", []) if isinstance(r.get("vs_gold"), (int, float))]
-    except Exception:
-        rows = []
-    if not rows:
-        return ('<div class="note">All 30 runs are queued on the cluster and tracked live in '
-                'Weights &amp; Biases (group <code>phase6-curriculum</code>). This table fills in '
-                'automatically as cells finish &mdash; a SLURM watchdog re-aggregates and pushes '
-                'the page after every completed run.</div>')
-    rows = sorted(rows, key=lambda r: r["vs_gold"], reverse=True)[:12]
+    """One row per CELL (averaged over its seeds), sorted by win-rate vs gold. Reads the raw
+    sweep/curriculum/*.json, or a 'pending' note while the 30 runs are still on the cluster."""
+    import glob, json, re, statistics as st, collections
+    by = collections.defaultdict(lambda: collections.defaultdict(list))
+    for f in glob.glob(os.path.join(HERE, "..", "sweep", "curriculum", "*.json")):
+        if os.path.basename(f).startswith("_"):
+            continue
+        try:
+            d = json.load(open(f))
+        except Exception:
+            continue
+        c = re.sub(r"_s\d+$", "", d.get("name", ""))
+        by[c]["champ"].append(d.get("vs_champion", {}).get("win_rate", 0) * 100)
+        by[c]["gold"].append(d.get("vs_gold", {}).get("win_rate", 0) * 100)
+        by[c]["best"].append(d.get("best_vs_gold", d.get("vs_gold", {}).get("win_rate", 0)) * 100)
+        by[c]["gin"].append(d.get("vs_gold", {}).get("gin_rate", 0) * 100)
+    if not by:
+        return ('<div class="note">All 30 runs are queued and tracked live in Weights &amp; Biases '
+                '(group <code>phase6-curriculum</code>). This table fills in automatically as cells '
+                'finish &mdash; a SLURM watchdog re-aggregates and pushes the page after each run.</div>')
+    cells = sorted(by, key=lambda c: st.mean(by[c]["gold"]), reverse=True)
     body = "\n".join(
-        f'<tr><td>{r["name"]}</td><td>{r["algo"]}</td><td>{r["curriculum"]}</td>'
-        f'<td class="n">{r["vs_random"]*100:.1f}</td><td class="n">{r["vs_champion"]*100:.1f}</td>'
-        f'<td class="n"><b>{r["vs_gold"]*100:.1f}</b></td><td class="n">{r["gin_vs_gold"]*100:.2f}</td></tr>'
-        for r in rows)
-    return (f'<p>Top cells by win-rate vs the gold standard ({len(rows)} shown):</p>'
-            '<table><tr><th>cell</th><th>algo</th><th>curriculum</th>'
-            '<th class="n">vs random</th><th class="n">vs champion</th><th class="n">vs gold</th>'
-            '<th class="n">gin% vs gold</th></tr>' + body + '</table>')
+        f'<tr><td>{_CURR_LABEL.get(c, c)}</td>'
+        f'<td class="n">{st.mean(by[c]["champ"]):.0f}</td>'
+        f'<td class="n"><b>{st.mean(by[c]["gold"]):.0f}</b></td>'
+        f'<td class="n">{st.mean(by[c]["best"]):.0f}</td>'
+        f'<td class="n">{st.mean(by[c]["gin"]):.2f}</td>'
+        f'<td class="n">{len(by[c]["gold"])}</td></tr>'
+        for c in cells)
+    return ('<p>Each row is one recipe, averaged over its 2&ndash;3 seeds, sorted by win-rate vs the '
+            'perfect player. For reference, the champion itself wins about <b>30%</b> vs gold.</p>'
+            '<table><tr><th>recipe (one change from the baseline)</th>'
+            '<th class="n">vs champion %</th><th class="n">vs gold %</th>'
+            '<th class="n">best vs gold %</th><th class="n">gin % vs gold</th><th class="n">seeds</th></tr>'
+            + body + '</table>')
 
 
 CURRICULUM = f"""<section id="curriculum">
-  <h2><span class="n">11</span>Closing the gap to gold: algorithm &times; reward &times; curriculum</h2>
-  <p>The gold-standard agent beats every learned agent (the champion wins only ~30% vs gold). To
-  push past that ceiling we run one big, controlled sweep over the three levers most likely to help,
-  each as a <b>one-factor ablation</b> around a strong baseline (TRPO, balanced reward, a league-lite
-  curriculum) so every result isolates a single cause &mdash; 12 cells, 30 runs (2&ndash;3 seeds each).</p>
+  <h2><span class="n">11</span>Can we finally beat the perfect player? A 30-run experiment</h2>
+  <p>The gold-standard agent plays Gin Rummy perfectly. Even our strongest earlier agent, the
+  <i>champion</i>, only wins about <b>30%</b> of games against it. So we asked a simple question:
+  if we are smarter about <b>how the agent learns</b>, <b>what we reward it for</b>, and <b>who it
+  practices against</b>, can we close that gap? We ran <b>30 training runs</b> &mdash; each one
+  changing exactly <i>one</i> thing from a strong baseline, so any difference has a clear cause.</p>
 
-  <h3>1 &middot; Best algorithm</h3>
-  <p>Our earlier study already showed <b>TRPO &gt; PPO</b> under identical masking, so TRPO is the
-  baseline; PPO is the comparison arm. We add the drop-in levers a terminal-only, long-horizon card
-  game actually wants: a longer discount (&gamma;=0.997, so credit reaches ~40 decisions back instead
-  of decaying to 0.67), reward normalization, and a larger-batch / lower-variance-advantage TRPO cell.
-  (NFSP and Deep&nbsp;CFR are multi-week rebuilds, not drop-ins; RecurrentPPO is deferred because our
-  stateless evaluator would mis-score an LSTM.)</p>
+  <figure class="fig" style="max-width:680px;margin:0 auto;">{img("curriculum.png","Phase-6 results: win rate vs champion and vs gold per recipe")}<figcaption>Every recipe (averaged over its seeds) lands near the same place: about champion-strength against the perfect player. Blue = vs the old champion, red = vs gold; the dashed line is the champion&rsquo;s own score vs gold.</figcaption></figure>
 
-  <h3>2 &middot; Best reward (the optimal player almost never gins)</h3>
-  <p>The mechanism insight comes straight from the <a href="#gold">gold benchmark</a>: the <b>optimal
-  player gins only 0.7&ndash;1.7%</b> of the time yet wins 70&ndash;99% &mdash; it wins by <i>knocking
-  early with low deadwood</i>, not by chasing gin. So a reward that privileges gin is miscalibrated.
-  We test four designs: <b>R1</b> balanced (gin not privileged, the baseline), <b>R0</b> high-gin (the
-  current setting, run as a negative control &mdash; we expect gin-rate to stay flat, not rise),
-  <b>R2</b> knock-forward (bigger win bonus), and <b>R4</b> early-knock (a small dense penalty per
-  decision that rewards <i>speed</i>). Mechanism checks: gin-rate (should fall toward gold's) and mean
-  game length (R4 should shorten hands).</p>
+  <p><b>The honest headline.</b> Every recipe finished in roughly the same spot: about
+  <b>30% vs gold</b> (up to ~37% on its best checkpoint) and <b>45&ndash;52% vs the old champion</b>.
+  In plain words, the new agents reached the level of the best agent we had before &mdash; but no
+  single knob broke past the perfect player. Tuning the algorithm, the reward, and the opponents got
+  us <i>to</i> the ceiling, not <i>through</i> it.</p>
 
-  <h3>3 &middot; Best curriculum</h3>
-  <p>A league-lite schedule ramps the opponent: <b>random &rarr;</b> a growing <b>pool</b> of the
-  agent's own past selves plus pre-divergence milestones <b>&rarr; self-play &rarr;</b> a non-evicting
-  <b>strong</b> tier (champion + the two LLM-derived models, sampled only late so a fresh agent is not
-  crushed). We test the schedule (drop random in the tail &mdash; a forgetting test) and, most
-  importantly, the <b>sampling rule</b>: recency-uniform vs <b>PFSP</b> (sample the opponents you
-  currently lose to more often).</p>
-
-  <figure class="fig" style="max-width:560px;margin:0 auto;">{img("curriculum.png","Phase-6 sweep")}<figcaption>Best win-rate per cell (mean over seeds); fills in as runs land.</figcaption></figure>
   {_curriculum_results_table()}
-  <p><b>How it runs.</b> 30 runs as a SLURM array; a self-sustaining watchdog resubmits any failed cell,
-  re-aggregates the results, regenerates this page, and pushes &mdash; with no human in the loop &mdash;
-  and every run streams to Weights &amp; Biases (<code>phase6-curriculum</code>). Gold stays
-  <b>benchmark-only</b>: it never trains the RL and is never a training opponent.</p>
+
+  <h3>The one clear win: the reward finding</h3>
+  <figure class="fig" style="max-width:700px;margin:0 auto;">{img("curriculum_reward.png","Gin rate stays under 1% for every reward; early-knock shortens games")}<figcaption>Left: no matter the reward, the agent gins under 1% of the time &mdash; even when a gin pays 3&times; a knock. Right: the &ldquo;early-knock&rdquo; reward gives the shortest games.</figcaption></figure>
+  <p>The clearest, most useful result is about <b>reward</b>. The perfect player almost never
+  &ldquo;gins&rdquo; &mdash; it wins by <i>knocking early with little leftover</i>. We tried bribing
+  our agent into ginning by paying <b>3&times; more</b> for a gin than a knock&hellip; and it
+  <b>still gins under 1% of the time</b>, exactly like when we don&rsquo;t reward gin at all. You
+  cannot pay the agent into a bad habit: the optimal style genuinely avoids gin, and the policy
+  works that out on its own. The reward that actually helped did the opposite &mdash; a tiny penalty
+  for <i>dragging the game out</i>. That &ldquo;early-knock&rdquo; reward produced the shortest games
+  <i>and</i> the best score against the champion, which is exactly how the perfect player wins.</p>
+
+  <h3>What did not move the needle</h3>
+  <ul>
+    <li><b>Algorithm (TRPO vs PPO):</b> with a full curriculum they basically <b>tie</b> (PPO 31% vs
+    TRPO 30% against gold). TRPO&rsquo;s edge in our <a href="#algo">earlier short test</a> was specific
+    to that setting; given enough practice against varied opponents, plain PPO catches up.</li>
+    <li><b>Curriculum tricks:</b> fancier opponent-picking (<b>PFSP</b> &mdash; practice more against
+    whoever is beating you) and dropping the weak random opponents late did <b>not</b> beat the simple
+    schedule.</li>
+    <li><b>Longer memory (&gamma;=0.997):</b> trying to look ~40 moves ahead actually <b>hurt</b> a
+    little &mdash; it added noise rather than foresight.</li>
+  </ul>
+
+  <p><b>What this means.</b> We have squeezed about all we can out of reward, algorithm, and
+  self-play opponent choices for this game; the agents top out at champion level. Honestly beating
+  the gold standard would likely need a <i>different kind</i> of method &mdash; search/planning (like
+  counterfactual-regret) or an agent that remembers the whole history &mdash; not more reward tuning.
+  Gold stayed <b>benchmark-only</b> throughout: it never trained the agents and was never a practice
+  opponent, only the yardstick.</p>
+
+  <p style="font-size:13.5px;color:#5c6b73;"><b>How it ran.</b> 30 runs as one SLURM array; a
+  self-sustaining watchdog resubmitted any failed run, re-aggregated the numbers, regenerated this
+  page, and pushed &mdash; with no human in the loop. Every run streamed live to
+  <a href="https://wandb.ai/VLAvengers/Adversarial-CoEvolution/groups/phase6-curriculum">Weights &amp; Biases</a>
+  (group <code>phase6-curriculum</code>).</p>
 </section>
 """
 
