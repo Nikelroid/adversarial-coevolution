@@ -21,6 +21,76 @@ def img(name, alt=""):
     return f'<img src="{RAW}/{name}" alt="{alt}" loading="lazy"/>'
 
 
+def _curriculum_results_table():
+    """Results table from sweep/curriculum/_summary.json (written by collect_curriculum.py),
+    or a 'pending' note while the 30 runs are still on the cluster."""
+    import json
+    p = os.path.join(HERE, "..", "sweep", "curriculum", "_summary.json")
+    try:
+        s = json.load(open(p))
+        rows = [r for r in s.get("rows", []) if isinstance(r.get("vs_gold"), (int, float))]
+    except Exception:
+        rows = []
+    if not rows:
+        return ('<div class="note">All 30 runs are queued on the cluster and tracked live in '
+                'Weights &amp; Biases (group <code>phase6-curriculum</code>). This table fills in '
+                'automatically as cells finish &mdash; a SLURM watchdog re-aggregates and pushes '
+                'the page after every completed run.</div>')
+    rows = sorted(rows, key=lambda r: r["vs_gold"], reverse=True)[:12]
+    body = "\n".join(
+        f'<tr><td>{r["name"]}</td><td>{r["algo"]}</td><td>{r["curriculum"]}</td>'
+        f'<td class="n">{r["vs_random"]*100:.1f}</td><td class="n">{r["vs_champion"]*100:.1f}</td>'
+        f'<td class="n"><b>{r["vs_gold"]*100:.1f}</b></td><td class="n">{r["gin_vs_gold"]*100:.2f}</td></tr>'
+        for r in rows)
+    return (f'<p>Top cells by win-rate vs the gold standard ({len(rows)} shown):</p>'
+            '<table><tr><th>cell</th><th>algo</th><th>curriculum</th>'
+            '<th class="n">vs random</th><th class="n">vs champion</th><th class="n">vs gold</th>'
+            '<th class="n">gin% vs gold</th></tr>' + body + '</table>')
+
+
+CURRICULUM = f"""<section id="curriculum">
+  <h2><span class="n">11</span>Closing the gap to gold: algorithm &times; reward &times; curriculum</h2>
+  <p>The gold-standard agent beats every learned agent (the champion wins only ~30% vs gold). To
+  push past that ceiling we run one big, controlled sweep over the three levers most likely to help,
+  each as a <b>one-factor ablation</b> around a strong baseline (TRPO, balanced reward, a league-lite
+  curriculum) so every result isolates a single cause &mdash; 12 cells, 30 runs (2&ndash;3 seeds each).</p>
+
+  <h3>1 &middot; Best algorithm</h3>
+  <p>Our earlier study already showed <b>TRPO &gt; PPO</b> under identical masking, so TRPO is the
+  baseline; PPO is the comparison arm. We add the drop-in levers a terminal-only, long-horizon card
+  game actually wants: a longer discount (&gamma;=0.997, so credit reaches ~40 decisions back instead
+  of decaying to 0.67), reward normalization, and a larger-batch / lower-variance-advantage TRPO cell.
+  (NFSP and Deep&nbsp;CFR are multi-week rebuilds, not drop-ins; RecurrentPPO is deferred because our
+  stateless evaluator would mis-score an LSTM.)</p>
+
+  <h3>2 &middot; Best reward (the optimal player almost never gins)</h3>
+  <p>The mechanism insight comes straight from the <a href="#gold">gold benchmark</a>: the <b>optimal
+  player gins only 0.7&ndash;1.7%</b> of the time yet wins 70&ndash;99% &mdash; it wins by <i>knocking
+  early with low deadwood</i>, not by chasing gin. So a reward that privileges gin is miscalibrated.
+  We test four designs: <b>R1</b> balanced (gin not privileged, the baseline), <b>R0</b> high-gin (the
+  current setting, run as a negative control &mdash; we expect gin-rate to stay flat, not rise),
+  <b>R2</b> knock-forward (bigger win bonus), and <b>R4</b> early-knock (a small dense penalty per
+  decision that rewards <i>speed</i>). Mechanism checks: gin-rate (should fall toward gold's) and mean
+  game length (R4 should shorten hands).</p>
+
+  <h3>3 &middot; Best curriculum</h3>
+  <p>A league-lite schedule ramps the opponent: <b>random &rarr;</b> a growing <b>pool</b> of the
+  agent's own past selves plus pre-divergence milestones <b>&rarr; self-play &rarr;</b> a non-evicting
+  <b>strong</b> tier (champion + the two LLM-derived models, sampled only late so a fresh agent is not
+  crushed). We test the schedule (drop random in the tail &mdash; a forgetting test) and, most
+  importantly, the <b>sampling rule</b>: recency-uniform vs <b>PFSP</b> (sample the opponents you
+  currently lose to more often).</p>
+
+  <figure class="fig" style="max-width:560px;margin:0 auto;">{img("curriculum.png","Phase-6 sweep")}<figcaption>Best win-rate per cell (mean over seeds); fills in as runs land.</figcaption></figure>
+  {_curriculum_results_table()}
+  <p><b>How it runs.</b> 30 runs as a SLURM array; a self-sustaining watchdog resubmits any failed cell,
+  re-aggregates the results, regenerates this page, and pushes &mdash; with no human in the loop &mdash;
+  and every run streams to Weights &amp; Biases (<code>phase6-curriculum</code>). Gold stays
+  <b>benchmark-only</b>: it never trains the RL and is never a training opponent.</p>
+</section>
+"""
+
+
 CSS = """
 :root{--green:#0b5b39;--green2:#073d27;--gold:#d9a521;--ink:#16242d;--muted:#5c6b73;
 --card:#fff;--line:#e3e8e6;--good:#1f8a5a;--bad:#c0392b;}
@@ -75,7 +145,7 @@ ol li,ul li{margin:4px 0;}
 NAV = """<div class="nav">
   <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
   <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
-  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#algo">Algorithm</a><a href="#repr">Representation</a><a href="#repro">Reproduce</a>
+  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#algo">Algorithm</a><a href="#repr">Representation</a><a href="#curriculum">Curriculum sweep</a><a href="#repro">Reproduce</a>
 </div>"""
 
 HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
@@ -390,6 +460,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   more strategically-relevant structure, and whether a <b>larger embedding</b> or an <b>un-frozen</b> one
   recovers the lost information. That ablation is next.</p>
 </section>
+
+{CURRICULUM}
 
 <section id="repro">
   <h2>How to reproduce</h2>

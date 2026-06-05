@@ -1,0 +1,22 @@
+{
+  "name": "03_rew_R0_highgin_s1",
+  "algo": "trpo",
+  "curriculum": "designed",
+  "sampling": "recent",
+  "knock": 0.5,
+  "gin": 1.5,
+  "win_scale": 1.0,
+  "loss_scale": 1.0,
+  "step_penalty": 0.0,
+  "target_kl": 0.01,
+  "ent_coef": 0.01,
+  "clip_range": 0.2,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "n_steps": 256,
+  "seed": 1,
+  "steps": 12000000,
+  "cell": "03_rew_R0_highgin",
+  "purpose": "REWARD control: does privileging gin help? (expect gin-rate stays <2%)"
+}
