@@ -27,9 +27,12 @@ cd /home1/kelidari/Adversarial-CoEvolution
 source ~/miniconda/etc/profile.d/conda.sh
 conda activate /scratch1/kelidari/envs/coev
 
-IDX=sweep/curriculum_cfgs/INDEX.txt
+CFG_DIR="${CFG_DIR:-curriculum_cfgs}"            # curriculum_cfgs (P6) or phase7_cfgs (P7)
+JOBN="${JOBNAME:-gin-curr}"                      # array job-name to watch/resubmit
+WG="${WANDB_GROUP:-phase6-curriculum}"
+IDX="sweep/${CFG_DIR}/INDEX.txt"
 RES=sweep/curriculum
-ATT=sweep/curriculum_cfgs/.wd_attempts          # per-cell resubmit counters / giveup markers
+ATT="sweep/${CFG_DIR}/.wd_attempts"              # per-cell resubmit counters / giveup markers
 PART="${PART:-oneweek}"
 CPUS="${CPUS:-16}"
 CHECK_EVERY="${CHECK_EVERY:-1200}"
@@ -48,15 +51,15 @@ resubmit_one() {                                 # $1 = cell name; resubmit its 
   local ln; ln=$(grep -nxF "$name" "$IDX" | head -1 | cut -d: -f1)
   [ -z "$ln" ] && { echo "  ?? $name not in INDEX"; return; }
   echo $((n+1)) > "$cf"
-  sbatch --array=$((ln-1)) --partition="$PART" --cpus-per-task="$CPUS" \
-         --export=ALL,NUM_ENV="$CPUS" slurm/curriculum.slurm >/dev/null \
+  sbatch --array=$((ln-1)) --job-name="$JOBN" --partition="$PART" --cpus-per-task="$CPUS" \
+         --export=ALL,NUM_ENV="$CPUS",CFG_DIR="$CFG_DIR",WANDB_GROUP="$WG" slurm/curriculum.slurm >/dev/null \
     && echo "  resubmitted $name (idx $((ln-1)), try $((n+1)))"
 }
 
 while true; do
   # self-heal: SLURM's requeue-after-preemption can leave a task 'held' (user env retrieval
-  # failed). Release any held gin-curr task so the sweep keeps moving with no human in the loop.
-  for hj in $(squeue -u "$USER" -h -r -n gin-curr -o "%i %r" | awk '/held|env retrieval/{print $1}'); do
+  # failed). Release any held task so the sweep keeps moving with no human in the loop.
+  for hj in $(squeue -u "$USER" -h -r -n "$JOBN" -o "%i %r" | awk '/held|env retrieval/{print $1}'); do
      scontrol release "$hj" 2>/dev/null && echo "[wd] released held $hj"
   done
 
@@ -85,7 +88,7 @@ while true; do
      exit 0
   fi
 
-  active=$(squeue -u "$USER" -h -r -n gin-curr -t PENDING,RUNNING 2>/dev/null | wc -l)
+  active=$(squeue -u "$USER" -h -r -n "$JOBN" -t PENDING,RUNNING 2>/dev/null | wc -l)
   if [ "$active" -eq 0 ]; then
      echo "[wd] array drained, ${#pending[@]} cells still missing -> resubmitting"
      for name in "${pending[@]}"; do resubmit_one "$name"; sleep 1; done
@@ -95,7 +98,8 @@ while true; do
 
   if [ $(( $(date +%s) - START )) -ge "$WALL" ]; then
      echo "[wd] nearing wall limit -> self-resubmitting a fresh watchdog"
-     sbatch --export=ALL,PART="$PART",CPUS="$CPUS" slurm/curriculum_watchdog.slurm >/dev/null || true
+     sbatch --export=ALL,PART="$PART",CPUS="$CPUS",CFG_DIR="$CFG_DIR",JOBNAME="$JOBN",WANDB_GROUP="$WG" \
+            slurm/curriculum_watchdog.slurm >/dev/null || true
      exit 0
   fi
   sleep "$CHECK_EVERY"

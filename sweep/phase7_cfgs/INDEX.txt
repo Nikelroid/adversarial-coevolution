@@ -1,0 +1,9 @@
+p7_01_warm_long_s0
+p7_01_warm_long_s1
+p7_02_warm_deadwood_s0
+p7_02_warm_deadwood_s1
+p7_03_warm_deadwood_hi_s0
+p7_04_warm_pfsp_s0
+p7_04_warm_pfsp_s1
+p7_05_scratch_deadwood_s0
+p7_05_scratch_deadwood_s1

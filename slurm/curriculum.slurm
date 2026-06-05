@@ -38,11 +38,14 @@ if [ -z "$WANDB_API_KEY" ]; then
 fi
 export WANDB_API_KEY
 export WANDB_PROJECT="${WANDB_PROJECT:-Adversarial-CoEvolution}" WANDB_ENTITY="${WANDB_ENTITY:-VLAvengers}"
+export WANDB_GROUP="${WANDB_GROUP:-phase6-curriculum}"
 
-IDX_FILE=sweep/curriculum_cfgs/INDEX.txt
+# CFG_DIR selects the config set: curriculum_cfgs (Phase 6) or phase7_cfgs (Phase 7), etc.
+CFG_DIR="${CFG_DIR:-curriculum_cfgs}"
+IDX_FILE="sweep/${CFG_DIR}/INDEX.txt"
 NAME=$(sed -n "$((${SLURM_ARRAY_TASK_ID:-0}+1))p" "$IDX_FILE")
-if [ -z "$NAME" ]; then echo "no config for array index ${SLURM_ARRAY_TASK_ID:-0}"; exit 1; fi
-export CFG="sweep/curriculum_cfgs/${NAME}.json"
+if [ -z "$NAME" ]; then echo "no config for array index ${SLURM_ARRAY_TASK_ID:-0} in $IDX_FILE"; exit 1; fi
+export CFG="sweep/${CFG_DIR}/${NAME}.json"
 
 # optional overrides (smoke / tuning) flow through env -> _load_config()
 export NUM_ENV="${NUM_ENV:-16}"
