@@ -1,21 +1,51 @@
 {
-  "n_cells": 1,
+  "n_cells": 4,
   "best": {
-    "name": "06_cur_noRandTail_s0",
+    "name": "06_cur_noRandTail_s2",
     "algo": "trpo",
     "curriculum": "no_random_tail",
     "knock": 0.5,
     "gin": 0.5,
     "loss_scale": 1.0,
-    "seed": 0,
-    "vs_random": 0.981,
-    "vs_champion": 0.45,
-    "vs_gold": 0.314,
-    "gin_vs_gold": 0.004,
+    "seed": 2,
+    "vs_random": 0.988,
+    "vs_champion": 0.46,
+    "vs_gold": 0.328,
+    "gin_vs_gold": 0.005,
     "steps": 12000000,
-    "secs": 13556
+    "secs": 13878
   },
   "rows": [
+    {
+      "name": "06_cur_noRandTail_s2",
+      "algo": "trpo",
+      "curriculum": "no_random_tail",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 2,
+      "vs_random": 0.988,
+      "vs_champion": 0.46,
+      "vs_gold": 0.328,
+      "gin_vs_gold": 0.005,
+      "steps": 12000000,
+      "secs": 13878
+    },
+    {
+      "name": "06_cur_noRandTail_s1",
+      "algo": "trpo",
+      "curriculum": "no_random_tail",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.984,
+      "vs_champion": 0.482,
+      "vs_gold": 0.315,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 13736
+    },
     {
       "name": "06_cur_noRandTail_s0",
       "algo": "trpo",
@@ -30,6 +60,21 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 13556
+    },
+    {
+      "name": "07_cur_pfsp_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.988,
+      "vs_champion": 0.445,
+      "vs_gold": 0.295,
+      "gin_vs_gold": 0.003,
+      "steps": 12000000,
+      "secs": 14321
     }
   ]
 }
