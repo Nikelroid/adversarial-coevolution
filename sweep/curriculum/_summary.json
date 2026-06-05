@@ -1,5 +1,5 @@
 {
-  "n_cells": 20,
+  "n_cells": 25,
   "best": {
     "name": "03_rew_R0_highgin_s0",
     "algo": "trpo",
@@ -77,6 +77,21 @@
       "secs": 23007
     },
     {
+      "name": "04_rew_R2_knockfwd_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.75,
+      "gin": 0.75,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.986,
+      "vs_champion": 0.472,
+      "vs_gold": 0.324,
+      "gin_vs_gold": 0.001,
+      "steps": 12000000,
+      "secs": 22542
+    },
+    {
       "name": "11_trpo_gae_batch_s1",
       "algo": "trpo",
       "curriculum": "designed",
@@ -105,6 +120,21 @@
       "gin_vs_gold": 0.009,
       "steps": 12000000,
       "secs": 7933
+    },
+    {
+      "name": "01_base_trpo_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.985,
+      "vs_champion": 0.499,
+      "vs_gold": 0.316,
+      "gin_vs_gold": 0.006,
+      "steps": 12000000,
+      "secs": 18635
     },
     {
       "name": "06_cur_noRandTail_s1",
@@ -150,6 +180,21 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 13556
+    },
+    {
+      "name": "05_rew_R4_earlyknk_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.99,
+      "vs_champion": 0.526,
+      "vs_gold": 0.312,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 22427
     },
     {
       "name": "02_base_ppo_s1",
@@ -257,6 +302,21 @@
       "secs": 13113
     },
     {
+      "name": "03_rew_R0_highgin_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 1.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.989,
+      "vs_champion": 0.451,
+      "vs_gold": 0.299,
+      "gin_vs_gold": 0.003,
+      "steps": 12000000,
+      "secs": 13016
+    },
+    {
       "name": "07_cur_pfsp_s0",
       "algo": "trpo",
       "curriculum": "designed",
@@ -300,6 +360,21 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 12996
+    },
+    {
+      "name": "04_rew_R2_knockfwd_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.75,
+      "gin": 0.75,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.989,
+      "vs_champion": 0.448,
+      "vs_gold": 0.289,
+      "gin_vs_gold": 0.006,
+      "steps": 12000000,
+      "secs": 22242
     },
     {
       "name": "08_trpo_gamma_high_s2",
