@@ -98,6 +98,10 @@ SEED_STRONG = {
     "champion": os.path.join(HERO, "ppo_gin_rummy_selfplay.zip"),
     "llm":      os.path.join(HERO, "ppo_gin_rummy_llm.zip"),
     "dagbase":  os.path.join(HERO, "ppo_gin_rummy_dagbase.zip"),
+    # the two strongest agents from the Phase-6 sweep (~33% vs gold) -- so later runs practise
+    # against genuinely strong opponents, not just the older ~30% champion.
+    "p6champ":  os.path.join(HERO, "gin_curriculum_champion.zip"),
+    "p6gold":   os.path.join(HERO, "gin_gold_hunter.zip"),
 }
 
 # ----------------------------------------------------------------- generic loader
@@ -130,19 +134,44 @@ def load_any(path, prefer="ppo"):
 
 
 # ----------------------------------------------------------------- reward shaping
+def _hand_deadwood(obs):
+    """Best achievable deadwood of the agent's OWN hand (plane 0 of the observation), using
+    RLCard's rules-based meld scorer. This is the game's own scoring of a PUBLIC hand, not the
+    gold agent's policy -- the same deadwood the terminal payoff already uses, just read per
+    step. Returns None for non-standard hand sizes so the caller can skip cheaply (we only
+    score the 10-card hand, which is one meld call; the 11-card draw state is skipped)."""
+    try:
+        from agents.gold_standard_agent import _best_deadwood
+        hand = np.where(np.asarray(obs["observation"])[0].reshape(-1) == 1)[0].tolist()
+        if len(hand) == 10:
+            return _best_deadwood(hand)
+    except Exception:
+        pass
+    return None
+
+
 class ShapedWrapper(GinRummySB3Wrapper):
     """knock_reward / gin_reward (the env's terminal-payoff bonuses) are the PRIMARY reward
     levers and pass straight through.  On top we optionally (a) rescale the TERMINAL outcome
-    asymmetrically -- win_scale on a win, loss_scale on a loss (changing the win:loss ratio,
-    which is NOT washed out by advantage/return normalization) -- and (b) apply a small dense
-    per-decision penalty (step_penalty), a TRAINING-only pressure to knock EARLY with low
-    deadwood (the gold mechanism).  Eval always uses the raw env, so neither leaks into scoring."""
+    asymmetrically -- win_scale on a win, loss_scale on a loss; (b) apply a small dense
+    per-decision penalty (step_penalty) to knock EARLY; and (c) a dense DEADWOOD-reduction
+    reward (deadwood_coef): each turn the agent lowers its own best-achievable deadwood, it is
+    rewarded -- coaching the optimal 'knock low' style directly (potential-based, so it cannot
+    change which policy is optimal, only speed learning).  Eval always uses the raw env, so
+    none of this leaks into scoring."""
 
-    def __init__(self, *args, win_scale=1.0, loss_scale=1.0, step_penalty=0.0, **kwargs):
+    def __init__(self, *args, win_scale=1.0, loss_scale=1.0, step_penalty=0.0,
+                 deadwood_coef=0.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.win_scale = float(win_scale)
         self.loss_scale = float(loss_scale)
         self.step_penalty = float(step_penalty)
+        self.deadwood_coef = float(deadwood_coef)
+        self._prev_dw = None
+
+    def reset(self, *a, **k):
+        self._prev_dw = None
+        return super().reset(*a, **k)
 
     def step(self, action):
         obs, reward, done, trunc, info = super().step(action)
@@ -153,6 +182,12 @@ class ShapedWrapper(GinRummySB3Wrapper):
                 reward *= self.loss_scale
         if self.step_penalty:
             reward -= self.step_penalty           # dense per-decision speed pressure
+        if self.deadwood_coef and not done:
+            dw = _hand_deadwood(obs)
+            if dw is not None:
+                if self._prev_dw is not None:
+                    reward += self.deadwood_coef * (self._prev_dw - dw)  # reward shedding deadwood
+                self._prev_dw = dw
         return obs, reward, done, trunc, info
 
 
@@ -423,7 +458,7 @@ class SweepCallback(BaseCallback):
     single-writer opponent-difficulty weights the workers sample from."""
 
     def __init__(self, cm, champ_model, save_freq, eval_every, eval_games, curve,
-                 pfsp=False, pfsp_games=15):
+                 pfsp=False, pfsp_games=15, best_path=None):
         super().__init__()
         self.cm = cm
         self.champ = champ_model
@@ -433,6 +468,9 @@ class SweepCallback(BaseCallback):
         self.curve = curve
         self.pfsp = pfsp
         self.pfsp_games = pfsp_games
+        self.best_path = best_path          # keep-the-best: save the peak checkpoint here
+        self.best_metric = -1.0
+        self.best_step = 0
         self._last_update = 0
         self._last_eval = 0
 
@@ -474,10 +512,17 @@ class SweepCallback(BaseCallback):
                 r = evaluate(self.model, k, self.champ, self.eval_games)
                 snap[k] = {"win": r["win_rate"], "gin": r["gin_rate"], "loss": r["loss_rate"]}
             self.curve.append(snap)
+            # keep-the-best: rank by win-vs-gold, break ties by win-vs-champion (lower variance).
+            metric = snap["gold"]["win"] + 0.001 * snap["champion"]["win"]
+            improved = metric > self.best_metric
+            if improved and self.best_path:
+                self.best_metric = metric
+                self.best_step = s
+                self.model.save(self.best_path)
             print(f"[curve] @ {s:,} stage {snap['stage']} "
                   f"rand={snap['random']['win']:.3f} champ={snap['champion']['win']:.3f} "
-                  f"gold={snap['gold']['win']:.3f} gin(vsgold)={snap['gold']['gin']:.3f}",
-                  flush=True)
+                  f"gold={snap['gold']['win']:.3f} gin(vsgold)={snap['gold']['gin']:.3f}"
+                  f"{'  <- NEW BEST (saved)' if improved else ''}", flush=True)
             if _wandb_on() and wandb.run is not None:
                 wandb.log({
                     "curriculum/stage": snap["stage"],
@@ -486,6 +531,7 @@ class SweepCallback(BaseCallback):
                     "eval/win_vs_champion": snap["champion"]["win"],
                     "eval/win_vs_gold": snap["gold"]["win"],
                     "eval/gin_rate_vs_gold": snap["gold"]["gin"],
+                    "eval/best_vs_gold_so_far": max(self.best_metric, snap["gold"]["win"]),
                 }, step=s)
         return True
 
@@ -504,6 +550,12 @@ def make_stages(name):
             {"until": 0.25, "mix": {"random": 1.0}},
             {"until": 0.50, "mix": {"random": 0.30, "pool": 0.70}},
             {"until": 1.01, "mix": {"pool": 0.70, "self": 0.30}},
+        ]
+    if name == "warm":              # for WARM-STARTED strong agents: skip the random-only phase
+        return [                    # and face real (incl. strong) opponents from the start
+            {"until": 0.10, "mix": {"random": 0.50, "pool": 0.50}},
+            {"until": 0.45, "mix": {"random": 0.20, "pool": 0.55, "self": 0.25}},
+            {"until": 1.01, "mix": {"random": 0.10, "pool": 0.55, "self": 0.35}},
         ]
     raise ValueError(f"unknown curriculum {name}")
 
@@ -530,6 +582,9 @@ def _load_config():
         win_scale=float(g("win_scale", "WIN_SCALE", 1.0)),
         loss_scale=float(g("loss_scale", "LOSS_SCALE", 1.0)),
         step_penalty=float(g("step_penalty", "STEP_PENALTY", 0.0)),
+        deadwood_coef=float(g("deadwood_coef", "DEADWOOD_COEF", 0.0)),
+        init_model=g("init_model", "INIT_MODEL", ""),
+        strong_from=float(g("strong_from", "STRONG_FROM", 0.70)),
         curriculum=g("curriculum", "CURRICULUM", "designed"),
         sampling=g("sampling", "SAMPLING", "recent"),
         steps=int(g("steps", "STEPS", 12_000_000)),
@@ -606,10 +661,12 @@ def main():
         try:
             wandb.init(project=os.environ.get("WANDB_PROJECT", "Adversarial-CoEvolution"),
                        entity=os.environ.get("WANDB_ENTITY", "VLAvengers"),
-                       name=c["name"], group="phase6-curriculum",
-                       tags=["phase6", c["algo"], f"cur:{c['curriculum']}",
-                             f"samp:{c['sampling']}", f"knock{c['knock']}", f"gin{c['gin']}",
-                             "steppen" if c["step_penalty"] else "nopen", f"seed{c['seed']}"],
+                       name=c["name"], group=os.environ.get("WANDB_GROUP", "phase6-curriculum"),
+                       tags=[c["algo"], f"cur:{c['curriculum']}", f"samp:{c['sampling']}",
+                             f"knock{c['knock']}", f"gin{c['gin']}",
+                             "steppen" if c["step_penalty"] else "nopen",
+                             "deadwood" if c.get("deadwood_coef") else "nodw",
+                             "warmstart" if c.get("init_model") else "scratch", f"seed{c['seed']}"],
                        config=c, reinit=True)
             print("[wandb] logging enabled", flush=True)
         except Exception as e:  # noqa: BLE001
@@ -622,12 +679,13 @@ def main():
     def _mk(rank):
         def _t():
             cm = StageCurriculum(pool_dir, stages, c["steps"], algo=c["algo"],
-                                 sampling=c["sampling"])
+                                 sampling=c["sampling"], strong_from=c["strong_from"])
             e = ShapedWrapper(opponent_policy=RandomAgent, randomize_position=True,
                               turns_limit=200, curriculum_manager=cm, rank=rank,
                               knock_reward=c["knock"], gin_reward=c["gin"],
                               win_scale=c["win_scale"], loss_scale=c["loss_scale"],
-                              step_penalty=c["step_penalty"])
+                              step_penalty=c["step_penalty"],
+                              deadwood_coef=c.get("deadwood_coef", 0.0))
             e.reset(seed=c["seed"] + rank)
             return Monitor(e)
         return _t
@@ -642,13 +700,21 @@ def main():
               lr=c["lr"], ent_coef=c["ent_coef"], clip_range=c["clip_range"],
               target_kl=c["target_kl"], gamma=c["gamma"], gae_lambda=c["gae_lambda"],
               seed=c["seed"])
-    model = build_model(c["algo"], env, hp)
+    init = c.get("init_model", "").strip()
+    if init:                                               # warm-start from a prior best model
+        ipath = init[:-4] if init.endswith(".zip") else init
+        algo_cls = PPO if c["algo"] == "ppo" else __import__("sb3_contrib", fromlist=["TRPO"]).TRPO
+        model = algo_cls.load(ipath, env=env, device="cpu")
+        print(f"[warm-start] loaded {ipath} as the starting policy", flush=True)
+    else:
+        model = build_model(c["algo"], env, hp)
 
     main_cm = StageCurriculum(pool_dir, stages, c["steps"], algo=c["algo"],
-                              sampling=c["sampling"])
+                              sampling=c["sampling"], strong_from=c["strong_from"])
     curve = []
+    best_path = os.path.join(SCRATCH, "sweep_curriculum", c["name"], "best")
     cb = SweepCallback(main_cm, champ, c["save_freq"], c["eval_every"], c["ckpt_eval_games"],
-                       curve, pfsp=(c["sampling"] == "pfsp"))
+                       curve, pfsp=(c["sampling"] == "pfsp"), best_path=best_path)
 
     t0 = time.time()
     model.learn(total_timesteps=c["steps"], callback=cb, progress_bar=False)
@@ -660,31 +726,41 @@ def main():
 
     final = {k: eval_full(model, k, champ, c["final_eval_games"])
              for k in ("random", "champion", "gold")}
-    best_gold = max([s["gold"]["win"] for s in curve] + [final["gold"]["win_rate"]])
-    best_champ = max([s["champion"]["win"] for s in curve] + [final["champion"]["win_rate"]])
+    # keep-the-best: the shipped model is the best CHECKPOINT (re-confirmed at full N), not the
+    # possibly-drifted final. Fall back to the final model if no best was saved.
+    best_src = best_path if os.path.exists(best_path + ".zip") else model_path
+    best_model = load_any(best_src, prefer=c["algo"])
+    best_eval = {k: eval_full(best_model, k, champ, c["final_eval_games"])
+                 for k in ("random", "champion", "gold")}
+    headline = best_eval if best_eval["gold"]["win_rate"] >= final["gold"]["win_rate"] else final
     result = dict(name=c["name"], algo=c["algo"], curriculum=c["curriculum"],
-                  sampling=c["sampling"],
+                  sampling=c["sampling"], init_model=c.get("init_model", ""),
                   reward=dict(knock=c["knock"], gin=c["gin"], win_scale=c["win_scale"],
-                              loss_scale=c["loss_scale"], step_penalty=c["step_penalty"]),
+                              loss_scale=c["loss_scale"], step_penalty=c["step_penalty"],
+                              deadwood_coef=c.get("deadwood_coef", 0.0)),
                   hp=dict(lr=c["lr"], ent_coef=c["ent_coef"], clip_range=c["clip_range"],
                           target_kl=c["target_kl"], gamma=c["gamma"],
                           gae_lambda=c["gae_lambda"], n_steps=c["n_steps"]),
                   steps=c["steps"], seed=c["seed"], train_seconds=train_seconds,
-                  model_path=model_path + ".zip",
+                  model_path=model_path + ".zip", best_model_path=best_src + ".zip",
+                  best_step=cb.best_step,
                   pool_size=len(main_cm._get_available_policies()), curve=curve,
-                  best_vs_gold=best_gold, best_vs_champion=best_champ,
-                  vs_random=final["random"], vs_champion=final["champion"],
-                  vs_gold=final["gold"])
+                  # headline metrics now come from the kept-best model (confirmed at full N)
+                  best_vs_gold=best_eval["gold"]["win_rate"],
+                  best_vs_champion=best_eval["champion"]["win_rate"],
+                  final_vs_gold=final["gold"], final_vs_champion=final["champion"],
+                  vs_random=headline["random"], vs_champion=headline["champion"],
+                  vs_gold=headline["gold"])
     out = os.path.join(out_dir, f"{c['name']}.json")
     tmp = out + ".tmp"                                      # atomic: never leave a partial JSON
     with open(tmp, "w") as f:
         json.dump(result, f, indent=2)
     os.replace(tmp, out)
-    print(f"[done] {c['name']} vs_random={final['random']['win_rate']:.3f} "
-          f"vs_champion={final['champion']['win_rate']:.3f} "
-          f"vs_gold={final['gold']['win_rate']:.3f} "
-          f"gin(vsgold)={final['gold']['gin_rate']:.3f} len={final['gold']['mean_len']:.1f} "
-          f"best_gold={best_gold:.3f} in {train_seconds:.0f}s -> {out}", flush=True)
+    print(f"[done] {c['name']} HEADLINE(best) vs_random={headline['random']['win_rate']:.3f} "
+          f"vs_champion={headline['champion']['win_rate']:.3f} "
+          f"vs_gold={headline['gold']['win_rate']:.3f} | "
+          f"final vs_gold={final['gold']['win_rate']:.3f} best_step={cb.best_step:,} "
+          f"in {train_seconds:.0f}s -> {out}", flush=True)
 
     if _wandb_on() and wandb.run is not None:
         wandb.log({
@@ -693,7 +769,9 @@ def main():
             "final/win_vs_gold": final["gold"]["win_rate"],
             "final/gin_rate_vs_gold": final["gold"]["gin_rate"],
             "final/mean_len_vs_gold": final["gold"]["mean_len"],
-            "final/best_vs_gold": best_gold, "final/best_vs_champion": best_champ,
+            "best/win_vs_gold": best_eval["gold"]["win_rate"],
+            "best/win_vs_champion": best_eval["champion"]["win_rate"],
+            "best/step": cb.best_step,
             "final/train_seconds": train_seconds,
         }, step=c["steps"])
         wandb.finish()
