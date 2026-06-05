@@ -1,0 +1,35 @@
+{
+  "n_cells": 1,
+  "best": {
+    "name": "06_cur_noRandTail_s0",
+    "algo": "trpo",
+    "curriculum": "no_random_tail",
+    "knock": 0.5,
+    "gin": 0.5,
+    "loss_scale": 1.0,
+    "seed": 0,
+    "vs_random": 0.981,
+    "vs_champion": 0.45,
+    "vs_gold": 0.314,
+    "gin_vs_gold": 0.004,
+    "steps": 12000000,
+    "secs": 13556
+  },
+  "rows": [
+    {
+      "name": "06_cur_noRandTail_s0",
+      "algo": "trpo",
+      "curriculum": "no_random_tail",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.981,
+      "vs_champion": 0.45,
+      "vs_gold": 0.314,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 13556
+    }
+  ]
+}
