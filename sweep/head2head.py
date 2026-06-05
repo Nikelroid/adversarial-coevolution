@@ -1,6 +1,7 @@
 """Round-robin head-to-head among the trained agents (+ random). CPU-only,
 no LLM — runs in parallel with GPU training. Writes sweep/h2h.json."""
 import os, sys, json, functools, time
+from agents.action_utils import masked_argmax
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np  # noqa: F401
 from stable_baselines3 import PPO
@@ -33,7 +34,7 @@ def play(hero, opp_factory, n):
     for _ in range(n):
         obs, _ = env.reset(); done = False; r = 0.0
         while not done:
-            a, _ = hero.predict(obs, deterministic=True)
+            a = masked_argmax(hero, obs)
             obs, r, done, trunc, _ = env.step(a)
             if trunc:
                 done = True

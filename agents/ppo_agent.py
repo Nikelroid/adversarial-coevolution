@@ -72,19 +72,8 @@ class PPOAgent(Agent):
         """
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
-
-        obs = self.get_observation()
-        mask = np.asarray(obs['action_mask']).astype(bool)
-
-        with torch.no_grad():
-            obs_t, _ = self.model.policy.obs_to_tensor(obs)
-            probs = self.model.policy.get_distribution(obs_t).distribution.probs
-            probs = probs.detach().cpu().numpy().reshape(-1)
-
-        masked = np.where(mask, probs, -np.inf)          # consider only legal actions
-        if not np.isfinite(masked).any():                # degenerate: no legal prob mass
-            masked = np.where(mask, 1.0, -np.inf)         # -> any legal action
-        return int(np.argmax(masked))
+        from agents.action_utils import masked_argmax
+        return masked_argmax(self.model, self.get_observation())
     
     def train_step(self, obs, action, reward, next_obs, done):
         """

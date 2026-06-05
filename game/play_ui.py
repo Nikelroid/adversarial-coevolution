@@ -1,4 +1,5 @@
 import pygame
+from agents.action_utils import masked_argmax
 import numpy as np
 import time
 
@@ -488,7 +489,7 @@ def play_game(human_player_id=0, model_path="path/to/your/model.zip"):
             # --- END OF FIX ---
             else:
 
-                action, _ = ppo_agent.model.predict(obs, deterministic=True)
+                action = masked_argmax(ppo_agent.model, obs)  # best legal action (no random fallback)
 
                 
                 

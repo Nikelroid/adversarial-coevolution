@@ -12,6 +12,7 @@ SubprocVecEnv workers (copy-on-write), so there's no per-worker reload.
     python sweep/selfplay_one.py --combo 0
 """
 from __future__ import annotations
+from agents.action_utils import masked_argmax
 
 import argparse
 import functools
@@ -152,7 +153,7 @@ def evaluate(model, opponent_factory, n_episodes, turns_limit=200):
         obs, _ = env.reset()
         ep_r, done = 0.0, False
         while not done:
-            action, _ = model.predict(obs, deterministic=True)
+            action = masked_argmax(model, obs)
             obs, r, done, trunc, _ = env.step(action)
             ep_r += float(r)
             if trunc:
