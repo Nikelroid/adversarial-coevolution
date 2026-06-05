@@ -398,7 +398,8 @@ ol li,ul li{margin:4px 0;}
   currently lose to more often).</p>
 
   <figure class="fig" style="max-width:560px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/curriculum.png" alt="Phase-6 sweep" loading="lazy"/><figcaption>Best win-rate per cell (mean over seeds); fills in as runs land.</figcaption></figure>
-  <p>Top cells by win-rate vs the gold standard (12 shown):</p><table><tr><th>cell</th><th>algo</th><th>curriculum</th><th class="n">vs random</th><th class="n">vs champion</th><th class="n">vs gold</th><th class="n">gin% vs gold</th></tr><tr><td>05_rew_R4_earlyknk_s1</td><td>trpo</td><td>designed</td><td class="n">98.8</td><td class="n">49.4</td><td class="n"><b>32.8</b></td><td class="n">0.30</td></tr>
+  <p>Top cells by win-rate vs the gold standard (12 shown):</p><table><tr><th>cell</th><th>algo</th><th>curriculum</th><th class="n">vs random</th><th class="n">vs champion</th><th class="n">vs gold</th><th class="n">gin% vs gold</th></tr><tr><td>03_rew_R0_highgin_s0</td><td>trpo</td><td>designed</td><td class="n">99.0</td><td class="n">42.7</td><td class="n"><b>33.0</b></td><td class="n">0.50</td></tr>
+<tr><td>05_rew_R4_earlyknk_s1</td><td>trpo</td><td>designed</td><td class="n">98.8</td><td class="n">49.4</td><td class="n"><b>32.8</b></td><td class="n">0.30</td></tr>
 <tr><td>06_cur_noRandTail_s2</td><td>trpo</td><td>no_random_tail</td><td class="n">98.8</td><td class="n">46.0</td><td class="n"><b>32.8</b></td><td class="n">0.50</td></tr>
 <tr><td>09_trpo_kl_small_s1</td><td>trpo</td><td>designed</td><td class="n">98.4</td><td class="n">46.6</td><td class="n"><b>32.6</b></td><td class="n">0.30</td></tr>
 <tr><td>11_trpo_gae_batch_s1</td><td>trpo</td><td>designed</td><td class="n">98.8</td><td class="n">44.4</td><td class="n"><b>31.9</b></td><td class="n">0.70</td></tr>
@@ -408,8 +409,7 @@ ol li,ul li{margin:4px 0;}
 <tr><td>06_cur_noRandTail_s0</td><td>trpo</td><td>no_random_tail</td><td class="n">98.1</td><td class="n">45.0</td><td class="n"><b>31.4</b></td><td class="n">0.40</td></tr>
 <tr><td>02_base_ppo_s1</td><td>ppo</td><td>designed</td><td class="n">99.4</td><td class="n">46.4</td><td class="n"><b>31.0</b></td><td class="n">0.40</td></tr>
 <tr><td>10_trpo_kl_large_s1</td><td>trpo</td><td>designed</td><td class="n">98.0</td><td class="n">48.2</td><td class="n"><b>30.9</b></td><td class="n">0.40</td></tr>
-<tr><td>05_rew_R4_earlyknk_s2</td><td>trpo</td><td>designed</td><td class="n">98.8</td><td class="n">49.7</td><td class="n"><b>30.7</b></td><td class="n">0.10</td></tr>
-<tr><td>11_trpo_gae_batch_s0</td><td>trpo</td><td>designed</td><td class="n">98.0</td><td class="n">49.7</td><td class="n"><b>30.7</b></td><td class="n">0.70</td></tr></table>
+<tr><td>05_rew_R4_earlyknk_s2</td><td>trpo</td><td>designed</td><td class="n">98.8</td><td class="n">49.7</td><td class="n"><b>30.7</b></td><td class="n">0.10</td></tr></table>
   <p><b>How it runs.</b> 30 runs as a SLURM array; a self-sustaining watchdog resubmits any failed cell,
   re-aggregates the results, regenerates this page, and pushes &mdash; with no human in the loop &mdash;
   and every run streams to Weights &amp; Biases (<code>phase6-curriculum</code>). Gold stays

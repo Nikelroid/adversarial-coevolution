@@ -1,21 +1,36 @@
 {
-  "n_cells": 19,
+  "n_cells": 20,
   "best": {
-    "name": "05_rew_R4_earlyknk_s1",
+    "name": "03_rew_R0_highgin_s0",
     "algo": "trpo",
     "curriculum": "designed",
     "knock": 0.5,
-    "gin": 0.5,
+    "gin": 1.5,
     "loss_scale": 1.0,
-    "seed": 1,
-    "vs_random": 0.988,
-    "vs_champion": 0.494,
-    "vs_gold": 0.328,
-    "gin_vs_gold": 0.003,
+    "seed": 0,
+    "vs_random": 0.99,
+    "vs_champion": 0.427,
+    "vs_gold": 0.33,
+    "gin_vs_gold": 0.005,
     "steps": 12000000,
-    "secs": 18289
+    "secs": 13048
   },
   "rows": [
+    {
+      "name": "03_rew_R0_highgin_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 1.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.99,
+      "vs_champion": 0.427,
+      "vs_gold": 0.33,
+      "gin_vs_gold": 0.005,
+      "steps": 12000000,
+      "secs": 13048
+    },
     {
       "name": "05_rew_R4_earlyknk_s1",
       "algo": "trpo",
