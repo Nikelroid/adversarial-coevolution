@@ -3,9 +3,12 @@ name,algo,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin
 06_cur_noRandTail_s2,trpo,no_random_tail,0.5,0.5,1.0,2,0.988,0.46,0.328,0.005,12000000,13878
 09_trpo_kl_small_s1,trpo,designed,0.5,0.5,1.0,1,0.984,0.466,0.326,0.003,12000000,23007
 06_cur_noRandTail_s1,trpo,no_random_tail,0.5,0.5,1.0,1,0.984,0.482,0.315,0.004,12000000,13736
+12_ppo_ent_hi_s0,ppo,designed,0.5,0.5,1.0,0,0.991,0.505,0.315,0.006,12000000,7930
 06_cur_noRandTail_s0,trpo,no_random_tail,0.5,0.5,1.0,0,0.981,0.45,0.314,0.004,12000000,13556
+10_trpo_kl_large_s1,trpo,designed,0.5,0.5,1.0,1,0.98,0.482,0.309,0.004,12000000,12951
 05_rew_R4_earlyknk_s2,trpo,designed,0.5,0.5,1.0,2,0.988,0.497,0.307,0.001,12000000,18773
 09_trpo_kl_small_s2,trpo,designed,0.5,0.5,1.0,2,0.993,0.477,0.305,0.006,12000000,22967
 07_cur_pfsp_s0,trpo,designed,0.5,0.5,1.0,0,0.988,0.445,0.295,0.003,12000000,14321
 09_trpo_kl_small_s0,trpo,designed,0.5,0.5,1.0,0,0.99,0.459,0.294,0.003,12000000,22876
+10_trpo_kl_large_s0,trpo,designed,0.5,0.5,1.0,0,0.988,0.459,0.292,0.004,12000000,12996
 08_trpo_gamma_high_s2,trpo,designed,0.5,0.5,1.0,2,0.971,0.492,0.284,0.001,12000000,22828
