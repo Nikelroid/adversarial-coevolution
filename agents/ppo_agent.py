@@ -55,30 +55,36 @@ class PPOAgent(Agent):
         return obs
     
     def do_action(self) -> int:
-        """
-        Get action from PPO model.
-        
-        Returns:
-            Action index
+        """Pick the highest-probability LEGAL action from the policy's action distribution
+        -- never a random fallback.
+
+        We read the policy's per-action probabilities and take the argmax over the legal
+        actions only, instead of calling predict() and substituting a RANDOM legal action
+        whenever the predicted one happens to be illegal. The random fallback silently makes
+        the agent play a random move in those states, which understates a hero's true strength
+        in evaluation and weakens pool/self opponents during training. Masked-argmax guarantees
+        the agent always plays its best legal move, so eval win-rates are faithful and the
+        opponents are genuinely as strong as the model.
+
+        This is robust whether or not the policy masks internally: our masked policies already
+        zero illegal logits, and we re-apply the legal mask here so any non-masked model is
+        handled too.
         """
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
-        
+
         obs = self.get_observation()
-        
-        # Get action from model using the *entire* observation dictionary
-        action, _ = self.model.predict(obs, deterministic=True)
-        
-        # Extract action mask *after* prediction to validate the action
-        action_mask = obs['action_mask']
-        
-        # Ensure action is valid according to mask
-        if not action_mask[action]:
-            # If predicted action is invalid, sample from valid actions
-            valid_actions = np.where(action_mask)[0]
-            action = np.random.choice(valid_actions)
-        
-        return int(action)
+        mask = np.asarray(obs['action_mask']).astype(bool)
+
+        with torch.no_grad():
+            obs_t, _ = self.model.policy.obs_to_tensor(obs)
+            probs = self.model.policy.get_distribution(obs_t).distribution.probs
+            probs = probs.detach().cpu().numpy().reshape(-1)
+
+        masked = np.where(mask, probs, -np.inf)          # consider only legal actions
+        if not np.isfinite(masked).any():                # degenerate: no legal prob mass
+            masked = np.where(mask, 1.0, -np.inf)         # -> any legal action
+        return int(np.argmax(masked))
     
     def train_step(self, obs, action, reward, next_obs, done):
         """
