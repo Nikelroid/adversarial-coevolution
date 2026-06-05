@@ -36,23 +36,33 @@ from sweep.llm_dagger_one import evaluate, KNOCK, GIN   # reuse the eval harness
 
 
 class EmbedExtractor(BaseFeaturesExtractor):
-    """Frozen learned embedding of the 208-d observation as the policy's features.
-    The action mask is read separately by MaskedGinRummyPolicy, so masking is intact."""
-    def __init__(self, observation_space, embedder_path=None):
+    """Learned embedding of the 208-d observation as the policy's features. The action
+    mask is read separately by MaskedGinRummyPolicy, so masking stays intact.
+      freeze=True  : embedding is fixed (tests the representation as-is).
+      freeze=False : RL fine-tunes the embedder (warm-started from the pretrained one).
+      concat=True  : features = [embedding, raw 208-d sparse] (keep structure AND detail)."""
+    def __init__(self, observation_space, embedder_path=None, freeze=True, concat=False):
         ckpt = th.load(embedder_path, map_location="cpu")
         cfg = ckpt["cfg"]
-        super().__init__(observation_space, features_dim=cfg["emb_dim"])
+        feat = cfg["emb_dim"] + (cfg["in_dim"] if concat else 0)
+        super().__init__(observation_space, features_dim=feat)
         self.emb = Embedder(**cfg)
         self.emb.load_state_dict(ckpt["state_dict"])
-        for p in self.emb.parameters():
-            p.requires_grad_(False)
-        self.emb.eval()
+        self.freeze, self.concat = freeze, concat
+        if freeze:
+            for p in self.emb.parameters():
+                p.requires_grad_(False)
+            self.emb.eval()
 
     def forward(self, obs):
         x = obs["observation"].float()
         x = x.reshape(x.shape[0], -1)
-        with th.no_grad():
-            return self.emb(x)
+        if self.freeze:
+            with th.no_grad():
+                e = self.emb(x)
+        else:
+            e = self.emb(x)
+        return th.cat([e, x], dim=1) if self.concat else e
 
 
 def main():
@@ -85,8 +95,12 @@ def main():
         pkw = dict(features_extractor_class=CombinedExtractor, net_arch=net_arch,
                    activation_fn=th.nn.Tanh, ortho_init=True)
     else:
+        freeze = os.environ.get("FREEZE", "1") != "0"
+        concat = os.environ.get("CONCAT", "0") == "1"
+        print(f"    embed mode: freeze={freeze} concat={concat}", flush=True)
         pkw = dict(features_extractor_class=EmbedExtractor,
-                   features_extractor_kwargs=dict(embedder_path=embedder),
+                   features_extractor_kwargs=dict(embedder_path=embedder,
+                                                  freeze=freeze, concat=concat),
                    net_arch=net_arch, activation_fn=th.nn.Tanh, ortho_init=True)
     model = PPO(ppo_train.MaskedGinRummyPolicy, env, n_steps=n_steps, device="cpu",
                 verbose=0, policy_kwargs=pkw)
