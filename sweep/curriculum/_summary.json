@@ -1,5 +1,5 @@
 {
-  "n_cells": 16,
+  "n_cells": 18,
   "best": {
     "name": "05_rew_R4_earlyknk_s1",
     "algo": "trpo",
@@ -60,6 +60,21 @@
       "gin_vs_gold": 0.003,
       "steps": 12000000,
       "secs": 23007
+    },
+    {
+      "name": "02_base_ppo_s0",
+      "algo": "ppo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.994,
+      "vs_champion": 0.524,
+      "vs_gold": 0.318,
+      "gin_vs_gold": 0.009,
+      "steps": 12000000,
+      "secs": 7933
     },
     {
       "name": "06_cur_noRandTail_s1",
@@ -165,6 +180,21 @@
       "gin_vs_gold": 0.007,
       "steps": 12000000,
       "secs": 13148
+    },
+    {
+      "name": "12_ppo_ent_hi_s1",
+      "algo": "ppo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.988,
+      "vs_champion": 0.531,
+      "vs_gold": 0.307,
+      "gin_vs_gold": 0.005,
+      "steps": 12000000,
+      "secs": 11998
     },
     {
       "name": "09_trpo_kl_small_s2",
