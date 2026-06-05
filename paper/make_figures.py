@@ -374,10 +374,20 @@ def fig_phase5():
     fig.tight_layout(); _save(fig, "phase5_compare")
 
 
-def fig_curriculum():
-    """Phase-6 sweep: best win-rate vs champion + gold per cell (mean over seeds), and the
-    reward study's gin-rate (the optimal-rarely-gins mechanism check). Reads
-    sweep/curriculum/*.json; shows a 'results pending' placeholder until cells land."""
+CHAMP_VS_GOLD = 29.8     # champion's own win-rate vs gold (gold_bench: gold beats champ 70.2%)
+GOLD_GIN = 0.7           # the optimal player's own gin-rate vs champion (gold_bench)
+
+_CELL_LABEL = {
+    "01_base_trpo": "TRPO baseline", "02_base_ppo": "PPO", "03_rew_R0_highgin": "reward: high-gin",
+    "04_rew_R2_knockfwd": "reward: knock-forward", "05_rew_R4_earlyknk": "reward: early-knock",
+    "06_cur_noRandTail": "curric: no-random-tail", "07_cur_pfsp": "curric: PFSP",
+    "08_trpo_gamma_high": "gamma 0.997", "09_trpo_kl_small": "small trust region",
+    "10_trpo_kl_large": "large trust region", "11_trpo_gae_batch": "GAE+batch",
+    "12_ppo_ent_hi": "PPO high-explore",
+}
+
+
+def _curriculum_cells():
     import collections, re, statistics as st
     files = [f for f in glob.glob(os.path.join(ROOT, "sweep", "curriculum", "*.json"))
              if not os.path.basename(f).startswith("_")]
@@ -388,28 +398,73 @@ def fig_curriculum():
         except Exception:
             continue
         cell = re.sub(r"_s\d+$", "", d.get("name", ""))
-        by[cell]["gold"].append(d.get("best_vs_gold",
-                                d.get("vs_gold", {}).get("win_rate", 0)) * 100)
-        by[cell]["champ"].append(d.get("best_vs_champion",
-                                 d.get("vs_champion", {}).get("win_rate", 0)) * 100)
+        by[cell]["gold"].append(d.get("vs_gold", {}).get("win_rate", 0) * 100)
+        by[cell]["bestgold"].append(d.get("best_vs_gold", d.get("vs_gold", {}).get("win_rate", 0)) * 100)
+        by[cell]["champ"].append(d.get("vs_champion", {}).get("win_rate", 0) * 100)
         by[cell]["gin"].append(d.get("vs_gold", {}).get("gin_rate", 0) * 100)
-    fig, ax = plt.subplots(figsize=(6.8, 4.6))
+        by[cell]["len"].append(d.get("vs_gold", {}).get("mean_len", 0))
+    return by, st
+
+
+def fig_curriculum():
+    """Phase-6 main result: per-cell win-rate vs champion and vs gold (mean +/- sd over
+    seeds), sorted by vs-gold, with the champion's own vs-gold score as the reference line.
+    Reads sweep/curriculum/*.json; placeholder until cells land."""
+    by, st = _curriculum_cells()
+    fig, ax = plt.subplots(figsize=(7.4, 5.0))
     if not by:
         ax.text(0.5, 0.5, "Phase-6 curriculum / algorithm / reward sweep\n"
                 "30 runs queued -- results pending", ha="center", va="center", fontsize=11)
         ax.axis("off"); fig.tight_layout(); _save(fig, "curriculum")
         print("  fig_curriculum: pending"); return
-    cells = sorted(by)
+    cells = sorted(by, key=lambda c: st.mean(by[c]["gold"]))
+    labels = [_CELL_LABEL.get(c, c) for c in cells]
     y = np.arange(len(cells)); h = 0.4
     champ = [st.mean(by[c]["champ"]) for c in cells]
+    champ_e = [st.pstdev(by[c]["champ"]) if len(by[c]["champ"]) > 1 else 0 for c in cells]
     gold = [st.mean(by[c]["gold"]) for c in cells]
-    ax.barh(y + h / 2, champ, h, label="best vs champion", color="#2171b5")
-    ax.barh(y - h / 2, gold, h, label="best vs gold", color="#c0392b")
-    ax.set_yticks(y); ax.set_yticklabels(cells, fontsize=7)
-    ax.set_xlabel("win rate (%)"); ax.set_xlim(0, 100)
-    ax.set_title("Phase-6: best win-rate per sweep cell (mean over seeds)", fontsize=10)
-    ax.legend(fontsize=8); fig.tight_layout(); _save(fig, "curriculum")
+    gold_e = [st.pstdev(by[c]["gold"]) if len(by[c]["gold"]) > 1 else 0 for c in cells]
+    ax.barh(y + h / 2, champ, h, xerr=champ_e, capsize=2, label="vs champion", color="#2171b5")
+    ax.barh(y - h / 2, gold, h, xerr=gold_e, capsize=2, label="vs gold (perfect player)", color="#c0392b")
+    ax.axvline(CHAMP_VS_GOLD, ls="--", lw=1.3, color="#444")
+    ax.text(CHAMP_VS_GOLD + 0.6, len(cells) - 0.4, "champion's own\nscore vs gold",
+            fontsize=7.5, color="#444", va="top")
+    ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=8)
+    ax.set_xlabel("win rate (%)"); ax.set_xlim(0, 60)
+    ax.set_title("Phase-6: every recipe lands near champion-strength vs gold", fontsize=10.5)
+    ax.legend(fontsize=8, loc="lower right"); fig.tight_layout(); _save(fig, "curriculum")
     print(f"  fig_curriculum: {len(cells)} cells")
+
+
+def fig_curriculum_reward():
+    """The reward finding: gin-rate stays under ~1% for EVERY reward design, even the one
+    that pays 3x for a gin -- the optimal player almost never gins, and the policy learns
+    that regardless. Bars = gin-rate per reward cell; dashed line = the gold agent's own gin-rate."""
+    by, st = _curriculum_cells()
+    order = [("03_rew_R0_highgin", "high-gin\n(gin pays 3x)"), ("01_base_trpo", "balanced\n(baseline)"),
+             ("04_rew_R2_knockfwd", "knock-forward"), ("05_rew_R4_earlyknk", "early-knock\n(speed penalty)")]
+    order = [(c, lab) for c, lab in order if c in by]
+    if not order:
+        fig, ax = plt.subplots(figsize=(5.6, 3.2))
+        ax.text(0.5, 0.5, "reward study -- results pending", ha="center", va="center")
+        ax.axis("off"); fig.tight_layout(); _save(fig, "curriculum_reward"); return
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.2, 3.3))
+    labs = [lab for _, lab in order]
+    x = np.arange(len(order))
+    gin = [st.mean(by[c]["gin"]) for c, _ in order]
+    a1.bar(x, gin, 0.6, color=["#c0392b", "#7f8c8d", "#2e86c1", "#27ae60"][:len(order)])
+    a1.axhline(GOLD_GIN, ls="--", lw=1.2, color="#444")
+    a1.text(len(order) - 1, GOLD_GIN + 0.03, "gold's own gin-rate", fontsize=7.5, ha="right", color="#444")
+    a1.set_xticks(x); a1.set_xticklabels(labs, fontsize=7.5)
+    a1.set_ylabel("gin-rate vs gold (%)"); a1.set_ylim(0, 1.6)
+    a1.set_title("Rewarding gin does NOT make it gin", fontsize=9.5)
+    ln = [st.mean(by[c]["len"]) for c, _ in order]
+    a2.bar(x, ln, 0.6, color=["#c0392b", "#7f8c8d", "#2e86c1", "#27ae60"][:len(order)])
+    a2.set_xticks(x); a2.set_xticklabels(labs, fontsize=7.5)
+    a2.set_ylabel("mean game length (turns)"); a2.set_ylim(min(ln) - 1.5, max(ln) + 1.0)
+    a2.set_title("Early-knock reward shortens games", fontsize=9.5)
+    fig.tight_layout(); _save(fig, "curriculum_reward")
+    print(f"  fig_curriculum_reward: {len(order)} reward cells")
 
 
 def main():
@@ -418,7 +473,7 @@ def main():
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
-               fig_curriculum):
+               fig_curriculum, fig_curriculum_reward):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
