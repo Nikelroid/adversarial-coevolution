@@ -1,5 +1,5 @@
 {
-  "n_cells": 25,
+  "n_cells": 26,
   "best": {
     "name": "03_rew_R0_highgin_s0",
     "algo": "trpo",
@@ -390,6 +390,21 @@
       "gin_vs_gold": 0.001,
       "steps": 12000000,
       "secs": 22828
+    },
+    {
+      "name": "01_base_trpo_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.983,
+      "vs_champion": 0.454,
+      "vs_gold": 0.281,
+      "gin_vs_gold": 0.003,
+      "steps": 12000000,
+      "secs": 22469
     }
   ]
 }
