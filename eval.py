@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+from agents.action_utils import masked_argmax
 import numpy as np
 import pandas as pd
 from stable_baselines3 import PPO
@@ -63,7 +64,7 @@ def evaluate_model(model_path, num_episodes=1000, save_results=True, verbose=Tru
         
         while not done:
             # Get action from model (deterministic for evaluation)
-            action, _ = model.predict(obs, deterministic=True)
+            action = masked_argmax(model, obs)
             episode_actions.append(int(action))
             
             # Take step

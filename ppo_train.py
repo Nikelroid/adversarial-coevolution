@@ -9,6 +9,7 @@ python train_ppo.py --train
 """
 
 import os
+from agents.action_utils import masked_argmax
 import torch as th
 from stable_baselines3.common.distributions import Distribution, CategoricalDistribution
 from stable_baselines3 import PPO
@@ -548,7 +549,7 @@ def test_trained_model(model_path, num_episodes=10, log_to_wandb=False, turns_li
         done = False
         
         while not done:
-            action, _ = model.predict(obs, deterministic=True)
+            action = masked_argmax(model, obs)
             obs, reward, done, truncated, info = env.step(action)
             episode_reward += reward
             
