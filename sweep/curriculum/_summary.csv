@@ -27,4 +27,5 @@ name,algo,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin
 07_cur_pfsp_s2,trpo,designed,0.5,0.5,1.0,2,0.983,0.446,0.284,0.005,12000000,22886
 08_trpo_gamma_high_s2,trpo,designed,0.5,0.5,1.0,2,0.971,0.492,0.284,0.001,12000000,22828
 01_base_trpo_s1,trpo,designed,0.5,0.5,1.0,1,0.983,0.454,0.281,0.003,12000000,22469
+08_trpo_gamma_high_s1,trpo,designed,0.5,0.5,1.0,1,0.981,0.422,0.279,0.006,12000000,18387
 08_trpo_gamma_high_s0,trpo,designed,0.5,0.5,1.0,0,0.97,0.507,0.268,0.005,12000000,18164
