@@ -1,5 +1,5 @@
 {
-  "n_cells": 26,
+  "n_cells": 28,
   "best": {
     "name": "03_rew_R0_highgin_s0",
     "algo": "trpo",
@@ -90,6 +90,21 @@
       "gin_vs_gold": 0.001,
       "steps": 12000000,
       "secs": 22542
+    },
+    {
+      "name": "07_cur_pfsp_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.985,
+      "vs_champion": 0.461,
+      "vs_gold": 0.319,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 18684
     },
     {
       "name": "11_trpo_gae_batch_s1",
@@ -405,6 +420,21 @@
       "gin_vs_gold": 0.003,
       "steps": 12000000,
       "secs": 22469
+    },
+    {
+      "name": "08_trpo_gamma_high_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.97,
+      "vs_champion": 0.507,
+      "vs_gold": 0.268,
+      "gin_vs_gold": 0.005,
+      "steps": 12000000,
+      "secs": 18164
     }
   ]
 }
