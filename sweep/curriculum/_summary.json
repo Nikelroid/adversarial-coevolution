@@ -1,5 +1,5 @@
 {
-  "n_cells": 10,
+  "n_cells": 13,
   "best": {
     "name": "05_rew_R4_earlyknk_s1",
     "algo": "trpo",
@@ -77,6 +77,21 @@
       "secs": 13736
     },
     {
+      "name": "12_ppo_ent_hi_s0",
+      "algo": "ppo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.991,
+      "vs_champion": 0.505,
+      "vs_gold": 0.315,
+      "gin_vs_gold": 0.006,
+      "steps": 12000000,
+      "secs": 7930
+    },
+    {
       "name": "06_cur_noRandTail_s0",
       "algo": "trpo",
       "curriculum": "no_random_tail",
@@ -90,6 +105,21 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 13556
+    },
+    {
+      "name": "10_trpo_kl_large_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.98,
+      "vs_champion": 0.482,
+      "vs_gold": 0.309,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 12951
     },
     {
       "name": "05_rew_R4_earlyknk_s2",
@@ -150,6 +180,21 @@
       "gin_vs_gold": 0.003,
       "steps": 12000000,
       "secs": 22876
+    },
+    {
+      "name": "10_trpo_kl_large_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.988,
+      "vs_champion": 0.459,
+      "vs_gold": 0.292,
+      "gin_vs_gold": 0.004,
+      "steps": 12000000,
+      "secs": 12996
     },
     {
       "name": "08_trpo_gamma_high_s2",
