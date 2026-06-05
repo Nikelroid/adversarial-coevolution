@@ -1,0 +1,22 @@
+{
+  "name": "06_cur_noRandTail_s0",
+  "algo": "trpo",
+  "curriculum": "no_random_tail",
+  "sampling": "recent",
+  "knock": 0.5,
+  "gin": 0.5,
+  "win_scale": 1.0,
+  "loss_scale": 1.0,
+  "step_penalty": 0.0,
+  "target_kl": 0.01,
+  "ent_coef": 0.01,
+  "clip_range": 0.2,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "n_steps": 256,
+  "seed": 0,
+  "steps": 12000000,
+  "cell": "06_cur_noRandTail",
+  "purpose": "CURRICULUM: drop random after stage 1 (catastrophic-forgetting test)"
+}

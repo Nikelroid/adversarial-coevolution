@@ -374,12 +374,51 @@ def fig_phase5():
     fig.tight_layout(); _save(fig, "phase5_compare")
 
 
+def fig_curriculum():
+    """Phase-6 sweep: best win-rate vs champion + gold per cell (mean over seeds), and the
+    reward study's gin-rate (the optimal-rarely-gins mechanism check). Reads
+    sweep/curriculum/*.json; shows a 'results pending' placeholder until cells land."""
+    import collections, re, statistics as st
+    files = [f for f in glob.glob(os.path.join(ROOT, "sweep", "curriculum", "*.json"))
+             if not os.path.basename(f).startswith("_")]
+    by = collections.defaultdict(lambda: collections.defaultdict(list))
+    for f in files:
+        try:
+            d = json.load(open(f))
+        except Exception:
+            continue
+        cell = re.sub(r"_s\d+$", "", d.get("name", ""))
+        by[cell]["gold"].append(d.get("best_vs_gold",
+                                d.get("vs_gold", {}).get("win_rate", 0)) * 100)
+        by[cell]["champ"].append(d.get("best_vs_champion",
+                                 d.get("vs_champion", {}).get("win_rate", 0)) * 100)
+        by[cell]["gin"].append(d.get("vs_gold", {}).get("gin_rate", 0) * 100)
+    fig, ax = plt.subplots(figsize=(6.8, 4.6))
+    if not by:
+        ax.text(0.5, 0.5, "Phase-6 curriculum / algorithm / reward sweep\n"
+                "30 runs queued -- results pending", ha="center", va="center", fontsize=11)
+        ax.axis("off"); fig.tight_layout(); _save(fig, "curriculum")
+        print("  fig_curriculum: pending"); return
+    cells = sorted(by)
+    y = np.arange(len(cells)); h = 0.4
+    champ = [st.mean(by[c]["champ"]) for c in cells]
+    gold = [st.mean(by[c]["gold"]) for c in cells]
+    ax.barh(y + h / 2, champ, h, label="best vs champion", color="#2171b5")
+    ax.barh(y - h / 2, gold, h, label="best vs gold", color="#c0392b")
+    ax.set_yticks(y); ax.set_yticklabels(cells, fontsize=7)
+    ax.set_xlabel("win rate (%)"); ax.set_xlim(0, 100)
+    ax.set_title("Phase-6: best win-rate per sweep cell (mean over seeds)", fontsize=10)
+    ax.legend(fontsize=8); fig.tight_layout(); _save(fig, "curriculum")
+    print(f"  fig_curriculum: {len(cells)} cells")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
-               fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5):
+               fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
+               fig_curriculum):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

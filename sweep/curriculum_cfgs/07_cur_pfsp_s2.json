@@ -1,0 +1,22 @@
+{
+  "name": "07_cur_pfsp_s2",
+  "algo": "trpo",
+  "curriculum": "designed",
+  "sampling": "pfsp",
+  "knock": 0.5,
+  "gin": 0.5,
+  "win_scale": 1.0,
+  "loss_scale": 1.0,
+  "step_penalty": 0.0,
+  "target_kl": 0.01,
+  "ent_coef": 0.01,
+  "clip_range": 0.2,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "n_steps": 256,
+  "seed": 2,
+  "steps": 12000000,
+  "cell": "07_cur_pfsp",
+  "purpose": "CURRICULUM: PFSP loss-weighted pool sampling vs recency-uniform (the sampling RULE)"
+}

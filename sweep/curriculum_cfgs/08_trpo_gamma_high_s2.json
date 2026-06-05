@@ -1,0 +1,22 @@
+{
+  "name": "08_trpo_gamma_high_s2",
+  "algo": "trpo",
+  "curriculum": "designed",
+  "sampling": "recent",
+  "knock": 0.5,
+  "gin": 0.5,
+  "win_scale": 1.0,
+  "loss_scale": 1.0,
+  "step_penalty": 0.0,
+  "target_kl": 0.01,
+  "ent_coef": 0.01,
+  "clip_range": 0.2,
+  "lr": 0.0003,
+  "gamma": 0.997,
+  "gae_lambda": 0.95,
+  "n_steps": 256,
+  "seed": 2,
+  "steps": 12000000,
+  "cell": "08_trpo_gamma_high",
+  "purpose": "ALGO drop-in: longer credit reach for terminal-only reward (0.997^40=0.89 vs 0.67)"
+}
