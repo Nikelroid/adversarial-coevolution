@@ -78,6 +78,18 @@ OPPONENTS = {
     "reward": {"emoji": "💰", "label": "Reward Maximizer", "type": "ppo",
                "file": "ppo_gin_rummy_reward.zip", "stat": "highest avg score",
                "desc": "Phase-1 PPO with the highest average score per game."},
+    "curriculum": {"emoji": "🃏", "label": "Curriculum Champion", "type": "ppo",
+                   "file": "gin_curriculum_champion.zip", "stat": "33% vs gold · Phase-6 best",
+                   "desc": "The strongest agent from our Phase-6 sweep. Trained through a full "
+                           "league of opponents (random, its own past selves, then the champion) "
+                           "and rewarded for knocking early with low deadwood, the optimal style. "
+                           "Wins ~33% vs the gold standard and ~50% vs the old champion."},
+    "goldhunter": {"emoji": "🥇", "label": "Gold Hunter", "type": "ppo",
+                   "file": "gin_gold_hunter.zip", "stat": "best win-rate vs gold (33%)",
+                   "desc": "The curriculum-sweep agent with the single highest win-rate against "
+                           "the gold standard (33%). Curious twist: its reward paid a big bonus "
+                           "for ginning, yet it still learned almost never to gin, exactly like "
+                           "the optimal player does."},
     "random": {"emoji": "🎲", "label": "Random", "type": "random",
                "stat": "random legal moves",
                "desc": "Plays a uniformly random legal move every turn. Easiest."},
@@ -526,7 +538,11 @@ def main():
             print(f"  [skip] '{key}': model not found at {path}")
             continue
         print(f"Loading '{key}' opponent: {path}")
-        models[key] = PPO.load(path, device="cpu")
+        try:
+            models[key] = PPO.load(path, device="cpu")
+        except Exception:                       # curriculum winners may be TRPO-trained
+            from sb3_contrib import TRPO
+            models[key] = TRPO.load(path, device="cpu")
     # Drop any PPO opponents whose weights are missing so the UI never offers them.
     for key in [k for k, s in OPPONENTS.items()
                 if s["type"] == "ppo" and k not in models]:
