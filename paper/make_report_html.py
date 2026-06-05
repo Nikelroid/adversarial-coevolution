@@ -338,7 +338,9 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <h2><span class="n">4</span>Play it yourself</h2>
   <p>There's a no-install web game to play any of the trained agents, with smooth card animations (draw,
   reveal, discard). The same code that feeds the RL training can also put an LLM opponent in the seat. It
-  was tested automatically in a headless browser.</p>
+  was tested automatically in a headless browser. The opponent picker now includes the two strongest
+  agents from the Phase-6 sweep &mdash; <b>&#127183; Curriculum Champion</b> and <b>&#129351; Gold Hunter</b>
+  (both ~33% vs the gold standard) &mdash; alongside the gold expert and the earlier champions.</p>
   <figure class="fig">{img("game_ui.png","web game")}<figcaption>The web game (debug view, opponent's hand shown).</figcaption></figure>
 </section>
 
