@@ -1,5 +1,5 @@
 {
-  "n_cells": 18,
+  "n_cells": 19,
   "best": {
     "name": "05_rew_R4_earlyknk_s1",
     "algo": "trpo",
@@ -60,6 +60,21 @@
       "gin_vs_gold": 0.003,
       "steps": 12000000,
       "secs": 23007
+    },
+    {
+      "name": "11_trpo_gae_batch_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.988,
+      "vs_champion": 0.444,
+      "vs_gold": 0.319,
+      "gin_vs_gold": 0.007,
+      "steps": 12000000,
+      "secs": 18045
     },
     {
       "name": "02_base_ppo_s0",

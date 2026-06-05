@@ -2,6 +2,7 @@ name,algo,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin
 05_rew_R4_earlyknk_s1,trpo,designed,0.5,0.5,1.0,1,0.988,0.494,0.328,0.003,12000000,18289
 06_cur_noRandTail_s2,trpo,no_random_tail,0.5,0.5,1.0,2,0.988,0.46,0.328,0.005,12000000,13878
 09_trpo_kl_small_s1,trpo,designed,0.5,0.5,1.0,1,0.984,0.466,0.326,0.003,12000000,23007
+11_trpo_gae_batch_s1,trpo,designed,0.5,0.5,1.0,1,0.988,0.444,0.319,0.007,12000000,18045
 02_base_ppo_s0,ppo,designed,0.5,0.5,1.0,0,0.994,0.524,0.318,0.009,12000000,7933
 06_cur_noRandTail_s1,trpo,no_random_tail,0.5,0.5,1.0,1,0.984,0.482,0.315,0.004,12000000,13736
 12_ppo_ent_hi_s0,ppo,designed,0.5,0.5,1.0,0,0.991,0.505,0.315,0.006,12000000,7930
