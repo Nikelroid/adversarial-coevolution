@@ -1,5 +1,5 @@
 {
-  "n_cells": 6,
+  "n_cells": 8,
   "best": {
     "name": "05_rew_R4_earlyknk_s1",
     "algo": "trpo",
@@ -105,6 +105,36 @@
       "gin_vs_gold": 0.003,
       "steps": 12000000,
       "secs": 14321
+    },
+    {
+      "name": "09_trpo_kl_small_s0",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.99,
+      "vs_champion": 0.459,
+      "vs_gold": 0.294,
+      "gin_vs_gold": 0.003,
+      "steps": 12000000,
+      "secs": 22876
+    },
+    {
+      "name": "08_trpo_gamma_high_s2",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 2,
+      "vs_random": 0.971,
+      "vs_champion": 0.492,
+      "vs_gold": 0.284,
+      "gin_vs_gold": 0.001,
+      "steps": 12000000,
+      "secs": 22828
     }
   ]
 }
