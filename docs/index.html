@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gin Rummy: RL vs LLM — project report</title>
+<title>Gin Rummy: teaching RL to chase a perfect player</title>
 <style>
 :root{--green:#0b5b39;--green2:#073d27;--gold:#d9a521;--ink:#16242d;--muted:#5c6b73;
 --card:#fff;--line:#e3e8e6;--good:#1f8a5a;--bad:#c0392b;}
@@ -8,25 +8,30 @@
 html{scroll-behavior:smooth}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 color:var(--ink);background:#f4f6f5;line-height:1.65;}
-.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:48px 24px 40px;
+.hero{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:52px 24px 42px;
 text-align:center;border-bottom:4px solid var(--gold);}
-.hero h1{margin:0 0 10px;font-size:29px;letter-spacing:.3px;}
-.hero p{margin:6px auto;max-width:770px;opacity:.93;font-size:15.5px;}
-.hero .by{font-size:13px;opacity:.8;margin-top:12px;}
-.links{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.hero h1{margin:0 0 12px;font-size:30px;letter-spacing:.3px;}
+.hero p{margin:6px auto;max-width:800px;opacity:.94;font-size:15.5px;}
+.hero .by{font-size:13px;opacity:.82;margin-top:14px;}
+.links{margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 .links a{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;
 padding:7px 16px;font-size:13.5px;font-weight:600;color:#fff;text-decoration:none;}
 .links a:hover{background:rgba(255,255,255,.28);}
+.kpibar{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:22px auto 0;max-width:880px;}
+.kpibar .k{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:12px;
+padding:10px 16px;min-width:120px;}
+.kpibar .v{font-size:21px;font-weight:800;color:#fff;}
+.kpibar .l{font-size:11.5px;opacity:.9;color:#eafff5;}
 .nav{position:sticky;top:0;z-index:20;background:#08311f;border-bottom:1px solid rgba(255,255,255,.12);
 display:flex;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px 10px;}
 .nav a{color:#cfe9dc;text-decoration:none;font-size:12.5px;padding:4px 9px;border-radius:6px;}
 .nav a:hover{background:rgba(255,255,255,.12);color:#fff;}
-.wrap{max-width:920px;margin:0 auto;padding:0 22px 70px;}
-section{background:var(--card);margin:20px 0;padding:24px 28px;border-radius:14px;
+.wrap{max-width:940px;margin:0 auto;padding:0 22px 70px;}
+section{background:var(--card);margin:20px 0;padding:24px 30px;border-radius:14px;
 box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line);scroll-margin-top:48px;}
-h2{color:var(--green);border-bottom:2px solid var(--line);padding-bottom:8px;margin-top:2px;font-size:21px;}
+h2{color:var(--green);border-bottom:2px solid var(--line);padding-bottom:8px;margin-top:2px;font-size:22px;}
 h2 .n{color:var(--gold);font-weight:800;margin-right:8px;}
-h3{color:var(--green2);font-size:15.5px;margin:18px 0 4px;}
+h3{color:var(--green2);font-size:16px;margin:20px 0 5px;}
 p,li{font-size:15px;}
 code{background:#eef2f0;padding:1.5px 6px;border-radius:5px;font-size:13px;color:#0a3b27;}
 .fig{margin:16px 0;text-align:center;}
@@ -41,424 +46,308 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;}
 tr:hover td{background:#fafcfb;}
 .good{color:var(--good);font-weight:700;}.bad{color:var(--bad);font-weight:700;}
 .note{background:#fff8e6;border-left:4px solid var(--gold);padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14.5px;}
-.miss{background:#fdecea;border-left:4px solid var(--bad);padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14.5px;}
+.why{background:#eef6f1;border-left:4px solid var(--good);padding:11px 16px;border-radius:6px;margin:10px 0;font-size:14.5px;}
+.why b{color:var(--green2);}
+.diagram{background:#0e2c1f;color:#d6f5e6;padding:16px 18px;border-radius:10px;overflow:auto;
+font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.45;white-space:pre;}
+.tl{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:18px 0;}
+.tl .st{flex:1;min-width:150px;background:#f0f7f3;border:1px solid var(--line);border-radius:10px;
+padding:12px 14px;margin:4px;position:relative;}
+.tl .st .big{font-size:22px;font-weight:800;color:var(--green);}
+.tl .st .lbl{font-size:12.5px;color:var(--muted);}
+.tl .st .nm{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;}
+@media(max-width:680px){.cards{grid-template-columns:1fr;}}
+.rc{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:#fcfdfc;}
+.rc h4{margin:0 0 4px;font-size:15px;color:var(--green2);}
+.rc .res{font-size:13px;font-weight:700;margin:6px 0;}
+.rc .res.win{color:var(--good);}.rc .res.lose{color:var(--bad);}.rc .res.mid{color:#a9810a;}
+.rc p{font-size:13.5px;margin:6px 0 0;}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;}
 @media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr);}}
 .kpi{background:var(--green);color:#fff;border-radius:12px;padding:15px;text-align:center;}
 .kpi .v{font-size:23px;font-weight:800;}.kpi .l{font-size:12px;opacity:.92;margin-top:3px;}
-.kpi.warn{background:#9a6b00;}
+.kpi.warn{background:#9a6b00;}.kpi.gold{background:var(--gold);color:#3a2e00;}
 pre{background:#0e2c1f;color:#d6f5e6;padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px;line-height:1.5;}
 ol li,ul li{margin:4px 0;}
 .foot{text-align:center;color:var(--muted);font-size:13px;padding:22px;}
+.lead{font-size:16.5px;color:#27413a;}
 </style></head><body>
 
 <div class="hero">
   <h1>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
-  <p>We trained a small reinforcement-learning (RL) agent to play Gin Rummy, then tried to make it
-  stronger by training it against a large language model (LLM). This is the full, honest story &mdash;
-  what we built, what worked, what didn't, and what's next.</p>
+  <p>We built a complete framework to train a small reinforcement-learning (RL) card player,
+  a perfect "gold-standard" opponent to measure it against, and a distributed system to put a
+  large language model (LLM) in the game. Then we ran <b>100+ experiments</b> to answer one
+  question: <b>how close can a lightweight RL agent get to perfect play &mdash; and what
+  actually makes it stronger?</b></p>
   <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &mdash; University of Southern California</div>
+  <div class="kpibar">
+    <div class="k"><div class="v">34%</div><div class="l">best agent vs the<br/>perfect player</div></div>
+    <div class="k"><div class="v">&lt;2%</div><div class="l">how often the perfect<br/>player gins</div></div>
+    <div class="k"><div class="v">39+</div><div class="l">controlled training<br/>runs in the sweeps</div></div>
+    <div class="k"><div class="v">62&times;</div><div class="l">faster LLM serving<br/>(scratch vs NFS)</div></div>
+  </div>
   <div class="links">
-    <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">&#128196; 4-page PDF</a>
+    <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">&#128196; PDF paper</a>
     <a href="https://github.com/Nikelroid/adversarial-coevolution">&#128025; GitHub repo</a>
     <a href="https://github.com/Nikelroid/adversarial-coevolution/tree/main/game">&#127918; Web game</a>
   </div>
 </div>
 <div class="nav">
-  <a href="#overview">Overview</a><a href="#phase1">Phase 1</a><a href="#phase2">Serving</a>
-  <a href="#opponents">Opponents</a><a href="#game">Play</a><a href="#bigrun">RL&times;LLM run</a>
-  <a href="#limits">Limitations</a><a href="#next">Phase 3</a><a href="#gold">Gold standard</a><a href="#algo">Algorithm</a><a href="#repr">Representation</a><a href="#curriculum">Curriculum sweep</a><a href="#repro">Reproduce</a>
+  <a href="#story">The story</a><a href="#challenge">The game</a><a href="#framework">What we built</a>
+  <a href="#gold">Gold standard</a><a href="#regimes">Everything we tried</a><a href="#finding">Key finding</a>
+  <a href="#levers">What mattered</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#repro">Reproduce</a>
 </div>
 
 <div class="wrap">
 
-<section id="overview">
-  <h2>Overview</h2>
+<section id="story">
+  <h2><span class="n">1</span>The whole story, in one minute</h2>
+  <p class="lead">Gin Rummy is a card game that needs both quick arithmetic (counting your
+  "deadwood" &mdash; unmatched cards) and long-term planning (forming "melds"). It is a great
+  testbed because it is easy to score but hard to master, and you never see your opponent's hand.</p>
+  <p>Training an RL agent has a chicken-and-egg problem we call the <b>opponent bottleneck</b>:
+  an agent is only as good as who it practices against. Practice against a weak player and you
+  learn weak habits. So we built three things: a fast <b>RL player</b>, a perfect
+  <b>gold-standard opponent</b> to grade everyone honestly, and a system to use a slow-but-smart
+  <b>LLM</b> as a teacher. Then we tried essentially every sensible way to make the RL agent
+  stronger and measured each against the perfect player.</p>
+  <figure class="fig" style="max-width:560px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/journey.png" alt="Win-rate vs the perfect player across the project" loading="lazy"/><figcaption>The climb: our best agent went from the old champion's ~30% to <b>34%</b> against the perfect player &mdash; through a systematic search, not luck.</figcaption></figure>
   <div class="kpis">
-    <div class="kpi"><div class="v">99.6%</div><div class="l">RL agent beats random</div></div>
-    <div class="kpi"><div class="v">5 / 5</div><div class="l">Qwen2.5-7B beats random</div></div>
-    <div class="kpi"><div class="v">62&times;</div><div class="l">faster model loading</div></div>
-    <div class="kpi warn"><div class="v">no gain</div><div class="l">from LLM fine-tuning</div></div>
-    <div class="kpi"><div class="v">70%</div><div class="l">gold-standard beats our champion</div></div>
+    <div class="kpi gold"><div class="v">70&ndash;99%</div><div class="l">the perfect player beats every learned agent</div></div>
+    <div class="kpi"><div class="v">TRPO &gt; PPO</div><div class="l">the algorithm choice that helped</div></div>
+    <div class="kpi"><div class="v">knock, don't gin</div><div class="l">the reward lesson that held across 60 runs</div></div>
+    <div class="kpi warn"><div class="v">DAgger &amp; LLM-in-loop</div><div class="l">honest negatives: didn't beat plain RL</div></div>
   </div>
-  <p>Gin Rummy is a card game that rewards two skills at once: quick counting (how many "deadwood" points
-  are left in your hand) and longer-term planning (building "melds" &mdash; sets and runs). Our plan has
-  three phases:</p>
-  <ol>
-    <li><b>Phase 1</b> &mdash; train a strong RL agent against a random opponent.</li>
-    <li><b>Phase 2</b> &mdash; train it further against an LLM opponent that should play smarter.</li>
-    <li><b>Phase 3</b> &mdash; let the RL agent and the LLM keep improving against each other <i>(first result below)</i>.</li>
-  </ol>
-  <p>This report covers Phases 1&ndash;2 in full, plus the <b>first Phase 3 result</b> (see the end). The
-  headline so far: the RL agent already plays near-perfectly against simple opponents, and the 7B LLM we
-  used turned out to be a <i>weaker</i> player than it, so training against the LLM did not make the agent
-  better. We then asked whether rewarding the gin directly would help, and found it does not: the gin rate
-  stays flat no matter how large the bonus. The open problem, a teacher actually stronger than the student
-  plus a denser learning signal for the gin, is what the next phase attacks.</p>
-  <h3>One bug we fixed first</h3>
-  <p>The game library (PettingZoo) quietly reset our custom scoring (the knock/gin reward values) every
-  time the environment was re-seeded. We found and fixed this upstream (PettingZoo PR #1312); all results
-  below use the correct rewards (knock = 0.5, gin = 1.5).</p>
+  <p><b>The bottom line up front.</b> No single trick beat the perfect player &mdash; it is a very
+  high bar. But by stacking the things that genuinely help (a better algorithm, a reward that
+  copies the perfect player's style, a curriculum of ever-stronger opponents, and always keeping
+  the best checkpoint), we pushed a lightweight agent to <b>34% wins against perfect play</b>
+  and uncovered one clean, sturdy scientific result along the way (next section).</p>
 </section>
 
-<section id="phase1">
-  <h2><span class="n">1</span>The RL agent crushes a random opponent</h2>
-  <p>We use PPO (a standard RL algorithm) with <b>action masking</b> &mdash; we block illegal moves so the
-  agent can only choose legal ones. We swept 8 settings (3 learning rates &times; 2 exploration values, plus
-  2 extra variants), trained each for 2 million steps with 96 games running in parallel, and tested each on
-  1000 fresh games against a random opponent.</p>
-  <p><b>Result:</b> every setting wins <b>98.3&ndash;99.6%</b> of games &mdash; statistically they're all
-  tied. The interesting part is the reward: it sits at the "knock" value (0.5), not the larger "gin" value
-  (1.5). In plain terms, the agent always takes the safe early finish and never holds out for the bigger
-  gin bonus. <b>That gap is the room to improve</b>, and a random opponent simply can't teach it &mdash;
-  which is exactly why we move to a thinking opponent in Phase 2.</p>
-  <div class="g2">
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/win_rate.png" alt="win rate" loading="lazy"/><figcaption>Win rate vs random &mdash; all 8 settings tied near the top.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/mean_reward.png" alt="mean reward" loading="lazy"/><figcaption>Reward stuck at the knock value, far below gin.</figcaption></figure>
-  </div>
-  <figure class="fig" style="max-width:430px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/lr_vs_reward.png" alt="lr vs reward" loading="lazy"/><figcaption>Learning rate &times; exploration barely moves the result.</figcaption></figure>
+<section id="challenge">
+  <h2><span class="n">2</span>The game, and why it is hard</h2>
+  <p>Each turn you draw a card and discard one, trying to arrange your 10 cards into
+  <b>melds</b> (runs like 5&ndash;6&ndash;7 of hearts, or sets like three 9s). Cards not in a meld
+  are <b>deadwood</b>. You win by <b>knocking</b> (ending the hand with low deadwood) or by
+  <b>gin</b> (zero deadwood &mdash; a big bonus, but rare and risky). You never see the opponent's
+  hand, so it is a game of <b>imperfect information</b>.</p>
+  <div class="diagram">a single turn (what the agent sees and chooses)
 
-  <h3>Full leaderboard (1000 games vs random)</h3>
-  <table>
-    <tr><th>Setting</th><th class="n">win%</th><th class="n">loss%</th><th>note</th></tr>
-    <tr><td>cfg5 (lr 5e-5, ent .03)</td><td class="n good">99.6</td><td class="n">0.4</td><td>best of sweep</td></tr>
-    <tr><td>cfg7 (lr 1e-4, 10 epochs)</td><td class="n">99.5</td><td class="n">0.5</td><td>ablation</td></tr>
-    <tr><td>cfg0 (lr 3e-4, ent .01)</td><td class="n">99.4</td><td class="n">0.6</td><td>baseline</td></tr>
-    <tr><td>cfg3 (lr 1e-4, ent .03)</td><td class="n">99.4</td><td class="n">0.6</td><td></td></tr>
-    <tr><td>cfg6 (lr 1e-4, n&#95;steps 1024)</td><td class="n">99.3</td><td class="n">0.7</td><td>ablation</td></tr>
-    <tr><td>cfg4 (lr 5e-5, ent .01)</td><td class="n">99.2</td><td class="n">0.8</td><td></td></tr>
-    <tr><td>cfg1 (lr 3e-4, ent .03)</td><td class="n">98.8</td><td class="n">1.2</td><td></td></tr>
-    <tr><td>cfg2 (lr 1e-4, ent .01)</td><td class="n">98.3</td><td class="n">1.7</td><td>worst of sweep</td></tr>
-  </table>
-
-  <h3>Settings held fixed across the sweep</h3>
-  <table>
-    <tr><th>Setting</th><th>Value</th></tr>
-    <tr><td>Policy</td><td>masked actor&ndash;critic (illegal moves set to &minus;&infin;)</td></tr>
-    <tr><td>Network</td><td>MLP [512, 512, 256, 128], Tanh</td></tr>
-    <tr><td>Discount &gamma; / GAE &lambda;</td><td>0.99 / 0.95</td></tr>
-    <tr><td>Clip range / value coef.</td><td>0.2 / 0.5</td></tr>
-    <tr><td>Batch / parallel games</td><td>1024 / 96</td></tr>
-    <tr><td>Steps / eval games</td><td>2,000,000 / 1000 (deterministic)</td></tr>
-  </table>
+   hand: 4 planes x 52 cards  ──▶  [ masked PPO policy ]  ──▶  draw / pick-up / discard / knock / gin
+   (your cards, the top discard,                │
+    known picks, the rest)                      └─ illegal moves are blocked (logits -> -inf),
+                                                   so the agent only ever picks a legal move
+</div>
+  <div class="why"><b>Why a testbed like this?</b> It forces both skills at once &mdash; short-horizon
+  counting and long-horizon planning &mdash; and the rules give an exact score, so we can build a
+  <i>perfect</i> reference player and grade everything objectively. That reference is what makes
+  the rest of this report trustworthy.</div>
 </section>
 
-<section id="phase2">
-  <h2><span class="n">2</span>Serving the LLM fast enough to train against</h2>
-  <p>One training pass asks the opponent for a move up to ~50,000 times. At a few seconds per LLM call,
-  that's hours of waiting. So we built a small serving system with three parts:</p>
+<section id="framework">
+  <h2><span class="n">3</span>What we built &mdash; the framework</h2>
+  <p>Most of the work was engineering a system where RL, a perfect expert, and an LLM can all
+  meet in the same game. Five pieces:</p>
   <ul>
-    <li><b>Workers</b> &mdash; one per GPU, each holding a copy of the model. On startup each worker writes
-    its address to a shared folder so it can be found (no central database needed).</li>
-    <li><b>Master</b> &mdash; a single CPU process that discovers the live workers, spreads requests across
-    them, and keeps a <b>cache</b> of answers. The cache uses a "suit-symmetry" trick: Gin Rummy plays the
-    same if you swap the suits, so equivalent positions share one cache entry.</li>
-    <li><b>Client</b> &mdash; the RL training just talks to the master using the same API it already spoke,
-    so none of the RL code changed.</li>
+    <li><b>RL player</b> &mdash; action-masked PPO (and TRPO) on PettingZoo / RLCard Gin Rummy.
+    Illegal moves are masked out, so the agent always plays a legal move.</li>
+    <li><b>Gold standard</b> &mdash; a hand-coded <i>perfect</i> player using RLCard's exact meld
+    solver. It is the yardstick; it never trains the RL agent.</li>
+    <li><b>Distributed LLM stack</b> &mdash; a master/worker server so many GPUs can answer game
+    questions in parallel, speaking the ordinary Ollama API.</li>
+    <li><b>Curriculum system</b> &mdash; schedules opponents from random &rarr; past selves &rarr;
+    strong models, so the agent always faces a fair-but-rising challenge.</li>
+    <li><b>Web game</b> &mdash; a no-install browser client to play any trained agent yourself.</li>
   </ul>
-  <p>We run the model with HuggingFace (not vLLM) because the installed vLLM version clashed with our
-  Transformers version.</p>
-  <pre>  env (asks for a move) --&gt; Master (CPU): cache hit? return ;  miss --&gt; pick a worker
-                                  |
-              +-------------------+-------------------+
-              v                   v                   v
-          GPU worker          GPU worker     ...   GPU worker     (each runs Qwen2.5-7B)
-          self-registers in a shared folder; master checks health + balances load</pre>
-  <div class="note"><b>Useful finding:</b> loading a 7B model from the home filesystem ran at ~11 MB/s and
-  took ~28 minutes &mdash; so slow the workers timed out before they were ready. Loading from fast "scratch"
-  storage took <b>27 seconds &mdash; 62&times; faster</b>. This is essential when launching dozens of workers.
-  (Also handy: which model the opponent uses is decided entirely by what a worker loads, so swapping
-  opponents is a one-line change.)</div>
-  <figure class="fig" style="max-width:430px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/infra_load.png" alt="load time" loading="lazy"/><figcaption>Model load time: home filesystem vs scratch (log scale).</figcaption></figure>
-</section>
-
-<section id="opponents">
-  <h2><span class="n">3</span>The opponents we tried</h2>
-  <h3>Self-play and a pool of past versions</h3>
-  <p>Training the Phase-1 agent against a <b>frozen copy of itself</b> for 3M steps made it beat that copy
-  58&ndash;61% of the time while still crushing random (~98.7%) &mdash; a real, clean step up. We also tried
-  training against a growing <b>pool</b> of past versions (AlphaZero-style), but past ~10M steps it
-  <b>broke</b>: its win rate against random fell from ~98.5% to 85.8%. We kept the earlier, healthy
-  checkpoints and use self-play as the production opponent.</p>
-  <h3>LLM opponents</h3>
-  <p>A tiny model (OLMoE-1B) couldn't follow the move format &mdash; most of its answers failed to parse and
-  fell back to a random move, so it effectively played at chance and taught nothing. <b>Qwen2.5-7B</b>, on
-  the other hand, played genuinely well (beat random 5/5 in our check). Its careful "think out loud" prompt
-  was slow (~16 s/call), so for training we switched to a short "just give the move" prompt and capped the
-  output length, cutting the time per call by about 40&times;.</p>
-  <div class="g2">
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/selfplay.png" alt="self-play" loading="lazy"/><figcaption><b>Self-play</b> beats its own progenitor.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/pool.png" alt="pool" loading="lazy"/><figcaption><b>Pool</b> training broke after ~10M steps.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/llm_opponent.png" alt="LLM strength" loading="lazy"/><figcaption><b>OLMoE</b> = chance; <b>Qwen2.5-7B</b> = competent.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/throughput.png" alt="throughput" loading="lazy"/><figcaption><b>Serving speed</b>: ~32 LLM calls/s, ~500&times; a single stream.</figcaption></figure>
-  </div>
-  <table>
-    <tr><th>Agent / opponent</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
-    <tr><td>Self-play (3M steps)</td><td>its frozen self</td><td class="n good">61.1</td><td>got better</td></tr>
-    <tr><td>Self-play (3M steps)</td><td>random</td><td class="n">98.7</td><td>still strong</td></tr>
-    <tr><td>Pool champion (12M)</td><td>random</td><td class="n bad">85.8</td><td>broke / diverged</td></tr>
-    <tr><td>OLMoE-1B (as opponent)</td><td>random</td><td class="n">~50</td><td>plays at chance</td></tr>
-    <tr><td>Qwen2.5-7B (as opponent)</td><td>random</td><td class="n good">100</td><td>competent (small sample)</td></tr>
-  </table>
-</section>
-
-<section id="game">
-  <h2><span class="n">4</span>Play it yourself</h2>
-  <p>There's a no-install web game to play any of the trained agents, with smooth card animations (draw,
-  reveal, discard). The same code that feeds the RL training can also put an LLM opponent in the seat. It
-  was tested automatically in a headless browser. The opponent picker now includes the two strongest
-  agents from the Phase-6 sweep &mdash; <b>&#127183; Curriculum Champion</b> and <b>&#129351; Gold Hunter</b>
-  (both ~33% vs the gold standard) &mdash; alongside the gold expert and the earlier champions.</p>
-  <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/game_ui.png" alt="web game" loading="lazy"/><figcaption>The web game (debug view, opponent's hand shown).</figcaption></figure>
-</section>
-
-<section id="bigrun">
-  <h2><span class="n">5</span>The big experiment: RL vs LLM (and the honest result)</h2>
-  <p>We took the best self-play agent and trained it for <b>1.5 million steps</b> against the Qwen2.5-7B
-  opponent through the worker pool. The serving side delivered: time per call dropped from ~16 s to
-  ~0.4 s, the master handled ~32 calls/second, the agent ran at ~39 steps/second, and the whole run
-  finished in a few hours.</p>
-  <div class="miss"><b>Honest result: it did not help.</b> Over all 1.5M steps the reward stayed flat at the
-  knock value (~0.49) and never moved toward gin (left plot). The fine-tuned agent still beats random (99%)
-  and the weaker agents, but it only ties the champion it started from (43% &mdash; right plot).
-  <b>Why:</b> the 7B LLM is a <i>weaker</i> Gin Rummy player than our self-play champion, so it can't teach
-  an already near-perfect agent anything new. Training against a weaker teacher just holds the agent in
-  place (and nudges it slightly off).</p>
-  <div class="g2">
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/rlvsllm_curve.png" alt="training curve" loading="lazy"/><figcaption>Reward never leaves the knock value over 1.5M steps.</figcaption></figure>
-    <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/h2h.png" alt="head to head" loading="lazy"/><figcaption>Everyone vs everyone &mdash; the fine-tuned agent (<code>llm_full</code>) sits at champion level.</figcaption></figure>
-  </div>
-  <h3>How the fine-tuned agent does</h3>
-  <table>
-    <tr><th>LLM-fine-tuned agent (1.5M)</th><th>plays vs</th><th class="n">win%</th><th>note</th></tr>
-    <tr><td>vs random</td><td>random</td><td class="n good">99.0</td><td>stays strong</td></tr>
-    <tr><td>vs self-play champion</td><td>champion</td><td class="n">43.3</td><td>no net gain</td></tr>
-    <tr><td>vs weaker agents</td><td>winrate / reward</td><td class="n">55 / 61</td><td>still beats them</td></tr>
-  </table>
-  <h3>Head-to-head, every agent vs every agent (win %, 300 games)</h3>
-  <table>
-    <tr><th>row plays vs &rarr;</th><th class="n">selfplay</th><th class="n">pool</th><th class="n">winrate</th><th class="n">reward</th><th class="n">llm&#95;full</th><th class="n">random</th></tr>
-    <tr><td>selfplay</td><td class="n">&mdash;</td><td class="n">46</td><td class="n">56</td><td class="n">62</td><td class="n">52</td><td class="n">99</td></tr>
-    <tr><td>pool</td><td class="n">55</td><td class="n">&mdash;</td><td class="n">58</td><td class="n">56</td><td class="n">57</td><td class="n">85</td></tr>
-    <tr><td>winrate</td><td class="n">42</td><td class="n">46</td><td class="n">&mdash;</td><td class="n">52</td><td class="n">40</td><td class="n">100</td></tr>
-    <tr><td>reward</td><td class="n">40</td><td class="n">43</td><td class="n">47</td><td class="n">&mdash;</td><td class="n">39</td><td class="n">98</td></tr>
-    <tr><td>llm&#95;full</td><td class="n">43</td><td class="n">45</td><td class="n">55</td><td class="n">61</td><td class="n">&mdash;</td><td class="n">99</td></tr>
-  </table>
-</section>
-
-<section id="limits">
-  <h2><span class="n">6</span>Limitations</h2>
-  <ul>
-    <li><b>The teacher is weaker than the student.</b> This is the main reason there's no improvement.</li>
-    <li>We used a short "just give the move" prompt for speed; we haven't tested a slower, smarter prompt or a bigger model as the teacher.</li>
-    <li>One training seed per run, and the "Qwen beats random 5/5" check is a small sample.</li>
-    <li>The prompt cache gave almost no speedup at this scale (early-game positions rarely repeat).</li>
-    <li>The "pool of past versions" training diverged after ~10M steps.</li>
-    <li>Two earlier negative results (DAgger, dense reward shaping) still need a code audit before we trust them.</li>
-  </ul>
-</section>
-
-<section id="next">
-  <h2><span class="n">7</span>Phase 3: first result</h2>
-  <p><b>Can reward shaping make the agent go for gin?</b> Phase 1 showed it always knocks and never gins.
-  We resumed the champion and trained <b>6 reward settings &times; 3 seeds</b> (pushing the gin reward from
-  baseline up to "gin only"), 8M steps each, then scored the gin rate with fixed rewards so the settings
-  are comparable.</p>
-  <figure class="fig" style="max-width:520px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/ginshape.png" alt="gin rate flat across reward settings" loading="lazy"/><figcaption>The gin rate stays flat across every reward setting; win rate stays high.</figcaption></figure>
-  <p><b>The answer is no.</b> The gin rate sits at about 1.1 to 1.5% for every setting, the same at the
-  baseline (1.40%) as at the most extreme incentive (1.40%), while the win rate vs random stays near 98%
-  and the agents still beat the version they started from (57 to 60%). Shaping the final reward is not the
-  lever. The agent rarely even attempts the long run of held cards a gin needs, so the gap is about
-  exploration and credit assignment, not the size of the bonus.</p>
-  <table>
-    <tr><th>Reward setting (knock / gin)</th><th class="n">gin% vs random</th><th class="n">win% vs random</th><th class="n">win% vs champ</th></tr>
-    <tr><td>0.5 / 1.5 (baseline)</td><td class="n">1.40</td><td class="n">97.5</td><td class="n">58.7</td></tr>
-    <tr><td>0.25 / 2.5</td><td class="n">1.10</td><td class="n">98.0</td><td class="n">58.8</td></tr>
-    <tr><td>0.1 / 3.0</td><td class="n">1.30</td><td class="n">97.4</td><td class="n">59.8</td></tr>
-    <tr><td>0.0 / 2.0 (gin only)</td><td class="n">1.47</td><td class="n">98.2</td><td class="n">56.9</td></tr>
-    <tr><td>0.25 / 4.0 (extreme)</td><td class="n">1.40</td><td class="n">98.1</td><td class="n">58.6</td></tr>
-  </table>
-  <p><b>What's next.</b> (1) Dense, step by step shaping that rewards every point of deadwood removed, not
-  just the final outcome. (2) A stronger teacher (Qwen3-30B): this needs two GPUs per worker and did not get
-  scheduled under the shared quota, so it moves to the next phase. (3) Learning from bulk LLM games offline
-  (CQL distillation).</p>
+  <figure class="fig" style="max-width:640px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/architecture.png" alt="System overview" loading="lazy"/><figcaption>How the pieces connect. The gold standard is used for <b>scoring only</b> &mdash; it never trains the agent.</figcaption></figure>
+  <h3>The distributed LLM server (so a 7B model can keep up with RL)</h3>
+  <p>A single RL training run fires tens of thousands of opponent queries. At 0.5&ndash;3&nbsp;seconds
+  per call, a naive loop would take hours per rollout. We decouple inference from training:</p>
+  <div class="diagram">   env subprocess  ─▶  Master (CPU, FastAPI)  ─▶  suit-symmetry cache  ──(hit)──▶ return
+   (per-step query)    Ollama-compatible API            │ miss
+                              │ round-robin              ▼
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+          GPU worker      GPU worker  …   GPU worker      (1 GPU each, Qwen2.5-7B)
+          self-registers in a shared-filesystem registry; master health-checks + balances
+</div>
+  <div class="why"><b>The infrastructure finding that mattered:</b> loading a 7B model from home
+  network storage runs at ~11&nbsp;MB/s (~28&nbsp;min &mdash; it blows the health-check timeout).
+  Staging the weights on fast scratch (BeeGFS) cuts that to ~27&nbsp;s &mdash; a <b>62&times;</b>
+  speedup that is mandatory at scale. With ~14 workers the pool sustained <b>~32 queries/second</b>.</div>
 </section>
 
 <section id="gold">
-  <h2><span class="n">8</span>A gold-standard yardstick</h2>
-  <p>How good are our agents, really? To find out we built a <b>gold-standard agent</b>: it computes the
-  mathematically optimal way to arrange a hand into melds (exact deadwood minimization), takes the up-card
-  only when it lowers deadwood, goes gin when possible, and knocks as soon as it is allowed. It is
-  deterministic, fast, and plays a clean expert game. We played it against every agent we trained, 600
-  games each, swapping seats so neither side gets a dealer edge.</p>
-
-  <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/gold_bench.png" alt="gold-standard benchmark" loading="lazy"/><figcaption>Left: the gold-standard agent beats every learned agent. Right: holding out for a gin is great against a weak opponent and fatal against a strong one.</figcaption></figure>
-
-  <p><b>Meet the agents (also the opponents in the playable game).</b> Lower "gold win%"
-  means a tougher opponent for the gold standard, so the self-play champion is the strongest
-  of the learned agents.</p>
-  <table>
-    <tr><th>Hero</th><th>What it is</th><th class="n">gold win% vs it</th></tr>
-    <tr><td>🏆 Gold Standard</td><td>Hand-coded expert: optimal melds, knocks as soon as it can. The benchmark, never trained on.</td><td class="n">&mdash;</td></tr>
-    <tr><td>🤖 Self-Play Champion</td><td>PPO trained against frozen copies of itself. Our strongest learned agent.</td><td class="n">70.2</td></tr>
-    <tr><td>🧠 LLM-Tutored</td><td>The champion fine-tuned for 1.5M steps against a Qwen2.5-7B opponent.</td><td class="n">71.7</td></tr>
-    <tr><td>🎯 Win-Rate Specialist</td><td>Phase-1 PPO tuned to beat random as often as possible (99.6%).</td><td class="n">74.3</td></tr>
-    <tr><td>♟️ Pool Veteran</td><td>PPO trained against a pool of its past versions; regressed after ~10M steps.</td><td class="n">75.5</td></tr>
-    <tr><td>💰 Reward Maximizer</td><td>Phase-1 PPO with the highest average score per game.</td><td class="n">79.8</td></tr>
-    <tr><td>🎲 Random</td><td>Plays a uniformly random legal move. Easiest.</td><td class="n">99.5</td></tr>
-  </table>
-
-  <p><b>Two findings.</b> First, the gold-standard agent beats our best RL agent 70 to 30, so the learned
-  agents are strong but well short of optimal play; most of the gap is in how they form melds and choose
-  discards, not in the knock decision. Second, the gin question finally makes sense. A gold agent that
-  holds out for a gin gins <b>96%</b> of the time against a weak (random) opponent and still wins 96%, but
-  against the champion, who knocks early, holding for gin wins only <b>15%</b>: the opponent ends the game
-  before the gin lands. Going for gin pays off only against weak opponents. That is exactly why the RL
-  agent, trained in self-play against strong opponents, rationally learned to knock, and why rewarding the
-  gin directly (Phase 3) did not move it.</p>
-
-  <p><b>What this is for.</b> We use the gold-standard agent strictly as a <i>benchmark yardstick</i>, never
-  as a teacher. The project's real goal is a framework that develops strong RL using an <b>LLM</b> as the
-  guide, for tasks where no clear algorithm or gold standard exists. Gin Rummy is just the testbed where a
-  yardstick happens to exist, so we can measure how close LLM-guided RL gets. <b>Phase 4</b> starts with
-  LLM-DAgger: a language model proposes moves the RL agent learns from, then RL improves beyond it. The open
-  question, raised in Phase 2, is whether a <i>sub-optimal</i> LLM can still bootstrap a strong RL policy.</p>
+  <h2><span class="n">4</span>The gold standard &mdash; and the surprise it revealed</h2>
+  <p>To grade honestly, we built a <b>perfect</b> Gin Rummy player: every turn it computes the
+  mathematically best melds (exact, not learned) and knocks the instant it should. It is the
+  benchmark, never a teacher.</p>
+  <figure class="fig" style="max-width:720px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/gold_bench.png" alt="Gold beats everyone but rarely gins" loading="lazy"/><figcaption>Left: the perfect player beats every learned agent (70&ndash;99% of games). Right: yet it gins under 2% of the time.</figcaption></figure>
+  <div class="why"><b>The surprise (and our cleanest result):</b> the <i>perfect</i> player almost
+  never gins &mdash; just <b>0.7&ndash;1.7%</b> of games &mdash; even though gin scores the most points.
+  It wins by <b>knocking early with low deadwood</b>. That flips the intuition we started with:
+  chasing gin is a beginner's trap. The optimal style is patient, low-risk knocking. This single
+  fact reframed every reward experiment that follows.</div>
 </section>
 
-<section id="algo">
-  <h2><span class="n">9</span>Is plain PPO the right algorithm?</h2>
-  <p>We trained the same masked self-play task (from scratch vs the champion, 2M steps) with two
-  on-policy RL algorithms, 2 seeds each, to isolate the algorithm. <b>TRPO clearly beats PPO</b>,
-  consistently across both seeds and every opponent.</p>
-  <figure class="fig" style="max-width:480px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/algo_compare.png" alt="PPO vs TRPO" loading="lazy"/><figcaption>TRPO outperforms PPO on every metric.</figcaption></figure>
-  <table>
-    <tr><th>Algorithm</th><th class="n">win% vs random</th><th class="n">vs champion</th><th class="n">vs gold</th></tr>
-    <tr><td>PPO (2 seeds)</td><td class="n">81.1</td><td class="n">31.0</td><td class="n">15.0</td></tr>
-    <tr><td><b>TRPO (2 seeds)</b></td><td class="n"><b>91.8</b></td><td class="n"><b>50.5</b></td><td class="n"><b>22.5</b></td></tr>
-  </table>
-  <p><b>Honest read.</b> A different RL algorithm does help here: TRPO's trust-region update gives a
-  ~50% larger win rate vs the gold standard than plain PPO. Two caveats also worth stating plainly:
-  (1) these agents train from scratch in only 2M steps, so absolute numbers are modest (the 12M-step
-  champion itself wins ~30% vs gold) &mdash; the valid signal is the <i>comparison</i>, not the absolute
-  strength; (2) <b>GRPO and DPO do not apply</b> here &mdash; they are LLM-alignment methods
-  (group-relative reward-model / preference fine-tuning) with no per-step environment interaction, so
-  "they would do better" is false by construction. The genuinely promising next variant is
-  <b>RecurrentPPO</b> (LSTM memory for the imperfect-information state).</p>
+<section id="regimes">
+  <h2><span class="n">5</span>Everything we tried (and why each worked or didn't)</h2>
+  <p>We benchmarked nearly every reasonable way to make the agent stronger, all on the same
+  yardstick &mdash; win-rate against the perfect player. Here is the full landscape, weakest to
+  strongest:</p>
+  <figure class="fig" style="max-width:680px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/regimes.png" alt="Every regime ranked vs the perfect player" loading="lazy"/><figcaption>Each bar is a win-rate we actually measured against the perfect player.</figcaption></figure>
+  <div class="cards">
+    <div class="rc"><h4>&#127922; Train vs random only</h4><div class="res mid">98&ndash;99% vs random, but only ~15% vs gold</div>
+      <p><b>Why:</b> random opponents are too weak to teach real strategy. The agent maxes out the
+      easy metric and learns to always knock, never gin &mdash; a habit only a thinking opponent can break.</p></div>
+    <div class="rc"><h4>&#127183; Reward shaping (gin vs knock)</h4><div class="res win">controls behaviour: 97% knock vs 22% gin</div>
+      <p><b>Why:</b> the gin/knock reward ratio is a real control knob &mdash; pay more for gin and the
+      agent chases gin (and wins less). This is the lever the rest of the project tunes.</p></div>
+    <div class="rc"><h4>&#129302; Self-play + pool curriculum</h4><div class="res win">self-play beats its own parent 61%</div>
+      <p><b>Why:</b> playing past versions of yourself is a free, rising curriculum. But an unguided
+      pool <b>diverged after ~10M steps</b> &mdash; it chased itself into a corner. Curriculum design matters.</p></div>
+    <div class="rc"><h4>&#129504; LLM as opponent</h4><div class="res mid">competent (beat our RL agent 3&ndash;2) but ~9&ndash;27 s/move</div>
+      <p><b>Why:</b> mid-size LLMs (Qwen2.5-7B, gpt-oss-20b) play real Gin Rummy with the right prompt,
+      and even beat our self-play agent in short matches. But they are <b>too slow</b> for the millions
+      of moves RL needs &mdash; live LLM-in-the-loop training would take weeks. (Vision LLMs failed outright;
+      it is a text-reasoning task.)</p></div>
+    <div class="rc"><h4>&#128221; Imitation learning (DAgger)</h4><div class="res lose">collapsed &mdash; near-zero wins</div>
+      <p><b>Why:</b> copying an expert's moves move-by-move does not transfer. The student mimics
+      actions in familiar states but never learns the <i>reasoning</i> (e.g. tracking the opponent),
+      so it falls apart off the training distribution. "Mimicking a move" &ne; "understanding strategy."</p></div>
+    <div class="rc"><h4>&#9201;&#65039; Dense / short-term rewards</h4><div class="res lose">myopia &mdash; saturates, stops improving</div>
+      <p><b>Why:</b> rewarding every little step makes the agent greedy for instant points and blind to
+      the real goal of <i>winning the hand</i>. Performance flatlined after ~500k steps. Sparse,
+      end-of-hand rewards won.</p></div>
+    <div class="rc"><h4>&#128202; Algorithm: PPO vs TRPO</h4><div class="res win">TRPO ~22% vs PPO ~15% vs gold</div>
+      <p><b>Why:</b> TRPO's "trust region" takes safer policy steps, which suits a sparse-reward,
+      ever-shifting self-play target. (GRPO/DPO don't apply &mdash; they are LLM-alignment methods with no
+      per-move game analogue.)</p></div>
+    <div class="rc"><h4>&#128279; Learned state embeddings</h4><div class="res lose">all worse than the raw input</div>
+      <p><b>Why:</b> we compressed the big sparse board into a small dense vector two ways (self-supervised
+      "states near in a game are similar", and an LLM judging strategic similarity). Both <i>lost</i> to
+      the raw input &mdash; a frozen bottleneck throws away detail the policy needs.</p></div>
+    <div class="rc"><h4>&#127941; Curriculum sweep (Phase 6)</h4><div class="res win">best ~33% vs gold (30 runs)</div>
+      <p><b>Why:</b> a careful league of random &rarr; past selves &rarr; strong models, swept over algorithm,
+      reward, and schedule. Everything plateaued near champion strength &mdash; but it pinned down exactly
+      which knobs matter (see the key finding).</p></div>
+    <div class="rc"><h4>&#11088; Keep-best + warm-start (Phase 7)</h4><div class="res win">best agent 34% vs gold</div>
+      <p><b>Why:</b> three fixes stacked &mdash; always <b>save the peak checkpoint</b> (training drifts past
+      its best), <b>warm-start</b> from the previous champion, and a <b>dense "lower your deadwood" reward</b>
+      that coaches the optimal style. This is our strongest agent.</p></div>
+  </div>
 </section>
 
-<section id="repr">
-  <h2><span class="n">10</span>Does a learned state embedding help?</h2>
-  <p>The observation is a large, sparse 208-d vector. We tried compressing it to a dense 20-d embedding
-  two ways and using it (frozen) as the RL policy's input: a <b>temporal</b> embedding (self-supervised:
-  states near each other in a game are similar) and an <b>LLM-similarity</b> embedding (an LLM judges
-  how strategically similar two states are). Compared against the raw sparse vector, same RL.</p>
-  <figure class="fig" style="max-width:520px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/phase5_compare.png" alt="representation comparison" loading="lazy"/><figcaption>Sparse vs the learned embeddings (LLM embedding still running).</figcaption></figure>
-  <table>
-    <tr><th>Representation</th><th class="n">win% vs random</th><th class="n">vs champion</th><th class="n">vs gold</th></tr>
-    <tr><td>sparse (208-d)</td><td class="n">77.5</td><td class="n">31.5</td><td class="n">15.0</td></tr>
-    <tr><td>temporal embed (20-d, frozen)</td><td class="n">64.5</td><td class="n">17.7</td><td class="n">13.8</td></tr>
-    <tr><td>LLM-similarity embed (20-d)</td><td class="n" colspan="3"><i>pending (L40S queue)</i></td></tr>
-  </table>
-  <p><b>Honest read so far.</b> The temporal embedding <i>hurts</i>: a frozen 20-d bottleneck that is good
-  at "are these two states similar" (val-corr 0.71) still discards detail the policy needs, so it loses to
-  the raw sparse vector. The open question is whether the <b>LLM-similarity embedding</b> (pending) keeps
-  more strategically-relevant structure, and whether a <b>larger embedding</b> or an <b>un-frozen</b> one
-  recovers the lost information. That ablation is next.</p>
+<section id="finding">
+  <h2><span class="n">6</span>The key finding: you cannot bribe the agent into ginning</h2>
+  <p>Phase 6 ran <b>30 controlled experiments</b> &mdash; one change at a time over algorithm, reward,
+  and curriculum. The headline is honest: every recipe lands near champion strength against the
+  perfect player. But one result is clean and sturdy across all of them.</p>
+  <figure class="fig" style="max-width:700px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/curriculum_reward.png" alt="Gin rate stays under 1% for every reward" loading="lazy"/><figcaption>Left: no matter the reward &mdash; even paying 3&times; for a gin &mdash; the agent gins under 1% of the time. Right: the "knock early" reward gives the shortest games.</figcaption></figure>
+  <div class="why"><b>What it means, simply:</b> we tried to <i>bribe</i> the agent into ginning by paying
+  three times more for a gin than a knock. It still gins under 1% of the time &mdash; the same as when gin
+  isn't rewarded at all. You cannot pay a policy into a bad habit: just like the perfect player, it
+  discovers on its own that <b>chasing gin loses</b>. The reward that actually helped did the opposite
+  &mdash; a small nudge to knock <i>faster</i>, which produced the shortest games and the best play.</div>
+  <p>The per-recipe numbers (each averaged over its seeds, best checkpoint vs the perfect player):</p>
+  <table><tr><th>one change from the baseline</th><th class="n">vs champion %</th><th class="n">best vs gold %</th><th class="n">gin % vs gold</th></tr><tr><td>reward: pay 3&times; for gin</td><td class="n">44</td><td class="n"><b>37</b></td><td class="n">0.38</td></tr>
+<tr><td>PPO (vs TRPO)</td><td class="n">49</td><td class="n"><b>35</b></td><td class="n">0.62</td></tr>
+<tr><td>curric: drop random late</td><td class="n">46</td><td class="n"><b>34</b></td><td class="n">0.42</td></tr>
+<tr><td>smaller steps</td><td class="n">47</td><td class="n"><b>33</b></td><td class="n">0.38</td></tr>
+<tr><td>reward: early-knock</td><td class="n">51</td><td class="n"><b>33</b></td><td class="n">0.25</td></tr>
+<tr><td>curric: PFSP</td><td class="n">45</td><td class="n"><b>33</b></td><td class="n">0.38</td></tr>
+<tr><td>reward: knock-forward</td><td class="n">46</td><td class="n"><b>33</b></td><td class="n">0.38</td></tr>
+<tr><td>TRPO baseline</td><td class="n">48</td><td class="n"><b>32</b></td><td class="n">0.44</td></tr></table>
 </section>
 
-<section id="curriculum">
-  <h2><span class="n">11</span>Can we finally beat the perfect player? A 30-run experiment</h2>
-  <p>The gold-standard agent plays Gin Rummy perfectly. Even our strongest earlier agent, the
-  <i>champion</i>, only wins about <b>30%</b> of games against it. So we asked a simple question:
-  if we are smarter about <b>how the agent learns</b>, <b>what we reward it for</b>, and <b>who it
-  practices against</b>, can we close that gap? We ran <b>30 training runs</b> &mdash; each one
-  changing exactly <i>one</i> thing from a strong baseline, so any difference has a clear cause.</p>
+<section id="levers">
+  <h2><span class="n">7</span>What moved the needle &mdash; and what didn't</h2>
+  <p>Across 100+ runs, the honest summary of which ideas actually helped against the perfect player:</p>
+  <table>
+    <tr><th>Idea</th><th>Verdict</th><th>Why</th></tr>
+    <tr><td><b>Keep the best checkpoint</b></td><td class="good">helps</td><td>training drifts past its peak; saving the best recovers 2&ndash;3 points for free</td></tr>
+    <tr><td><b>Warm-start from the champion</b></td><td class="good">helps</td><td>start strong, then specialise &mdash; better than from scratch</td></tr>
+    <tr><td><b>TRPO over PPO</b></td><td class="good">helps</td><td>safer policy steps suit sparse, shifting self-play</td></tr>
+    <tr><td><b>Reward knocking, not gin</b></td><td class="good">helps</td><td>copies the perfect player's low-risk style</td></tr>
+    <tr><td><b>Curriculum of rising opponents</b></td><td class="good">helps</td><td>always a fair-but-harder challenge</td></tr>
+    <tr><td>Paying more for gin</td><td class="bad">no effect</td><td>the agent refuses the bad habit no matter the bribe</td></tr>
+    <tr><td>Fancy opponent-picking (PFSP)</td><td class="muted">~neutral</td><td>no better than a simple schedule here</td></tr>
+    <tr><td>Longer memory (high discount)</td><td class="bad">hurts a bit</td><td>added noise, not foresight</td></tr>
+    <tr><td>Learned state embeddings</td><td class="bad">hurts</td><td>a frozen bottleneck discards useful detail</td></tr>
+    <tr><td>Imitation (DAgger)</td><td class="bad">fails</td><td>copies moves, not the reasoning behind them</td></tr>
+    <tr><td>Dense short-term rewards</td><td class="bad">fails</td><td>myopia &mdash; greedy for points, blind to winning</td></tr>
+    <tr><td>Live LLM-in-the-loop</td><td class="bad">infeasible</td><td>strong but far too slow for millions of moves</td></tr>
+  </table>
+  <h3>Our strongest agents (precise 2000-game re-evaluation)</h3>
+  <table><tr><th>agent</th><th class="n">vs gold % (95% CI)</th><th class="n">vs champion %</th><th class="n">vs random %</th><th class="n">gin % vs gold</th></tr><tr><td>Marathon Champion II</td><td class="n"><b>34.2</b> &plusmn;2.1</td><td class="n">51.4</td><td class="n">99</td><td class="n">0.45</td></tr>
+<tr><td>League Tactician</td><td class="n"><b>34.0</b> &plusmn;2.1</td><td class="n">49.8</td><td class="n">99</td><td class="n">0.25</td></tr>
+<tr><td>League Tactician II</td><td class="n"><b>34.0</b> &plusmn;2.1</td><td class="n">50.6</td><td class="n">99</td><td class="n">0.80</td></tr>
+<tr><td>Curriculum Ace (deadwood-coached)</td><td class="n"><b>33.9</b> &plusmn;2.1</td><td class="n">48.0</td><td class="n">99</td><td class="n">0.60</td></tr>
+<tr><td>Marathon Champion</td><td class="n"><b>33.1</b> &plusmn;2.1</td><td class="n">50.1</td><td class="n">100</td><td class="n">0.40</td></tr>
+<tr><td>Deadwood Specialist</td><td class="n"><b>33.1</b> &plusmn;2.1</td><td class="n">47.3</td><td class="n">99</td><td class="n">0.40</td></tr></table>
+</section>
 
-  <figure class="fig" style="max-width:680px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/curriculum.png" alt="Phase-6 results: win rate vs champion and vs gold per recipe" loading="lazy"/><figcaption>Every recipe (averaged over its seeds) lands near the same place: about champion-strength against the perfect player. Blue = vs the old champion, red = vs gold; the dashed line is the champion&rsquo;s own score vs gold.</figcaption></figure>
+<section id="play">
+  <h2><span class="n">8</span>Play the heroes yourself</h2>
+  <p>A no-install web game lets you play our strongest agents, with smooth card animations. The
+  opponent menu is curated down to a clear ladder &mdash; from a beginner-friendly bot up to the
+  perfect player nobody beats:</p>
+  <table>
+    <tr><th>Opponent</th><th>Strength</th><th>What it is</th></tr>
+    <tr><td>&#127922; Rookie (Random)</td><td>easiest</td><td>plays a random legal move &mdash; a gentle warm-up</td></tr>
+    <tr><td>&#129302; Self-Play Champion</td><td>strong</td><td>our earlier best, trained against copies of itself</td></tr>
+    <tr><td>&#127183; Curriculum Ace</td><td>strongest learned</td><td>our best agent &mdash; ~34% vs the perfect player, built by stacking every lever that helped</td></tr>
+    <tr><td>&#128737;&#65039; League Tactician</td><td>strongest learned</td><td>a close second, trained to practise most against whoever beats it (PFSP)</td></tr>
+    <tr><td>&#127942; Gold Standard</td><td>perfect</td><td>the hand-coded expert &mdash; the wall everyone hits</td></tr>
+  </table>
+  <figure class="fig"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/game_ui.png" alt="web game" loading="lazy"/><figcaption>The browser game (debug view, opponent hand shown). Run <code>python game/server.py</code> and open the URL.</figcaption></figure>
+</section>
 
-  <p><b>The honest headline.</b> Every recipe finished in roughly the same spot: about
-  <b>30% vs gold</b> (up to ~37% on its best checkpoint) and <b>45&ndash;52% vs the old champion</b>.
-  In plain words, the new agents reached the level of the best agent we had before &mdash; but no
-  single knob broke past the perfect player. Tuning the algorithm, the reward, and the opponents got
-  us <i>to</i> the ceiling, not <i>through</i> it.</p>
-
-  <p>Each row is one recipe, averaged over its 2&ndash;3 seeds, sorted by win-rate vs the perfect player. For reference, the champion itself wins about <b>30%</b> vs gold.</p><table><tr><th>recipe (one change from the baseline)</th><th class="n">vs champion %</th><th class="n">vs gold %</th><th class="n">best vs gold %</th><th class="n">gin % vs gold</th><th class="n">seeds</th></tr><tr><td>p7_03_warm_deadwood_hi</td><td class="n">48</td><td class="n"><b>36</b></td><td class="n">36</td><td class="n">0.70</td><td class="n">1</td></tr>
-<tr><td>p7_04_warm_pfsp</td><td class="n">50</td><td class="n"><b>35</b></td><td class="n">35</td><td class="n">0.40</td><td class="n">2</td></tr>
-<tr><td>p7_01_warm_long</td><td class="n">50</td><td class="n"><b>34</b></td><td class="n">34</td><td class="n">0.55</td><td class="n">2</td></tr>
-<tr><td>p7_02_warm_deadwood</td><td class="n">48</td><td class="n"><b>33</b></td><td class="n">33</td><td class="n">0.40</td><td class="n">2</td></tr>
-<tr><td>curriculum: drop random late</td><td class="n">46</td><td class="n"><b>32</b></td><td class="n">34</td><td class="n">0.42</td><td class="n">3</td></tr>
-<tr><td>reward: early-knock (best)</td><td class="n">51</td><td class="n"><b>32</b></td><td class="n">33</td><td class="n">0.25</td><td class="n">3</td></tr>
-<tr><td>reward: pay 3&times; for gin</td><td class="n">44</td><td class="n"><b>31</b></td><td class="n">37</td><td class="n">0.38</td><td class="n">2</td></tr>
-<tr><td>PPO (vs TRPO)</td><td class="n">49</td><td class="n"><b>31</b></td><td class="n">35</td><td class="n">0.62</td><td class="n">2</td></tr>
-<tr><td>GAE + bigger batch</td><td class="n">47</td><td class="n"><b>31</b></td><td class="n">33</td><td class="n">0.75</td><td class="n">2</td></tr>
-<tr><td>p7_05_scratch_deadwood</td><td class="n">46</td><td class="n"><b>31</b></td><td class="n">30</td><td class="n">0.35</td><td class="n">2</td></tr>
-<tr><td>PPO, more exploration</td><td class="n">52</td><td class="n"><b>31</b></td><td class="n">35</td><td class="n">0.56</td><td class="n">2</td></tr>
-<tr><td>smaller steps</td><td class="n">47</td><td class="n"><b>31</b></td><td class="n">33</td><td class="n">0.38</td><td class="n">3</td></tr>
-<tr><td>reward: knock-forward</td><td class="n">46</td><td class="n"><b>31</b></td><td class="n">33</td><td class="n">0.38</td><td class="n">2</td></tr>
-<tr><td>larger steps</td><td class="n">46</td><td class="n"><b>30</b></td><td class="n">35</td><td class="n">0.38</td><td class="n">3</td></tr>
-<tr><td>curriculum: PFSP</td><td class="n">45</td><td class="n"><b>30</b></td><td class="n">33</td><td class="n">0.38</td><td class="n">3</td></tr>
-<tr><td>TRPO baseline</td><td class="n">48</td><td class="n"><b>30</b></td><td class="n">32</td><td class="n">0.44</td><td class="n">2</td></tr>
-<tr><td>longer memory (&gamma;=0.997)</td><td class="n">47</td><td class="n"><b>28</b></td><td class="n">31</td><td class="n">0.42</td><td class="n">3</td></tr></table>
-
-  <h3>The one clear win: the reward finding</h3>
-  <figure class="fig" style="max-width:700px;margin:0 auto;"><img src="https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/main/paper/figures/curriculum_reward.png" alt="Gin rate stays under 1% for every reward; early-knock shortens games" loading="lazy"/><figcaption>Left: no matter the reward, the agent gins under 1% of the time &mdash; even when a gin pays 3&times; a knock. Right: the &ldquo;early-knock&rdquo; reward gives the shortest games.</figcaption></figure>
-  <p>The clearest, most useful result is about <b>reward</b>. The perfect player almost never
-  &ldquo;gins&rdquo; &mdash; it wins by <i>knocking early with little leftover</i>. We tried bribing
-  our agent into ginning by paying <b>3&times; more</b> for a gin than a knock&hellip; and it
-  <b>still gins under 1% of the time</b>, exactly like when we don&rsquo;t reward gin at all. You
-  cannot pay the agent into a bad habit: the optimal style genuinely avoids gin, and the policy
-  works that out on its own. The reward that actually helped did the opposite &mdash; a tiny penalty
-  for <i>dragging the game out</i>. That &ldquo;early-knock&rdquo; reward produced the shortest games
-  <i>and</i> the best score against the champion, which is exactly how the perfect player wins.</p>
-
-  <h3>What did not move the needle</h3>
+<section id="bottom">
+  <h2><span class="n">9</span>The bottom line, and what's next</h2>
+  <p>We set out to see how close a small, fast RL agent could get to perfect Gin Rummy and what
+  actually makes it stronger. We built the whole framework to answer that fairly, then ran the
+  experiments. The honest, bold summary:</p>
   <ul>
-    <li><b>Algorithm (TRPO vs PPO):</b> with a full curriculum they basically <b>tie</b> (PPO 31% vs
-    TRPO 30% against gold). TRPO&rsquo;s edge in our <a href="#algo">earlier short test</a> was specific
-    to that setting; given enough practice against varied opponents, plain PPO catches up.</li>
-    <li><b>Curriculum tricks:</b> fancier opponent-picking (<b>PFSP</b> &mdash; practice more against
-    whoever is beating you) and dropping the weak random opponents late did <b>not</b> beat the simple
-    schedule.</li>
-    <li><b>Longer memory (&gamma;=0.997):</b> trying to look ~40 moves ahead actually <b>hurt</b> a
-    little &mdash; it added noise rather than foresight.</li>
+    <li>We pushed a lightweight agent from the old champion's ~30% to <b>34%</b>
+    against a <i>perfect</i> player &mdash; by stacking the things that genuinely help.</li>
+    <li>We produced one clean, reusable result: <b>the optimal Gin Rummy policy almost never gins</b>,
+    and an RL agent rediscovers this no matter how you reward it.</li>
+    <li>We mapped what works (algorithm, reward style, curriculum, keep-best) and what doesn't
+    (imitation, dense rewards, learned embeddings, live LLM-in-the-loop) &mdash; honest negatives
+    included, because they save the next team months.</li>
   </ul>
-
-  <p><b>What this means.</b> We have squeezed about all we can out of reward, algorithm, and
-  self-play opponent choices for this game; the agents top out at champion level. Honestly beating
-  the gold standard would likely need a <i>different kind</i> of method &mdash; search/planning (like
-  counterfactual-regret) or an agent that remembers the whole history &mdash; not more reward tuning.
-  Gold stayed <b>benchmark-only</b> throughout: it never trained the agents and was never a practice
-  opponent, only the yardstick.</p>
-
-  <p style="font-size:13.5px;color:#5c6b73;"><b>How it ran.</b> 30 runs as one SLURM array; a
-  self-sustaining watchdog resubmitted any failed run, re-aggregated the numbers, regenerated this
-  page, and pushed &mdash; with no human in the loop. Every run streamed live to
-  <a href="https://wandb.ai/VLAvengers/Adversarial-CoEvolution/groups/phase6-curriculum">Weights &amp; Biases</a>
-  (group <code>phase6-curriculum</code>).</p>
+  <p><b>The ceiling, honestly.</b> Tuning the reward, algorithm, and opponents tops out around the
+  mid-30s percent against perfect play. Breaking decisively past that almost certainly needs a
+  <i>different kind</i> of method &mdash; search / planning (like counterfactual-regret minimization,
+  which powers superhuman poker) or an agent with full-history memory &mdash; not more reward tuning.
+  That is the clear next step the data points to.</p>
 </section>
-
 
 <section id="repro">
   <h2>How to reproduce</h2>
-  <p>Sweeps run as SLURM array jobs (<code>sweep/*.slurm</code>). The LLM stack is three SLURM jobs in
-  <code>slurm/</code>: the master, a worker array (with model weights staged on fast scratch storage), and
-  the trainer. Every plot on this page is regenerated by <code>paper/make_figures.py</code> from saved JSON
-  results, and this page by <code>paper/make_report_html.py</code>.</p>
+  <p>Every figure on this page regenerates from saved JSON results via <code>paper/make_figures.py</code>,
+  and this page via <code>paper/make_report_html.py</code>. Sweeps run as SLURM array jobs with a
+  self-sustaining watchdog that resubmits failures, re-aggregates, and republishes &mdash; no human in
+  the loop.</p>
   <pre># play the web game
 python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
 
-# Phase-1 sweep
-sbatch sweep/sweep.slurm
+# the gold-standard benchmark
+python sweep/bench_gold.py
 
-# LLM stack: master + GPU worker pool, then train against it
-sbatch slurm/master.slurm
-sbatch --array=0-31 --export=ALL,WORKER_PRESET=qwen2.5-7b,WORKER_MAXTOK=64 slurm/worker.slurm
-sbatch slurm/llm_train.slurm
+# the final curriculum + keep-best sweeps (SLURM array + watchdog)
+python sweep/curriculum_configs.py && sbatch --array=0-29%10 slurm/curriculum.slurm
+python sweep/phase7_configs.py    && sbatch --array=0-8%6 --export=ALL,CFG_DIR=phase7_cfgs slurm/curriculum.slurm
 
-# benchmark the gold-standard agent vs every trained agent
-python sweep/bench_gold.py</pre>
-  <p>The typeset 4-page version of this report is <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">paper/main.pdf</a>.</p>
+# regenerate this report
+python paper/make_figures.py && python paper/make_report_html.py</pre>
+  <p>The typeset paper is <a href="https://github.com/Nikelroid/adversarial-coevolution/blob/main/paper/main.pdf">paper/main.pdf</a>. Live training curves are on
+  Weights &amp; Biases (groups <code>phase6-curriculum</code>, <code>phase7-ceiling</code>).</p>
 </section>
 
-<div class="foot">Built from measured results &middot; Adversarial Co-Evolution project &middot; USC</div>
+<div class="foot">Built from measured results &middot; every number traces to a JSON file under <code>sweep/</code> &middot; Adversarial Co-Evolution &middot; USC</div>
 </div></body></html>

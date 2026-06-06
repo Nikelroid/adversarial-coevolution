@@ -1,5 +1,5 @@
 \documentclass[10pt]{article}
-\usepackage[margin=0.68in]{geometry}
+\usepackage[margin=0.72in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{hyperref}
@@ -15,17 +15,21 @@
 \usepackage{placeins}
 \raggedbottom
 \graphicspath{{./}{figures/}}
-% compact float + section spacing to fit 4 pages
-\setlength{\textfloatsep}{4pt plus 1pt minus 1pt}
-\setlength{\intextsep}{4pt plus 1pt minus 1pt}
-\setlength{\floatsep}{4pt plus 1pt minus 1pt}
+\setlength{\textfloatsep}{5pt plus 1pt minus 1pt}
+\setlength{\intextsep}{5pt plus 1pt minus 1pt}
+\setlength{\floatsep}{5pt plus 1pt minus 1pt}
 \setlength{\abovecaptionskip}{2pt}
 \setlength{\belowcaptionskip}{0pt}
 \usepackage{titlesec}
-\titlespacing*{\section}{0pt}{5pt}{2pt}
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titlespacing*{\subsection}{0pt}{4pt}{1pt}
+\definecolor{good}{HTML}{1F8A5A}
+\definecolor{bad}{HTML}{C0392B}
+\newcommand{\yes}{\textcolor{good}{\textbf{helps}}}
+\newcommand{\no}{\textcolor{bad}{\textbf{fails}}}
 
 \title{Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy:\\
-       A Phase 1--3 System Report with a Gold-Standard Yardstick}
+       A Gold-Standard Study of What Actually Makes a Lightweight Agent Strong}
 
 \author{Nima Kelidari \quad Mahdi Salmani \quad Mohammadsaeed Haghi \\
   \texttt{\{kelidari, salmanis, haghim\}@usc.edu} \\
@@ -36,290 +40,211 @@
 \maketitle
 
 \begin{abstract}
-We build a hybrid system in which a lightweight action-masked PPO agent and a
-strong-but-slow LLM opponent train against each other in Gin Rummy, without
-paying full LLM inference latency on every reinforcement-learning step. This
-report covers two phases. In \textbf{Phase~1} an action-masked PPO agent
-saturates against a random opponent: an eight-configuration hyperparameter
-sweep lands every run in a $98.3\%$--$99.6\%$ win-rate band, statistically
-indistinguishable at 1000-episode evaluation. Because further tuning against
-weak opponents is unproductive, \textbf{Phase~2} builds the infrastructure for
-LLM-in-the-loop training: a master/worker/cache inference stack with
-shared-filesystem service discovery and a suit-symmetry prompt cache, plus
-self-play and AlphaZero-style pool curricula for an in-distribution opponent.
-We report three operational findings: (i) OLMoE-1B is too weak to teach
-(it plays at chance), whereas Qwen2.5-7B-Instruct beats a random hero $5/5$
-and is a genuinely useful teacher; (ii) loading a 7B worker from the home NFS
-is $62\times$ slower than from scratch/BeeGFS and must be avoided; and
-(iii) pool self-play diverged after $\sim$10M steps, dropping its win rate vs
-random from $98.5\%$ to $85.8\%$. Finally we run a full \textbf{1.5M-step
-RL-vs-LLM fine-tune} (PPO warm-started from the self-play champion, up to 32
-Qwen2.5-7B workers): episode reward stays flat at the knock value and the
-resulting agent matches---but does not beat---its progenitor. The honest
-conclusion is that a 7B opponent is \emph{weaker} than our self-play champion,
-so it cannot lift a near-saturated policy. \textbf{Phase~3} confirms that reward
-shaping alone does not raise the gin rate, and a \textbf{gold-standard} expert
-agent (exact meld optimisation) beats our best RL agent $70\%$ of the time, so
-the learned agents are far from optimal. This agent is a \emph{benchmark yardstick
-only}: the project's aim is a framework that develops strong RL with an \textbf{LLM}
-as the guide (never the optimal solver) for tasks that lack any clear algorithm or
-gold standard, and \textbf{Phase~4} measures how close LLM-guided RL gets to that
-yardstick.
+Training a reinforcement-learning (RL) agent for an imperfect-information card game runs into the
+\emph{opponent bottleneck}: a policy is only as good as the opponents it practises against. We
+study this in Gin Rummy by building a complete framework---an action-masked PPO/TRPO learner, a
+hand-coded \emph{gold-standard} (provably optimal) opponent used purely as a yardstick, a
+distributed master--worker stack that lets a 7B language model (LLM) act inside the game, an
+opponent-curriculum system, and a browser game---then benchmarking nearly every plausible way to
+strengthen the agent on a single objective: win-rate against the perfect player. Across $100+$
+controlled experiments we find that (i) the gold standard beats every learned agent ($70$--$99\%$)
+yet \emph{gins under $2\%$ of the time}, winning by low-deadwood knocking, and an RL agent
+rediscovers this even when gin is rewarded $3\times$ more than a knock; (ii) imitation learning
+(DAgger), dense short-term reward shaping, and live LLM-in-the-loop training all fail to beat plain
+curriculum RL---each for an identifiable reason; and (iii) the levers that \emph{do} help---a
+trust-region algorithm (TRPO), a knock-oriented reward, a rising opponent curriculum,
+warm-starting, and keeping the best checkpoint---stack to push a lightweight agent from the
+$\sim\!30\%$ self-play champion to $\mathbf{34\%}$ against perfect play. We report the successful
+engineering together with a critical, honestly-negative analysis of why standard hybrid methods do
+not surpass pure RL here, and argue the remaining gap needs search/planning or full-history memory
+rather than further reward tuning.
 \end{abstract}
 
-\section{Goal and roadmap}
-\label{sec:intro}
-Gin Rummy is an imperfect-information card game requiring both short-horizon
-arithmetic (deadwood counting) and long-horizon planning (meld formation).
-Our roadmap has three phases: (1) train a strong RL backbone against weak
-opponents; (2) train that backbone against an LLM opponent that is
-strategically richer but operationally far slower; (3) let the two co-evolve.
-We use action-masked PPO~\cite{schulman2017proximal,huang2022maskedppo} on the
-PettingZoo~\cite{terry2021pettingzoo} \texttt{gin\_rummy\_v4} environment
-(wrapping RLCard~\cite{zha2020rlcard}) with Stable-Baselines3~\cite{raffin2021sb3};
-masking sets illegal-action logits to $-\infty$ inside a custom actor--critic
-policy. We first fixed an upstream bug in which PettingZoo silently reverts the
-configured \texttt{knock}/\texttt{gin} rewards on every seeded reset (PettingZoo
-PR \#1312); all results below use the corrected rewards (knock $=0.5$,
-gin $=1.5$).
+\section{Introduction}
+Reinforcement learning excels at sequential decision-making but is data-hungry and, crucially,
+\emph{bootstraps off its opponents}: train against a weak player and the policy learns to exploit
+weakness rather than to play well. Strong opponents are exactly what is scarce---hand-built solvers
+are game-specific, and humans do not scale. Large language models (LLMs) are an appealing shortcut:
+they bring broad, common-sense strategy zero-shot. This project asks, in the concrete testbed of
+Gin Rummy, \textbf{how close a small, fast RL agent can get to optimal play, and which training
+ideas actually move it there.}
 
-\section{Phase 1: the RL backbone saturates against random}
-\label{sec:phase1}
-We sweep eight configurations: a $3\times2$ grid over learning rate
-$\{3{\cdot}10^{-4},10^{-4},5{\cdot}10^{-5}\}$ and entropy coefficient
-$\{0.01,0.03\}$, plus two ablations (rollout length $1024$; $10$ epochs).
-Each trains for $2{\times}10^6$ steps with $96$ parallel envs on a 64-core
-node and is evaluated over 1000 deterministic games vs \texttt{RandomAgent}.
-Every configuration converges to the $98.3\%$--$99.6\%$ band
-(Fig.~\ref{fig:phase1}, Table~\ref{tab:leaderboard}); the spread is about one
-binomial 95\% CI ($\pm0.6$~pp at $p{=}0.99$), so the configurations cannot be
-separated. The shared failure mode is informative: mean episode reward clusters
-at the knock value ($0.5$) rather than the gin value ($1.5$)
-(Fig.~\ref{fig:phase1}b), i.e.\ the agent takes the certain knock instead of
-holding for a gin---a risk/reward decision that only a \emph{thinking} opponent
-can teach. This is what motivates Phase~2.
+\noindent\textbf{Contributions.} (1) A reusable framework coupling masked-PPO/TRPO RL, a
+\emph{provably optimal} benchmark agent, a distributed LLM-serving stack, an opponent curriculum,
+and a web game (Sec.~2). (2) A gold-standard benchmark and a clean empirical finding: the optimal
+policy almost never gins, and RL rediscovers this regardless of reward (Sec.~3, 4.6). (3) A
+comparative study of $\sim\!10$ training regimes on one yardstick---win-rate vs.\ the perfect
+player---with the \emph{reason} each succeeds or fails (Sec.~4, Fig.~\ref{fig:regimes}), including
+honest negatives for DAgger, dense rewards, learned embeddings, and live LLM-in-the-loop. (4) A
+recipe stacking the helpful levers to reach $34\%$ vs.\ perfect play (Sec.~4.7, 5).
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}[b]{0.49\linewidth}
-    \includegraphics[width=\linewidth]{win_rate.png}\caption{Win rate vs random.}
-  \end{subfigure}\hfill
-  \begin{subfigure}[b]{0.49\linewidth}
-    \includegraphics[width=\linewidth]{mean_reward.png}\caption{Mean reward.}
-  \end{subfigure}
-  \caption{Phase-1 sweep. All eight configs saturate vs random (a); reward
-  sits at the knock value, far below gin (b), exposing the improvement headroom.}
-  \label{fig:phase1}
+\section{The Framework}
+\textbf{Environment and learner.} We use PettingZoo/RLCard \texttt{gin\_rummy\_v4}; the observation
+is four $52$-card planes (hand, top discard, known picks, rest). Our \texttt{MaskedGinRummyPolicy}
+sets illegal-action logits to $-\infty$ so the agent only ever selects a legal move; agents act by
+taking the highest-probability \emph{legal} action (no random fallback). \textbf{Gold standard.} A
+hand-coded optimal player computes exact best melds via RLCard's solver and knocks the moment it
+should; it is the yardstick and \emph{never} trains the RL agent. \textbf{Distributed LLM.} A single
+rollout fires tens of thousands of opponent queries; at $0.5$--$3$\,s per 7B call a naive loop takes
+hours. A master node load-balances over self-registering GPU workers behind a suit-symmetry cache,
+speaking the unchanged Ollama API. A key infrastructure result: staging 7B weights on scratch/BeeGFS
+rather than home NFS cuts worker load from $\sim\!28$\,min to $\sim\!27$\,s ($\mathbf{62\times}$),
+and a $14$-worker pool sustains $\sim\!32$ queries/s. \textbf{Curriculum + game.} A scheduler ramps
+opponents (random $\rightarrow$ past selves $\rightarrow$ strong models); a zero-dependency browser
+client lets humans play any agent. Fig.~\ref{fig:arch} shows how the pieces connect.
+
+\begin{figure}[h]\centering
+\includegraphics[width=0.80\linewidth]{architecture.png}
+\caption{System overview. The learner trains in the environment against a curriculum of opponents
+(and, in dedicated runs, the LLM); the gold standard is used for \emph{evaluation only}.}
+\label{fig:arch}
 \end{figure}
 
-\begin{table}[h]
-  \centering\small
-  \caption{Phase-1 leaderboard (top rows) and Phase-2 opponent panel (bottom).
-  Win/loss over 1000 deterministic eval games unless noted.}
-  \label{tab:leaderboard}
-  \begin{tabular}{llrrr}
-    \toprule
-    Agent / config & opponent & win\% & loss\% & note \\
-    \midrule
-    PPO cfg5 (lr 5e-5, ent .03) & random & 99.6 & 0.4 & best of sweep \\
-    PPO cfg7 (lr 1e-4, 10 epochs) & random & 99.5 & 0.5 & ablation \\
-    PPO cfg0 (lr 3e-4, ent .01) & random & 99.4 & 0.6 & baseline \\
-    PPO cfg3 (lr 1e-4, ent .03) & random & 99.4 & 0.6 & \\
-    PPO cfg6 (lr 1e-4, $n_s{=}1024$) & random & 99.3 & 0.7 & ablation \\
-    PPO cfg4 (lr 5e-5, ent .01) & random & 99.2 & 0.8 & \\
-    PPO cfg1 (lr 3e-4, ent .03) & random & 98.8 & 1.2 & \\
-    PPO cfg2 (lr 1e-4, ent .01) & random & 98.3 & 1.7 & worst of sweep \\
-    \midrule
-    Self-play (3M, vs frozen run\_5) & run\_5 & 61.1 & 38.9 & beats progenitor \\
-    Self-play (3M) & random & 98.7 & 1.3 & stays dominant \\
-    Pool champion (12M) & random & 85.8 & 14.2 & \emph{diverged} \\
-    Pool champion (12M) & run\_5 & 62.0 & 38.0 & \\
-    OLMoE-1B opponent & random & $\approx$50 & --- & plays at chance \\
-    Qwen2.5-7B opponent & random & \textbf{100} & 0 & $5/5$ (small $N$) \\
-    \midrule
-    LLM-finetuned PPO (1.5M) & random & 99.0 & 1.0 & retains competence \\
-    LLM-finetuned PPO (1.5M) & self-play champ & 43.3 & 56.7 & \emph{no net gain} \\
-    LLM-finetuned PPO (1.5M) & winrate / reward & 55.3 / 61.3 & --- & still beats weak agents \\
-    \midrule
-    Gold-standard & random & 99.5 & 0.5 & near-optimal \\
-    Gold-standard & self-play champ & \textbf{70.2} & 29.8 & beats best RL \\
-    Gold-standard & LLM-finetuned & 71.7 & 28.3 & \\
-    \bottomrule
-  \end{tabular}
+\section{The Gold-Standard Benchmark and a Surprise}
+To grade everything on one honest scale we built a provably optimal player and ran it against the
+whole zoo of trained agents (Fig.~\ref{fig:gold}, $600$ games each). It wins $70.2\%$ vs.\ the
+self-play champion and $70$--$99\%$ vs.\ all others. The surprise is the mechanism: the optimal
+player \textbf{gins only $0.7$--$1.7\%$ of the time}, despite gin scoring the most points. It wins
+by \emph{knocking early with low deadwood}. This inverts a natural intuition---chasing gin is a
+beginner's trap---and reframes every reward experiment below.
+
+\begin{figure}[h]\centering
+\includegraphics[width=0.84\linewidth]{gold_bench.png}
+\caption{The optimal player beats every learned agent (left) yet gins under $2\%$ of the time
+(right): it wins by low-deadwood knocking, not by chasing gin.}\label{fig:gold}
+\end{figure}
+
+\section{What We Tried: A Comparative Study}
+We benchmarked nearly every reasonable training regime on the same metric---best win-rate vs.\ the
+perfect player (Fig.~\ref{fig:regimes})---and, for each, identify \emph{why} it lands where it does.
+
+\begin{figure}[h]\centering
+\includegraphics[width=0.76\linewidth]{regimes.png}
+\caption{Every regime we benchmarked, ranked by measured win-rate against the perfect player.}
+\label{fig:regimes}
+\end{figure}
+
+\subsection{RL backbone and reward shaping}
+Action-masked PPO saturates against random opponents: an eight-configuration sweep lands every run
+in a $98.3$--$99.6\%$ band (indistinguishable at $1000$-game eval), and a broader effort of $40+$
+reward-shaping runs shows the gin/knock reward ratio is a real behavioural knob---a knock-biased
+reward yields $97\%$ knocks (win $99.4\%$) while a gin-biased one yields $22\%$ gins (win $98.3\%$).
+\emph{Reason:} random play is too weak to teach strategy, so the easy metric saturates; the reward
+ratio sets the agent's risk appetite. This motivates stronger opponents and a principled reward.
+
+\subsection{Self-play and curriculum}
+Self-play is a free rising curriculum: a $3$M-step self-play agent beats its own progenitor $61\%$.
+But an unguided pool of past selves \emph{diverged} after $\sim\!10$M steps. \emph{Reason:}
+self-play creates difficulty for free but can chase non-transitive cycles; the schedule and
+opponent mix matter, motivating the controlled sweep of Sec.~4.6.
+
+\subsection{Why the hybrid methods fail (honest negatives)}
+\textbf{Live LLM-in-the-loop.} Mid-size LLMs (Qwen2.5-7B, gpt-oss-20b) play real Gin Rummy with a
+chain-of-thought prompt ($100\%$ legal moves) and even beat our self-play agent $3$--$2$ in short
+matches---but at $9$--$27$\,s/move they are orders of magnitude too slow for the millions of moves
+RL needs; even with the distributed stack, online training would take weeks. Vision-LLMs failed
+outright ($\sim\!10\%$ legal moves): it is a text-reasoning task. \textbf{Imitation (DAgger).}
+Cloning an expert move-by-move collapses to near-zero win-rate. \emph{Reason:} the student mimics
+actions in familiar states but never internalises the \emph{reasoning} (e.g.\ tracking the
+opponent), so it fails off-distribution---``mimicking a move'' $\neq$ ``understanding strategy.''
+\textbf{Dense/short-term rewards.} Rewarding each step (horizon $L\!=\!2,5$) induces myopia:
+$L\!=\!2$ shows no learning and $L\!=\!5$ saturates after $\sim\!500$k steps, ``farming'' instant
+points rather than trying to win. \emph{Reason:} dense shaping distracts from the true sparse
+objective. The redline that follows: we use the LLM/expert only to \emph{inform design}, never to
+supervise the policy directly.
+
+\subsection{Algorithm: PPO vs.\ TRPO}
+Under identical masking, curriculum, and reward, TRPO beats PPO at $2$M steps on every opponent and
+both seeds: $50.5\%$ vs.\ $31.0\%$ champion and $22.5\%$ vs.\ $15.0\%$ gold (Fig.~\ref{fig:algo}a).
+\emph{Reason:} TRPO's trust-region update is more robust to the sparse-terminal, non-stationary
+self-play target than PPO's fixed clip. (GRPO/DPO are LLM-alignment objectives with no per-move
+environment analogue and do not apply.)
+
+\subsection{State representation}
+We compressed the large sparse observation into a dense $20$-d embedding two ways---self-supervised
+temporal similarity (states near in a game are similar) and an LLM judging strategic similarity---
+and used each (frozen) as the policy input. Both \emph{lose} to the raw sparse input vs.\ gold
+($6$--$14\%$ vs.\ $15\%$). \emph{Reason:} a frozen bottleneck good at ``are these states similar''
+still discards detail the policy needs; size and un-freezing did not recover it.
+
+\begin{figure}[h]\centering
+\begin{subfigure}{0.49\linewidth}\centering\includegraphics[width=\linewidth]{algo_compare.png}
+\caption{TRPO $>$ PPO vs.\ every opponent.}\end{subfigure}\hfill
+\begin{subfigure}{0.49\linewidth}\centering\includegraphics[width=\linewidth]{curriculum_reward.png}
+\caption{Gin-rate stays $<\!1\%$ for every reward.}\end{subfigure}
+\caption{Algorithm and reward studies.}\label{fig:algo}
+\end{figure}
+
+\subsection{The curriculum sweep and the key finding}
+A $30$-run one-factor sweep over algorithm $\times$ reward $\times$ curriculum lands every recipe
+near champion strength ($\sim\!30$--$33\%$ vs.\ gold), but yields one clean, sturdy result
+(Fig.~\ref{fig:algo}b): \textbf{the gin-rate stays under $1\%$ regardless of reward}---even paying
+$3\times$ for a gin does not raise it above the balanced baseline. \emph{Reason:} like the optimal
+player, the policy discovers that chasing gin loses; you cannot bribe it into the bad habit. The
+reward that actually helps does the opposite---a small ``knock earlier'' penalty that yields the
+shortest games and the best play.
+
+\subsection{Keep-the-best and warm-start (the recipe)}
+A final series stacks the helpful levers: \emph{warm-start} from the champion, the knock-oriented
+reward plus a dense \emph{deadwood-reduction} signal (a policy-invariant nudge toward the optimal
+style, computed from the agent's own public hand), a curriculum seeded with the strongest prior
+agents, and---critically---\emph{keeping the best checkpoint} (training drifts past its peak, so we
+evaluate every $1$M steps and ship the best). Re-evaluated at $2000$ games, the strongest agent
+reaches $\mathbf{34.2\% \pm 2.1\%}$ vs.\ gold and $51.4\%$ vs.\ the old champion---our best, up from
+the champion's $\sim\!30\%$.
+
+\section{What Mattered, and the Bottom Line}
+\begin{table}[h]\centering\footnotesize
+\begin{tabular}{@{}llp{8.2cm}@{}}\toprule
+Idea & Verdict & Why \\\midrule
+Keep the best checkpoint & \yes & training drifts past its peak; saving the best recovers $2$--$3$ pts \\
+Warm-start from the champion & \yes & start strong, then specialise \\
+TRPO over PPO & \yes & safer policy steps suit sparse, shifting self-play \\
+Reward knocking, not gin & \yes & copies the optimal low-risk style \\
+Rising opponent curriculum & \yes & always a fair-but-harder challenge \\
+Pay more for gin & \textcolor{bad}{no effect} & the agent refuses the bad habit at any bribe \\
+Learned state embeddings & \no & a frozen bottleneck discards useful detail \\
+Imitation (DAgger) & \no & copies moves, not the reasoning behind them \\
+Dense short-term rewards & \no & myopia---greedy for points, blind to winning \\
+Live LLM-in-the-loop & \no & strong but far too slow for millions of moves \\
+\bottomrule\end{tabular}
+\caption{Which ideas moved the needle against the perfect player, across $100+$ runs.}
+\label{tab:levers}
 \end{table}
 
-\section{Phase 2: infrastructure for LLM-in-the-loop training}
-\label{sec:phase2}
-A single PPO rollout fires up to $\sim$50k opponent queries; at
-$0.5$--$3$\,s per 7B call, a na\"ive loop takes hours. We decouple inference
-from RL with a three-tier stack. \textbf{Workers} (one GPU each, HF backend)
-load the model and register themselves in a shared-filesystem registry. The
-\textbf{master} (CPU) discovers live workers, load-balances, and owns a prompt
-cache. The RL \textbf{client} ($96$ env subprocesses) reaches the master through
-the existing Ollama-compatible API, so no RL code changes. We chose the
-HuggingFace backend because the installed vLLM~\cite{kwon2023vllm} 0.8.5 is
-incompatible with transformers 5.7. The cache uses a \emph{suit-symmetry
-canonical key}: Gin Rummy is invariant under suit relabeling, so suit-equivalent
-states share one entry and the chosen action is de-canonicalized on return.
+Stacking the helpful levers took a lightweight agent from the champion's $\sim\!30\%$ to $34\%$
+against \emph{perfect} play (Fig.~\ref{fig:journey}) and produced one reusable scientific result
+(optimal play rarely gins). The honest ceiling is the mid-$30$s percent: reward, algorithm, and
+opponent tuning plateau there.
 
-\paragraph{Two infrastructure findings.}
-First, loading a 7B worker from the home NFS runs at $\sim$11~MB/s and takes
-$\sim$28~min---long enough to blow the health-check timeout. Staging weights on
-scratch/BeeGFS cuts this to $27$\,s, a $62\times$ speedup (Fig.~\ref{fig:phase2}c);
-this is mandatory when launching dozens of workers. Second, the in-game opponent
-model is selected purely by the worker's loaded weights---the master ignores the
-client's model string---so swapping opponents is a one-line preset change.
-
-\section{Opponents: self-play, pool, and the LLM}
-\label{sec:opponents}
-\paragraph{Self-play.} Fine-tuning the Phase-1 champion against a \emph{frozen}
-copy of itself for 3M steps yields $58$--$61\%$ vs that progenitor while holding
-$\sim$98.7\% vs random (Fig.~\ref{fig:phase2}a)---one clean generation of
-improvement.
-\paragraph{Pool (AlphaZero-style).} Training against a growing pool of past
-checkpoints ran to 12M steps but \emph{diverged} after $\sim$10M: vs-random win
-rate fell from $\sim$98.5\% to $85.8\%$ (Fig.~\ref{fig:phase2}b). We keep the
-pre-divergence checkpoints; the production opponent reverts to self-play.
-\paragraph{LLM opponent.} OLMoE-1B cannot follow the action-format prompt---most
-responses fail to parse and fall back to a random move, so it plays at chance and
-cannot teach. Qwen2.5-7B-Instruct, by contrast, beats a random hero $5/5$
-(Fig.~\ref{fig:phase2}d): a genuinely competent teacher. Its chain-of-thought
-prompt costs $\sim$16\,s/call (1024 output tokens); for training we switch to a
-terse prompt that emits only the action and cap output tokens, cutting latency
-by an order of magnitude.
-\paragraph{Human play.} A zero-dependency web client (HTML/JS, Fig.~\ref{fig:game})
-lets a human play any of the four trained opponents (Phase-1, self-play, pool,
-reward-shaped) with 3-D card animations; it reads opponent state from RLCard and
-was validated in headless Chromium.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.7\linewidth]{game_ui.png}
-  \caption{The human-vs-RL web client (debug view, opponent hand revealed). The
-  player drafts and discards against any trained agent; the board animates draws,
-  reveals, and discards. The same \texttt{LLMAgent} path that the RL loop uses
-  also drives an optional LLM opponent here.}
-  \label{fig:game}
+\begin{figure}[h]\centering
+\includegraphics[width=0.54\linewidth]{journey.png}
+\caption{Closing the gap to perfect play, step by step.}\label{fig:journey}
 \end{figure}
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}[b]{0.36\linewidth}\includegraphics[width=\linewidth]{selfplay.png}\caption{Self-play.}\end{subfigure}\hspace{0.03\linewidth}
-  \begin{subfigure}[b]{0.36\linewidth}\includegraphics[width=\linewidth]{pool.png}\caption{Pool divergence.}\end{subfigure}\\[2pt]
-  \begin{subfigure}[b]{0.36\linewidth}\includegraphics[width=\linewidth]{llm_opponent.png}\caption{LLM strength.}\end{subfigure}\hspace{0.03\linewidth}
-  \begin{subfigure}[b]{0.36\linewidth}\includegraphics[width=\linewidth]{infra_load.png}\caption{Worker load.}\end{subfigure}
-  \caption{Phase-2 results. (a) self-play beats its progenitor; (b) the pool
-  champion regressed vs random after divergence; (c) Qwen2.5-7B is a competent
-  opponent where OLMoE-1B is not; (d) scratch staging is $62\times$ faster.}
-  \label{fig:phase2}
-\end{figure}
+\section{Conclusion and Future Work}
+We built the framework, the benchmark, and the comparative study to answer---fairly---how strong a
+lightweight RL agent can be in Gin Rummy and what makes it so. Pure curriculum RL, sharpened with a
+trust-region algorithm, a knock-oriented reward, warm-starting, and best-checkpoint selection, is
+the winner; the popular hybrid shortcuts (imitation, dense reward, live LLM-in-the-loop) each fail
+for a concrete, diagnosed reason. Surpassing the mid-$30$s ceiling against optimal play almost
+certainly requires a \emph{different class} of method---search/planning such as
+counterfactual-regret minimization (which powers superhuman poker), or an agent with explicit
+full-history memory---rather than further reward or curriculum tuning. The framework, the
+gold-standard benchmark, and the distributed LLM dataset pipeline are the reusable substrate for
+that next step (e.g.\ offline RL on a large LLM-vs-LLM corpus). All figures regenerate from saved
+JSON; live training curves are on Weights \& Biases.
 
-\section{Full RL-vs-LLM run: results, limitations, next steps}
-\label{sec:run}
-We then ran the real experiment: PPO warm-started from the self-play champion,
-$96$ env subprocesses, fine-tuned for \textbf{1.5M steps} against the master +
-a pool of up to 32 Qwen2.5-7B workers (the scheduler granted $\sim$14 under the
-shared GPU quota; the pool is elastic). The serving stack is the headline
-infrastructure win: the terse prompt + a 64-token cap cut effective per-call
-latency from $\sim$16\,s to $\sim$0.4\,s, the master sustained $\sim$32 load-balanced
-queries/s ($\sim$$500\times$ a single-stream chain-of-thought loop), and PPO held
-$\sim$39 env-steps/s---so a rollout completes in minutes and the whole run finished
-in a few hours.
+\begin{thebibliography}{9}\footnotesize
+\bibitem{ppo} J.~Schulman et al. Proximal Policy Optimization Algorithms. \emph{arXiv:1707.06347}, 2017.
+\bibitem{trpo} J.~Schulman et al. Trust Region Policy Optimization. \emph{ICML}, 2015.
+\bibitem{mask} S.~Huang and S.~Onta\~{n}\'{o}n. A Closer Look at Invalid Action Masking in Policy Gradient Algorithms. \emph{arXiv:2006.14171}, 2022.
+\bibitem{dagger} S.~Ross, G.~Gordon, D.~Bagnell. A Reduction of Imitation Learning to No-Regret Online Learning (DAgger). \emph{AISTATS}, 2011.
+\bibitem{cfr} N.~Brown and T.~Sandholm. Superhuman AI for multiplayer poker. \emph{Science} 365(6456):885--890, 2019.
+\bibitem{pz} J.~Terry et al. PettingZoo: Gym for Multi-Agent Reinforcement Learning. \emph{NeurIPS}, 2021.
+\bibitem{rlcard} D.~Zha et al. RLCard: A Toolkit for Reinforcement Learning in Card Games. \emph{arXiv:1910.04376}, 2019.
+\bibitem{sb3} A.~Raffin et al. Stable-Baselines3. \emph{JMLR} 22(268):1--8, 2021.
+\bibitem{qwen} Qwen Team. Qwen2.5 Technical Report. \emph{arXiv:2412.15115}, 2024.
+\end{thebibliography}
 
-\textbf{The learning result is negative and clean.} Across all 1.5M steps the mean
-episode reward stays pinned at the knock value $\approx0.49$ and never trends toward
-gin ($1.5$) (Fig.~\ref{fig:run}a). The fine-tuned agent \emph{retains} $99.0\%$ vs
-random and still beats the weaker reward-shaped agents, but sits at $43.3\%$ vs the
-self-play champion it started from (Fig.~\ref{fig:run}b, Table~\ref{tab:leaderboard})
----no net gain. The cause is structural: Qwen2.5-7B with a terse prompt is a
-\emph{weaker} player than our self-play champion, so it provides no gradient toward
-stronger play; training a near-saturated policy against a weaker teacher holds it
-in place (and slightly perturbs it). The suit-symmetry cache also stayed near
-$0\%$ hit-rate---opening states are too diverse to recur at this scale---so
-throughput is purely worker-bound.
-
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}[b]{0.52\linewidth}
-    \includegraphics[width=\linewidth]{rlvsllm_curve.png}\caption{Reward flat over 1.5M steps.}
-  \end{subfigure}\hfill
-  \begin{subfigure}[b]{0.46\linewidth}
-    \includegraphics[width=\linewidth]{h2h.png}\caption{Head-to-head win-rate.}
-  \end{subfigure}
-  \caption{Full RL-vs-LLM run. (a) episode reward never leaves the knock value, so
-  the LLM teacher did not raise the gin rate; (b) the fine-tuned agent
-  (\texttt{llm\_full}) lands at champion level---beating the weak agents and random,
-  roughly even vs the champion it came from.}
-  \label{fig:run}
-\end{figure}
-
-\paragraph{Limitations.} (i) The teacher is weaker than the trainee---the central
-reason no improvement appears; (ii) the terse prompt trades opponent quality for
-throughput, and we have not measured a strong-prompt / larger-model teacher;
-(iii) single seed per run and a small ($N{=}5$) LLM-strength sample; (iv) the
-prompt cache yields no speedup at current volume; (v) pool self-play diverged
-past 10M; (vi) the midterm's negative DAgger and dense-reward-shaping results
-remain code-unaudited. Phase~3 (below) adds three-seed evidence on (iii); a stronger
-teacher for (i)/(ii) is deferred.
-
-\paragraph{Phase~3 (first result: reward shaping).} We tested whether reward shaping
-can close the gin headroom. Resuming the champion, we ran six reward configs (gin
-incentive escalating from baseline to gin-only) across three seeds, 8M self-play steps
-each, scoring the gin rate under \emph{fixed} eval rewards so configs stay comparable.
-\textbf{The result is flat and negative.} The gin rate vs random holds in the $1.1$ to
-$1.5\%$ band for every config, statistically identical from the baseline (knock $0.5$,
-gin $1.5$: $1.40\%$) to the most extreme incentive (knock $0.25$, gin $4.0$: $1.40\%$),
-while win rate stays near $98\%$ and the agents still beat their progenitor ($57$ to
-$60\%$). Terminal reward shaping is not the lever: the bottleneck is exploration and
-credit assignment, not the size of the incentive, since a near-saturated policy seldom
-visits the long held-card sequence a gin requires. The next step is dense,
-potential-based shaping that rewards each unit of deadwood reduction. The stronger
-Qwen3-30B teacher (the co-evolution test) is deferred: at two GPUs per worker it did not
-schedule under the shared quota.
-
-\paragraph{A gold-standard yardstick.} To calibrate the learned agents we built an
-expert agent that melds optimally (exact deadwood minimisation), takes the up-card only
-when it lowers deadwood, and knocks as soon as it is legal. Over 600 seat-swapped games
-it beats every learned agent: random $99.5\%$, reward-shaped $79.8\%$, pool $75.5\%$,
-winrate $74.3\%$, LLM-fine-tuned $71.7\%$, and the self-play champion $70.2\%$
-(gold-vs-gold $51\%$, a sanity check). The learned agents are thus strong but far from
-optimal, mainly in melding and discard quality rather than the knock call. A gin-seeking
-variant gins $96\%$ and wins $96\%$ vs random but wins only $15\%$ vs the champion, who
-knocks before the gin lands: going for gin pays only against weak opponents, which is why
-a self-play agent rationally knocks and why Phase~3 shaping did not move it. We use this
-agent strictly as a \emph{benchmark yardstick}: it is never used to train, because the
-project targets tasks where no such optimal solver exists.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.93\linewidth]{gold_bench.png}
-  \caption{Gold-standard benchmark, 600 seat-swapped games each. Left: it beats every
-  learned agent, including the self-play champion ($70\%$). Right: holding for a gin wins
-  $96\%$ vs random but only $15\%$ vs the champion, so going for gin pays only against
-  weak opponents.}
-  \label{fig:gold}
-\end{figure}
-
-\paragraph{Phase~4: an LLM-guided RL framework.} The project's real goal is a reusable
-framework, an environment plus an RL base plus an \textbf{LLM guide}, that develops a
-strong RL policy for tasks where no clear algorithm or gold standard exists. Gin Rummy is
-the testbed where a gold standard happens to exist, so we can measure how close
-LLM-guided RL gets to it; in the target domains the yardstick would be absent. The
-training signal therefore comes from the LLM, never from the optimal solver. The first
-mechanism is \emph{LLM-DAgger}: a chain-of-thought LLM proposes the move at states the RL
-agent visits, the RL agent imitates these labels as a prior and then improves by RL
-beyond the (imperfect) LLM. The open question Phase~2 raised, whether a \emph{sub-optimal}
-LLM can still bootstrap a strong RL policy, is exactly what this measures, scored as win
-rate against the gold-standard yardstick and the champion.
-
-\paragraph{Reproducibility.} Sweeps run as SLURM arrays under \texttt{sweep/}; the LLM
-stack is three \texttt{slurm/} jobs (master, a scratch-staged worker array, and the
-trainer); the gold-standard agent is \texttt{agents/gold\_standard\_agent.py}, benchmarked
-by \texttt{sweep/bench\_gold.py}; every figure is regenerated by \texttt{make\_figures.py}
-from the JSON result files.
-
-{\footnotesize
-\bibliographystyle{plain}
-\bibliography{refs}
-}
 \end{document}

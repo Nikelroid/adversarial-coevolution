@@ -53,46 +53,34 @@ IMAGES_DIR = os.path.join(GAME_DIR, "images")
 #   llm      -> champion fine-tuned against a Qwen2.5-7B opponent
 #   pool/winrate/reward -> Phase-1/2 PPO variants
 #   random   -> uniformly random legal move (easiest)
+# A curated ladder of 5 opponents, easiest -> perfect, so players can feel the difference.
+# (The repo keeps every trained model; this menu just shows the clearest few.)
 OPPONENTS = {
-    "gold": {"emoji": "🏆", "label": "Gold Standard", "type": "gold",
-             "stat": "optimal expert · benchmark",
-             "desc": "Hand-coded expert: always finds the best melds and knocks "
-                     "the moment it can. The benchmark we measure against, not a "
-                     "learned agent. Hardest."},
+    "random": {"emoji": "🎲", "label": "Rookie", "type": "random",
+               "stat": "random legal moves · easiest",
+               "desc": "Plays a uniformly random legal move every turn. A gentle warm-up to "
+                       "learn the rules."},
     "selfplay": {"emoji": "🤖", "label": "Self-Play Champion", "type": "ppo",
-                 "file": "ppo_gin_rummy_selfplay.zip", "stat": "strongest RL agent",
-                 "desc": "PPO trained against frozen copies of itself. Our "
-                         "strongest learned agent."},
-    "llm": {"emoji": "🧠", "label": "LLM-Tutored", "type": "ppo",
-            "file": "ppo_gin_rummy_llm_full.zip", "stat": "fine-tuned vs Qwen2.5-7B",
-            "desc": "The champion fine-tuned for 1.5M steps against a Qwen2.5-7B "
-                    "language-model opponent."},
-    "pool": {"emoji": "♟️", "label": "Pool Veteran", "type": "ppo",
-             "file": "ppo_gin_rummy_pool.zip", "stat": "self-play pool (regressed)",
-             "desc": "PPO trained against a growing pool of its own past versions "
-                     "(AlphaZero-style); regressed after ~10M steps."},
-    "winrate": {"emoji": "🎯", "label": "Win-Rate Specialist", "type": "ppo",
-                "file": "ppo_gin_rummy_winrate.zip", "stat": "99.6% vs random",
-                "desc": "Phase-1 PPO tuned to beat the random player as often as "
-                        "possible (99.6%)."},
-    "reward": {"emoji": "💰", "label": "Reward Maximizer", "type": "ppo",
-               "file": "ppo_gin_rummy_reward.zip", "stat": "highest avg score",
-               "desc": "Phase-1 PPO with the highest average score per game."},
-    "curriculum": {"emoji": "🃏", "label": "Curriculum Champion", "type": "ppo",
-                   "file": "gin_curriculum_champion.zip", "stat": "33% vs gold · Phase-6 best",
-                   "desc": "The strongest agent from our Phase-6 sweep. Trained through a full "
-                           "league of opponents (random, its own past selves, then the champion) "
-                           "and rewarded for knocking early with low deadwood, the optimal style. "
-                           "Wins ~33% vs the gold standard and ~50% vs the old champion."},
-    "goldhunter": {"emoji": "🥇", "label": "Gold Hunter", "type": "ppo",
-                   "file": "gin_gold_hunter.zip", "stat": "best win-rate vs gold (33%)",
-                   "desc": "The curriculum-sweep agent with the single highest win-rate against "
-                           "the gold standard (33%). Curious twist: its reward paid a big bonus "
-                           "for ginning, yet it still learned almost never to gin, exactly like "
-                           "the optimal player does."},
-    "random": {"emoji": "🎲", "label": "Random", "type": "random",
-               "stat": "random legal moves",
-               "desc": "Plays a uniformly random legal move every turn. Easiest."},
+                 "file": "ppo_gin_rummy_selfplay.zip", "stat": "~30% vs gold · 12M steps",
+                 "desc": "PPO trained for millions of steps against frozen copies of itself. Our "
+                         "earlier strongest agent; it wins about 30% of games against the perfect "
+                         "player."},
+    "ace": {"emoji": "🃏", "label": "Curriculum Ace", "type": "ppo",
+            "file": "gin_ace.zip", "stat": "34% vs gold · 51% vs champion",
+            "desc": "Our strongest learned agent. Built by stacking everything that helped: a "
+                    "trust-region algorithm, a reward that copies the optimal 'knock low' style, "
+                    "a curriculum of ever-stronger opponents, warm-starting, and always keeping "
+                    "the best checkpoint. ~34% vs the perfect player (2000-game eval)."},
+    "tactician": {"emoji": "🛡️", "label": "League Tactician", "type": "ppo",
+                  "file": "gin_tactician.zip", "stat": "34% vs gold · 51% vs champion",
+                  "desc": "A second top agent from the final series, trained with PFSP opponent "
+                          "sampling (it practises most against whoever is beating it). Essentially "
+                          "tied with the Ace at the top of our ladder."},
+    "gold": {"emoji": "🏆", "label": "Gold Standard", "type": "gold",
+             "stat": "optimal · the wall everyone hits",
+             "desc": "A hand-coded perfect player: every turn it finds the mathematically best "
+                     "melds and knocks the instant it should. The benchmark we measure against, "
+                     "never a learned agent. Beats every trained agent 70-99% of the time."},
 }
 DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "selfplay")
 

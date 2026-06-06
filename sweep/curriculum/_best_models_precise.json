@@ -1,0 +1,92 @@
+[
+  {
+    "label": "p7_warmlong_s1",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_01_warm_long_s1/best.zip",
+    "gold": 0.342,
+    "gold_ci": 0.020790602415514562,
+    "gold_gin": 0.0045,
+    "champ": 0.514,
+    "champ_ci": 0.030978170481808637,
+    "rand": 0.9916666666666667
+  },
+  {
+    "label": "p7_pfsp_s0",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_04_warm_pfsp_s0/best.zip",
+    "gold": 0.34,
+    "gold_ci": 0.020761202277324885,
+    "gold_gin": 0.0025,
+    "champ": 0.498,
+    "champ_ci": 0.03099007314608986,
+    "rand": 0.99
+  },
+  {
+    "label": "p7_pfsp_s1",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_04_warm_pfsp_s1/best.zip",
+    "gold": 0.3395,
+    "gold_ci": 0.0207537878904069,
+    "gold_gin": 0.008,
+    "champ": 0.506,
+    "champ_ci": 0.030988089686200405,
+    "rand": 0.9866666666666667
+  },
+  {
+    "label": "p7_deadwood_hi",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_03_warm_deadwood_hi_s0/best.zip",
+    "gold": 0.3385,
+    "gold_ci": 0.020738881700805376,
+    "gold_gin": 0.006,
+    "champ": 0.48,
+    "champ_ci": 0.030965518887950193,
+    "rand": 0.9866666666666667
+  },
+  {
+    "label": "p7_warmlong_s0",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_01_warm_long_s0/best.zip",
+    "gold": 0.331,
+    "gold_ci": 0.02062377344716529,
+    "gold_gin": 0.004,
+    "champ": 0.501,
+    "champ_ci": 0.030990259088946,
+    "rand": 0.9966666666666667
+  },
+  {
+    "label": "p7_deadwood_s0",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_02_warm_deadwood_s0/best.zip",
+    "gold": 0.3305,
+    "gold_ci": 0.02061589037126459,
+    "gold_gin": 0.004,
+    "champ": 0.473,
+    "champ_ci": 0.030945104194363283,
+    "rand": 0.9883333333333333
+  },
+  {
+    "label": "p7_deadwood_s1",
+    "path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/p7_02_warm_deadwood_s1/best.zip",
+    "gold": 0.3255,
+    "gold_ci": 0.020535607120316653,
+    "gold_gin": 0.0035,
+    "champ": 0.494,
+    "champ_ci": 0.030988089686200405,
+    "rand": 0.9933333333333333
+  },
+  {
+    "label": "p6_gold_hunter",
+    "path": "game/model/gin_gold_hunter.zip",
+    "gold": 0.3175,
+    "gold_ci": 0.020401601775350876,
+    "gold_gin": 0.0025,
+    "champ": 0.435,
+    "champ_ci": 0.030727337014456683,
+    "rand": 0.9916666666666667
+  },
+  {
+    "label": "p6_curriculum_champ",
+    "path": "game/model/gin_curriculum_champion.zip",
+    "gold": 0.3135,
+    "gold_ci": 0.02033200074267164,
+    "gold_gin": 0.004,
+    "champ": 0.492,
+    "champ_ci": 0.030986354054647988,
+    "rand": 0.995
+  }
+]
