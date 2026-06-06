@@ -1,5 +1,5 @@
 {
-  "n_cells": 38,
+  "n_cells": 39,
   "best": {
     "name": "p7_03_warm_deadwood_hi_s0",
     "algo": "trpo",
@@ -405,6 +405,21 @@
       "gin_vs_gold": 0.005,
       "steps": 12000000,
       "secs": 11998
+    },
+    {
+      "name": "p7_05_scratch_deadwood_s1",
+      "algo": "trpo",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.989,
+      "vs_champion": 0.448,
+      "vs_gold": 0.307,
+      "gin_vs_gold": 0.003,
+      "steps": 14000000,
+      "secs": 21888
     },
     {
       "name": "09_trpo_kl_small_s2",
