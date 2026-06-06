@@ -1,5 +1,5 @@
 {
-  "n_cells": 33,
+  "n_cells": 35,
   "best": {
     "name": "p7_03_warm_deadwood_hi_s0",
     "algo": "trpo",
@@ -30,6 +30,36 @@
       "gin_vs_gold": 0.007,
       "steps": 16000000,
       "secs": 19117
+    },
+    {
+      "name": "p7_01_warm_long_s0",
+      "algo": "trpo",
+      "curriculum": "warm",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.996,
+      "vs_champion": 0.487,
+      "vs_gold": 0.345,
+      "gin_vs_gold": 0.005,
+      "steps": 16000000,
+      "secs": 26288
+    },
+    {
+      "name": "p7_01_warm_long_s1",
+      "algo": "trpo",
+      "curriculum": "warm",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.986,
+      "vs_champion": 0.514,
+      "vs_gold": 0.339,
+      "gin_vs_gold": 0.006,
+      "steps": 16000000,
+      "secs": 26216
     },
     {
       "name": "p7_02_warm_deadwood_s0",
