@@ -467,13 +467,167 @@ def fig_curriculum_reward():
     print(f"  fig_curriculum_reward: {len(order)} reward cells")
 
 
+def fig_architecture():
+    """Portable system flowchart (PNG, no LaTeX dependency) for the paper + website: how the
+    environment, the RL learner, the opponent curriculum, the gold benchmark, the distributed
+    LLM stack, and the web game connect."""
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+    fig, ax = plt.subplots(figsize=(8.4, 4.6)); ax.set_xlim(0, 100); ax.set_ylim(0, 62); ax.axis("off")
+    G, GD, GO, GR = "#0b5b39", "#073d27", "#d9a521", "#c0392b"
+
+    def box(x, y, w, h, text, fc, tc="white", fs=9):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.6,rounding_size=2",
+                                    fc=fc, ec="none"))
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", color=tc, fontsize=fs,
+                fontweight="bold", wrap=True)
+
+    def arrow(x1, y1, x2, y2, c="#5c6b73", style="-|>"):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle=style, mutation_scale=12,
+                                     lw=1.6, color=c, shrinkA=2, shrinkB=2))
+
+    box(2, 26, 21, 12, "Gin Rummy\nenvironment\n(PettingZoo/RLCard)", G, fs=8.5)
+    box(31, 40, 22, 12, "RL learner\nmasked PPO / TRPO", GD, fs=10)
+    box(31, 8, 22, 12, "Opponent curriculum\nrandom -> past selves\n-> strong models", G, fs=8.5)
+    box(64, 40, 24, 12, "Gold standard\n(perfect, benchmark)", GO, tc="#3a2e00", fs=8.5)
+    box(64, 24, 24, 11, "Distributed LLM\n(master + GPU workers)", GR, fs=8.5)
+    box(64, 8, 24, 11, "Web game\n(human vs agent)", "#2980b9", fs=8.5)
+    # flows
+    arrow(23, 34, 31, 44)                 # env -> learner (obs)
+    arrow(31, 42, 23, 32, c="#0b5b39")    # learner -> env (action)
+    arrow(42, 40, 42, 20)                 # learner <-> curriculum
+    arrow(42, 20, 42, 40, c="#0b5b39")
+    arrow(53, 47, 64, 47, c="#a9810a")    # learner -> gold (eval only)
+    ax.text(58.5, 50, "eval only", fontsize=7.5, color="#a9810a", ha="center")
+    arrow(64, 30, 53, 38, c="#c0392b")    # LLM -> learner (opponent)
+    ax.text(58, 27, "opponent", fontsize=7.5, color="#c0392b", ha="center")
+    arrow(53, 12, 64, 13, c="#2980b9")    # curriculum/learner -> game
+    ax.text(50, 58, "How the pieces connect (gold never trains the learner)",
+            ha="center", fontsize=11, fontweight="bold", color="#16242d")
+    fig.tight_layout(); _save(fig, "architecture")
+    print("  fig_architecture: ok")
+
+
+def _best_p7_gold():
+    """Strongest Phase-7 agent's precise win-rate vs gold, from the high-N re-eval if present."""
+    import json as _j
+    p = os.path.join(ROOT, "sweep", "curriculum", "_best_models_precise.json")
+    try:
+        rows = _j.load(open(p))
+        return max(r["gold"] for r in rows) * 100, max(r["gold"] for r in rows)
+    except Exception:
+        return 35.7, 0.357      # fallback to the 1000-game headline until the precise eval lands
+
+
+def fig_gold_bench():
+    """The gold-standard expert beats every learned agent, yet gins under 2% of the time -- it
+    wins by knocking low, not by chasing gin. Reads sweep/gold_bench.json."""
+    p = os.path.join(ROOT, "sweep", "gold_bench.json")
+    if not os.path.exists(p):
+        print("  [skip] fig_gold_bench: no gold_bench.json"); return
+    d = json.load(open(p))["matchups"]
+    order = [("random", "Random"), ("winrate", "Win-rate PPO"), ("reward", "Reward PPO"),
+             ("pool", "Pool PPO"), ("llm_full", "LLM-tutored"), ("champion", "Self-play champion")]
+    order = [(k, lab) for k, lab in order if k in d]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 3.4), gridspec_kw={"width_ratios": [1.55, 1]})
+    y = np.arange(len(order))
+    wins = [d[k]["a_win_rate"] * 100 for k, _ in order]
+    a1.barh(y, wins, color="#d9a521")
+    for i, w in enumerate(wins):
+        a1.text(w - 2, i, f"{w:.0f}%", va="center", ha="right", color="#3a2e00", fontsize=8.5, fontweight="bold")
+    a1.set_yticks(y); a1.set_yticklabels([lab for _, lab in order], fontsize=8.5)
+    a1.set_xlabel("gold's win rate vs this agent (%)"); a1.set_xlim(0, 100)
+    a1.set_title("The gold expert beats every learned agent", fontsize=10)
+    # gin-rate panel: gold's own gin-rate is tiny everywhere
+    gins = [d[k]["a_gin_rate"] * 100 for k, _ in order]
+    a2.barh(y, gins, color="#c0392b")
+    a2.set_yticks(y); a2.set_yticklabels([]); a2.set_xlim(0, 5)
+    a2.axvline(2, ls="--", lw=1, color="#444"); a2.text(2.1, len(order) - 0.6, "2%", fontsize=8, color="#444")
+    a2.set_xlabel("gold's gin rate (%)")
+    a2.set_title("...yet gins < 2%: it knocks low", fontsize=10)
+    fig.tight_layout(); _save(fig, "gold_bench")
+    print("  fig_gold_bench: ok")
+
+
+def fig_regimes():
+    """The whole landscape: best win-rate vs the gold standard for every TRAINING regime we
+    tried, from imitation (DAgger) at the bottom to the Phase-7 curriculum agent at the top."""
+    champ = 0.298
+    try:
+        gb = json.load(open(os.path.join(ROOT, "sweep", "gold_bench.json")))["matchups"]
+        champ = 1 - gb["champion"]["a_win_rate"]
+    except Exception:
+        pass
+    scratch = 0.085
+    try:                                  # the no-imitation from-scratch RL baseline (2M steps)
+        scratch = json.load(open(os.path.join(ROOT, "sweep", "dagger", "dagger_baseline.json")))["final_eval"]["gold"]["win_rate"]
+    except Exception:
+        pass
+    p7 = _best_p7_gold()[1]
+    # Every bar is a win-rate vs gold we actually MEASURED. (DAgger-from-expert and short-term
+    # reward shaping collapsed in a separate tournament -- discussed in the text, not plotted on
+    # this axis since they were not benchmarked head-to-head vs gold.)
+    bars = [
+        ("PPO from scratch, short (2M)", scratch * 100, "#95a5a6"),
+        ("Frozen state-embedding (Phase 5)", 13.8, "#aab7b8"),
+        ("PPO from scratch, sparse obs (Phase 5)", 15.0, "#85c1e9"),
+        ("TRPO from scratch (2M)", 22.5, "#5dade2"),
+        ("Self-play champion (12M)", champ * 100, "#2980b9"),
+        ("Curriculum sweep best (Phase 6)", 33.0, "#27ae60"),
+        ("Keep-best + warm-start (Phase 7)", p7 * 100, "#1e8449"),
+    ]
+    bars.sort(key=lambda b: b[1])
+    fig, ax = plt.subplots(figsize=(7.6, 4.0))
+    y = np.arange(len(bars))
+    ax.barh(y, [b[1] for b in bars], color=[b[2] for b in bars])
+    for i, b in enumerate(bars):
+        ax.text(b[1] + 0.6, i, f"{b[1]:.1f}%", va="center", fontsize=8.5, fontweight="bold")
+    ax.set_yticks(y); ax.set_yticklabels([b[0] for b in bars], fontsize=8.5)
+    ax.set_xlabel("best win rate vs the gold standard (%)"); ax.set_xlim(0, 45)
+    ax.set_title("Every regime we tried, ranked by strength vs the perfect player", fontsize=10.5)
+    fig.tight_layout(); _save(fig, "regimes")
+    print("  fig_regimes: ok")
+
+
+def fig_journey():
+    """The climb: best RL win-rate vs gold at each project milestone, with the perfect player
+    as the ceiling. Tells the headline story in one picture."""
+    p7pct, _ = _best_p7_gold()
+    champ = 29.8
+    try:
+        gb = json.load(open(os.path.join(ROOT, "sweep", "gold_bench.json")))["matchups"]
+        champ = (1 - gb["champion"]["a_win_rate"]) * 100
+    except Exception:
+        pass
+    steps = [("Self-play\nchampion", champ), ("Algorithm\n(TRPO)", 22.5 if champ > 25 else 22.5),
+             ("Curriculum\nsweep (P6)", 33.0), ("Keep-best +\nwarm-start (P7)", p7pct)]
+    # order as a narrative climb (champion is the starting reference, then the systematic push)
+    steps = [("Self-play\nchampion", champ), ("Curriculum\nsweep (P6)", 33.0),
+             ("Keep-best +\nwarm-start (P7)", p7pct)]
+    fig, ax = plt.subplots(figsize=(6.6, 3.8))
+    x = np.arange(len(steps))
+    vals = [s[1] for s in steps]
+    ax.plot(x, vals, "-o", color="#1e8449", lw=2.5, ms=9, zorder=3)
+    for i, v in enumerate(vals):
+        ax.text(i, v + 1.3, f"{v:.1f}%", ha="center", fontsize=10, fontweight="bold", color="#1e8449")
+    ax.axhline(100, ls="--", lw=1.4, color="#d9a521")
+    ax.text(len(steps) - 1, 96, "gold standard = the ceiling (perfect play)", ha="right",
+            fontsize=8.5, color="#a9810a")
+    ax.set_xticks(x); ax.set_xticklabels([s[0] for s in steps], fontsize=9)
+    ax.set_ylabel("win rate vs the gold standard (%)"); ax.set_ylim(0, 105)
+    ax.set_title("Closing the gap to perfect play, step by step", fontsize=11)
+    ax.grid(axis="y", ls=":", alpha=0.4)
+    fig.tight_layout(); _save(fig, "journey")
+    print(f"  fig_journey: champion {champ:.0f}% -> P7 {p7pct:.0f}%")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
-               fig_curriculum, fig_curriculum_reward):
+               fig_curriculum, fig_curriculum_reward,
+               fig_gold_bench, fig_regimes, fig_journey, fig_architecture):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
