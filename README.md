@@ -136,6 +136,32 @@
 
 ---
 
+<h2 align="center">It is a universal pipeline, not just a Gin Rummy script</h2>
+
+<p align="center">
+  The training pipeline is game-agnostic. Point it at <b>any</b> PettingZoo game, or your own
+  environment, and it trains a masked PPO/TRPO agent through an opponent curriculum, keeps the best
+  checkpoint, and grades it. The only thing that changes between games is the environment.
+</p>
+
+```python
+from pettingzoo.classic import connect_four_v3
+from coev import CoevConfig, train
+
+# same pipeline that trained the Gin Rummy agents, now on Connect Four
+train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
+                 algo="trpo", total_steps=2_000_000))
+```
+
+<p align="center">
+  Add <code>seed_models</code> to give it prior agents to practise against, a
+  <code>benchmark_agent</code> to grade against an expert, and a <code>reward_transform</code> to
+  shape the reward. See <a href="coev/"><code>coev/</code></a> and
+  <code>coev/examples/</code> (Connect Four and Gin Rummy).
+</p>
+
+---
+
 <h2 align="center">Play the heroes &#127918;</h2>
 
 <p align="center">
@@ -163,7 +189,8 @@
 
 <table align="center">
 <tr><th>Path</th><th>What</th></tr>
-<tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>masked PPO/TRPO policy + single-agent wrapper over <code>gin_rummy_v4</code></td></tr>
+<tr><td><code>coev/</code></td><td><b>the universal pipeline</b>: masked policy, opponent curriculum, and trainer for any PettingZoo AEC game (+ examples)</td></tr>
+<tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>the original Gin-Rummy-specific masked PPO/TRPO policy + wrapper</td></tr>
 <tr><td><code>agents/</code></td><td><code>GoldStandardAgent</code> (optimal benchmark), <code>PPOAgent</code> (masked-argmax), Random, LLM agents</td></tr>
 <tr><td><code>sweep/</code></td><td>the experiment families: gold benchmark, algorithm (PPO vs TRPO), representation, the curriculum sweep + the keep-best/warm-start harness</td></tr>
 <tr><td><code>llm/</code>, <code>slurm/</code></td><td>distributed LLM master/worker/cache + the SLURM jobs (incl. the self-sustaining sweep watchdog)</td></tr>
@@ -178,6 +205,10 @@
 <h2 align="center">Quickstart</h2>
 
 ```bash
+# 0) Train on any game with the universal pipeline
+python -m coev.examples.connect_four     # any PettingZoo game, no game-specific code
+python -m coev.examples.gin_rummy        # same pipeline + a gold benchmark and reward shaping
+
 # 1) Play the heroes (web game)
 python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
 

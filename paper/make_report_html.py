@@ -459,8 +459,10 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   lessons carry over to other two-player games and to RL plus LLM agent systems in general: build a
   strong reference to grade against, train against a rising ladder of opponents, copy the style of
   strong play through the reward, always keep your best model, and do not expect imitation, dense
-  rewards, or a slow model in the training loop to do the heavy lifting. Gin Rummy is the test case,
-  not the point.</div>
+  rewards, or a slow model in the training loop to do the heavy lifting. To make this concrete, the
+  code is shipped as a <b>universal pipeline</b> (the <code>coev/</code> package): point it at any
+  PettingZoo game, or your own environment, and it trains a masked agent through the same opponent
+  curriculum. Gin Rummy is the test case, not the point.</div>
   <p><b>The ceiling, honestly.</b> Tuning the reward, the algorithm, and the opponents tops out
   around the mid-30s percent against perfect play. Going clearly past that almost certainly needs a
   <i>different kind</i> of method, such as search and planning (the kind that beat the best humans at
@@ -474,7 +476,11 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   and this page by <code>paper/make_report_html.py</code>. The sweeps run as SLURM array jobs with a
   watchdog that resubmits failed runs, re-collects the results, and republishes this page on its own,
   with no human in the loop.</p>
-  <pre># play the web game
+  <pre># train on ANY game with the universal pipeline (coev/)
+python -m coev.examples.connect_four    # any PettingZoo game, no game-specific code
+python -m coev.examples.gin_rummy       # same pipeline + a gold benchmark and reward shaping
+
+# play the web game
 python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
 
 # the gold-standard benchmark
