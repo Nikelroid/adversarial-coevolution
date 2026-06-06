@@ -217,12 +217,13 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 
 <div class="hero">
   <h1>Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
-  <p>We built a complete framework to train a small reinforcement-learning (RL) card player,
-  a perfect "gold-standard" opponent to measure it against, and a distributed system to put a
-  large language model (LLM) in the game. Then we ran <b>100+ experiments</b> to answer one
-  question: <b>how close can a lightweight RL agent get to perfect play &mdash; and what
-  actually makes it stronger?</b></p>
-  <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &mdash; University of Southern California</div>
+  <p>We built a full system to train a small reinforcement-learning (RL) card player, a perfect
+  "gold standard" opponent to measure it against, and a way to put a large language model (LLM)
+  into the game. Then we ran <b>100+ experiments</b> to answer one question. <b>How close can a
+  small RL agent get to perfect play, and what really makes it stronger?</b> We use Gin Rummy as a
+  clean example, but the system and the lessons carry over to other games and to RL plus LLM agents
+  in general.</p>
+  <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &middot; University of Southern California</div>
   <div class="kpibar">
     <div class="k"><div class="v">{BEST:.0f}%</div><div class="l">best agent vs the<br/>perfect player</div></div>
     <div class="k"><div class="v">&lt;2%</div><div class="l">how often the perfect<br/>player gins</div></div>
@@ -241,36 +242,37 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
 
 <section id="story">
   <h2><span class="n">1</span>The whole story, in one minute</h2>
-  <p class="lead">Gin Rummy is a card game that needs both quick arithmetic (counting your
-  "deadwood" &mdash; unmatched cards) and long-term planning (forming "melds"). It is a great
-  testbed because it is easy to score but hard to master, and you never see your opponent's hand.</p>
-  <p>Training an RL agent has a chicken-and-egg problem we call the <b>opponent bottleneck</b>:
-  an agent is only as good as who it practices against. Practice against a weak player and you
-  learn weak habits. So we built three things: a fast <b>RL player</b>, a perfect
-  <b>gold-standard opponent</b> to grade everyone honestly, and a system to use a slow-but-smart
-  <b>LLM</b> as a teacher. Then we tried essentially every sensible way to make the RL agent
-  stronger and measured each against the perfect player.</p>
-  <figure class="fig" style="max-width:560px;margin:0 auto;">{img("journey.png","Win-rate vs the perfect player across the project")}<figcaption>The climb: our best agent went from the old champion's ~{CHAMP_GOLD:.0f}% to <b>{BEST:.0f}%</b> against the perfect player &mdash; through a systematic search, not luck.</figcaption></figure>
+  <p class="lead">Gin Rummy is a card game that needs two skills at once. You have to count fast
+  (your "deadwood" is the cards that do not yet fit a pattern) and you have to plan ahead (you
+  build "melds", which are runs and sets). It is a good test because it is easy to score but
+  hard to play well, and you never get to see your opponent's cards.</p>
+  <p>Training an RL agent has a chicken-and-egg problem. We call it the <b>opponent bottleneck</b>.
+  An agent is only as good as the players it practises against. Practise against a weak player and
+  you pick up weak habits. So we built three things. A fast <b>RL player</b>, a perfect
+  <b>gold-standard opponent</b> to grade everyone fairly, and a way to use a slow but smart
+  <b>LLM</b> as a teacher. Then we tried almost every sensible way to make the RL agent stronger,
+  and we measured each one against the perfect player.</p>
+  <figure class="fig" style="max-width:560px;margin:0 auto;">{img("journey.png","Win-rate vs the perfect player across the project")}<figcaption>The climb. Our best agent went from the old champion's roughly {CHAMP_GOLD:.0f}% up to <b>{BEST:.0f}%</b> against the perfect player. It got there through a careful search, not luck.</figcaption></figure>
   <div class="kpis">
-    <div class="kpi gold"><div class="v">{GOLD_CHAMP:.0f}&ndash;99%</div><div class="l">the perfect player beats every learned agent</div></div>
+    <div class="kpi gold"><div class="v">{GOLD_CHAMP:.0f} to 99%</div><div class="l">the perfect player beats every learned agent</div></div>
     <div class="kpi"><div class="v">TRPO &gt; PPO</div><div class="l">the algorithm choice that helped</div></div>
     <div class="kpi"><div class="v">knock, don't gin</div><div class="l">the reward lesson that held across 60 runs</div></div>
-    <div class="kpi warn"><div class="v">DAgger &amp; LLM-in-loop</div><div class="l">honest negatives: didn't beat plain RL</div></div>
+    <div class="kpi warn"><div class="v">DAgger &amp; live LLM</div><div class="l">honest results: neither beat plain RL</div></div>
   </div>
-  <p><b>The bottom line up front.</b> No single trick beat the perfect player &mdash; it is a very
-  high bar. But by stacking the things that genuinely help (a better algorithm, a reward that
-  copies the perfect player's style, a curriculum of ever-stronger opponents, and always keeping
-  the best checkpoint), we pushed a lightweight agent to <b>{BEST:.0f}% wins against perfect play</b>
-  and uncovered one clean, sturdy scientific result along the way (next section).</p>
+  <p><b>The short version, up front.</b> No single trick beat the perfect player. It is a very high
+  bar. But when we stacked the ideas that really help (a better algorithm, a reward that copies the
+  perfect player's style, a curriculum of stronger and stronger opponents, and always keeping the
+  best checkpoint), we pushed a small agent up to <b>{BEST:.0f}% wins against perfect play</b>. We
+  also found one clear, solid result along the way. That is the next section.</p>
 </section>
 
 <section id="challenge">
   <h2><span class="n">2</span>The game, and why it is hard</h2>
-  <p>Each turn you draw a card and discard one, trying to arrange your 10 cards into
-  <b>melds</b> (runs like 5&ndash;6&ndash;7 of hearts, or sets like three 9s). Cards not in a meld
-  are <b>deadwood</b>. You win by <b>knocking</b> (ending the hand with low deadwood) or by
-  <b>gin</b> (zero deadwood &mdash; a big bonus, but rare and risky). You never see the opponent's
-  hand, so it is a game of <b>imperfect information</b>.</p>
+  <p>Each turn you draw a card and throw one away. You are trying to line up your 10 cards into
+  <b>melds</b> (a run like 5, 6, 7 of hearts, or a set like three 9s). Cards that do not fit a
+  meld are <b>deadwood</b>. You win by <b>knocking</b> (ending the hand with low deadwood) or by
+  <b>gin</b> (zero deadwood, which gives a big bonus but is rare and risky). You never see the
+  opponent's hand, so you have to play with hidden information.</p>
   <div class="diagram">a single turn (what the agent sees and chooses)
 
    hand: 4 planes x 52 cards  ──▶  [ masked PPO policy ]  ──▶  draw / pick-up / discard / knock / gin
@@ -278,31 +280,32 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
     known picks, the rest)                      └─ illegal moves are blocked (logits -> -inf),
                                                    so the agent only ever picks a legal move
 </div>
-  <div class="why"><b>Why a testbed like this?</b> It forces both skills at once &mdash; short-horizon
-  counting and long-horizon planning &mdash; and the rules give an exact score, so we can build a
-  <i>perfect</i> reference player and grade everything objectively. That reference is what makes
+  <div class="why"><b>Why use a game like this?</b> It needs both skills at the same time, fast
+  counting and long-term planning. And the rules give an exact score, so we can build a
+  <i>perfect</i> reference player and grade everything against it. That reference is what makes
   the rest of this report trustworthy.</div>
 </section>
 
 <section id="framework">
-  <h2><span class="n">3</span>What we built &mdash; the framework</h2>
-  <p>Most of the work was engineering a system where RL, a perfect expert, and an LLM can all
-  meet in the same game. Five pieces:</p>
+  <h2><span class="n">3</span>What we built: the framework</h2>
+  <p>Most of the work was building a system where the RL agent, a perfect expert, and an LLM can
+  all meet in the same game. There are five pieces.</p>
   <ul>
-    <li><b>RL player</b> &mdash; action-masked PPO (and TRPO) on PettingZoo / RLCard Gin Rummy.
-    Illegal moves are masked out, so the agent always plays a legal move.</li>
-    <li><b>Gold standard</b> &mdash; a hand-coded <i>perfect</i> player using RLCard's exact meld
-    solver. It is the yardstick; it never trains the RL agent.</li>
-    <li><b>Distributed LLM stack</b> &mdash; a master/worker server so many GPUs can answer game
-    questions in parallel, speaking the ordinary Ollama API.</li>
-    <li><b>Curriculum system</b> &mdash; schedules opponents from random &rarr; past selves &rarr;
-    strong models, so the agent always faces a fair-but-rising challenge.</li>
-    <li><b>Web game</b> &mdash; a no-install browser client to play any trained agent yourself.</li>
+    <li><b>RL player.</b> Action-masked PPO (and TRPO) on PettingZoo / RLCard Gin Rummy. Illegal
+    moves are blocked, so the agent always plays a legal move.</li>
+    <li><b>Gold standard.</b> A hand-coded <i>perfect</i> player that uses RLCard's exact meld
+    solver. It is the measuring stick. It never trains the RL agent.</li>
+    <li><b>Distributed LLM stack.</b> A master and worker setup so many GPUs can answer game
+    questions at once, using the ordinary Ollama API.</li>
+    <li><b>Curriculum system.</b> It schedules opponents from random, to past versions of the
+    agent, to strong models, so the agent always gets a fair but rising challenge.</li>
+    <li><b>Web game.</b> A no-install browser page where you can play any trained agent.</li>
   </ul>
-  <figure class="fig" style="max-width:640px;margin:0 auto;">{img("architecture.png","System overview")}<figcaption>How the pieces connect. The gold standard is used for <b>scoring only</b> &mdash; it never trains the agent.</figcaption></figure>
+  <figure class="fig" style="max-width:640px;margin:0 auto;">{img("architecture.png","System overview")}<figcaption>How the pieces connect. The gold standard is used for <b>scoring only</b>. It never trains the agent.</figcaption></figure>
   <h3>The distributed LLM server (so a 7B model can keep up with RL)</h3>
-  <p>A single RL training run fires tens of thousands of opponent queries. At 0.5&ndash;3&nbsp;seconds
-  per call, a naive loop would take hours per rollout. We decouple inference from training:</p>
+  <p>One RL training run asks the opponent tens of thousands of questions. At 0.5 to 3 seconds per
+  call, a simple loop would take hours per round. So we keep the LLM serving separate from the
+  training loop.</p>
   <div class="diagram">   env subprocess  ─▶  Master (CPU, FastAPI)  ─▶  suit-symmetry cache  ──(hit)──▶ return
    (per-step query)    Ollama-compatible API            │ miss
                               │ round-robin              ▼
@@ -311,154 +314,166 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
           GPU worker      GPU worker  …   GPU worker      (1 GPU each, Qwen2.5-7B)
           self-registers in a shared-filesystem registry; master health-checks + balances
 </div>
-  <div class="why"><b>The infrastructure finding that mattered:</b> loading a 7B model from home
-  network storage runs at ~11&nbsp;MB/s (~28&nbsp;min &mdash; it blows the health-check timeout).
-  Staging the weights on fast scratch (BeeGFS) cuts that to ~27&nbsp;s &mdash; a <b>62&times;</b>
-  speedup that is mandatory at scale. With ~14 workers the pool sustained <b>~32 queries/second</b>.</div>
+  <div class="why"><b>One infrastructure lesson that really mattered.</b> Loading a 7B model from
+  home network storage runs at about 11 MB/s, which takes around 28 minutes and trips the
+  health-check timeout. Putting the weights on fast scratch storage (BeeGFS) cuts that to about
+  27 seconds. That is a <b>62&times;</b> speedup, and it is a must at scale. With about 14 workers
+  the pool handled <b>about 32 questions per second</b>.</div>
 </section>
 
 <section id="gold">
-  <h2><span class="n">4</span>The gold standard &mdash; and the surprise it revealed</h2>
-  <p>To grade honestly, we built a <b>perfect</b> Gin Rummy player: every turn it computes the
-  mathematically best melds (exact, not learned) and knocks the instant it should. It is the
-  benchmark, never a teacher.</p>
-  <figure class="fig" style="max-width:720px;margin:0 auto;">{img("gold_bench.png","Gold beats everyone but rarely gins")}<figcaption>Left: the perfect player beats every learned agent ({GOLD_CHAMP:.0f}&ndash;99% of games). Right: yet it gins under 2% of the time.</figcaption></figure>
-  <div class="why"><b>The surprise (and our cleanest result):</b> the <i>perfect</i> player almost
-  never gins &mdash; just <b>0.7&ndash;1.7%</b> of games &mdash; even though gin scores the most points.
-  It wins by <b>knocking early with low deadwood</b>. That flips the intuition we started with:
-  chasing gin is a beginner's trap. The optimal style is patient, low-risk knocking. This single
-  fact reframed every reward experiment that follows.</div>
+  <h2><span class="n">4</span>The gold standard, and the surprise it revealed</h2>
+  <p>To grade everyone fairly we built a <b>perfect</b> Gin Rummy player. Every turn it works out
+  the best possible melds (exact, not learned) and knocks the moment it should. It is the
+  benchmark. It is never a teacher.</p>
+  <figure class="fig" style="max-width:720px;margin:0 auto;">{img("gold_bench.png","Gold beats everyone but rarely gins")}<figcaption>Left: the perfect player beats every learned agent ({GOLD_CHAMP:.0f} to 99% of games). Right: but it gins under 2% of the time.</figcaption></figure>
+  <div class="why"><b>The surprise, and our cleanest result.</b> The <i>perfect</i> player almost
+  never gins. It gins in just <b>0.7 to 1.7%</b> of games, even though gin scores the most points.
+  It wins by <b>knocking early with low deadwood</b>. That goes against what we expected. Chasing
+  gin is a beginner's trap. The best style is patient, low-risk knocking. This one fact changed how
+  we thought about every reward test that follows.</div>
 </section>
 
 <section id="regimes">
-  <h2><span class="n">5</span>Everything we tried (and why each worked or didn't)</h2>
-  <p>We benchmarked nearly every reasonable way to make the agent stronger, all on the same
-  yardstick &mdash; win-rate against the perfect player. Here is the full landscape, weakest to
-  strongest:</p>
+  <h2><span class="n">5</span>Everything we tried, and why each one worked or didn't</h2>
+  <p>We tested almost every reasonable way to make the agent stronger, and we judged them all the
+  same way: win-rate against the perfect player. Here is the full picture, from weakest to
+  strongest.</p>
   <figure class="fig" style="max-width:680px;margin:0 auto;">{img("regimes.png","Every regime ranked vs the perfect player")}<figcaption>Each bar is a win-rate we actually measured against the perfect player.</figcaption></figure>
   <div class="cards">
-    <div class="rc"><h4>&#127922; Train vs random only</h4><div class="res mid">98&ndash;99% vs random, but only ~15% vs gold</div>
+    <div class="rc"><h4>&#127922; Train vs random only</h4><div class="res mid">98 to 99% vs random, but only ~15% vs gold</div>
       <p><b>Why:</b> random opponents are too weak to teach real strategy. The agent maxes out the
-      easy metric and learns to always knock, never gin &mdash; a habit only a thinking opponent can break.</p></div>
-    <div class="rc"><h4>&#127183; Reward shaping (gin vs knock)</h4><div class="res win">controls behaviour: 97% knock vs 22% gin</div>
-      <p><b>Why:</b> the gin/knock reward ratio is a real control knob &mdash; pay more for gin and the
-      agent chases gin (and wins less). This is the lever the rest of the project tunes.</p></div>
+      easy score and learns to always knock and never gin. Only a thinking opponent can break that habit.</p></div>
+    <div class="rc"><h4>&#127183; Reward shaping (gin vs knock)</h4><div class="res win">it controls behaviour: 97% knock vs 22% gin</div>
+      <p><b>Why:</b> the gin to knock reward ratio is a real dial. Pay more for gin and the agent chases
+      gin, and wins less. This is the dial the rest of the project turns.</p></div>
     <div class="rc"><h4>&#129302; Self-play + pool curriculum</h4><div class="res win">self-play beats its own parent 61%</div>
-      <p><b>Why:</b> playing past versions of yourself is a free, rising curriculum. But an unguided
-      pool <b>diverged after ~10M steps</b> &mdash; it chased itself into a corner. Curriculum design matters.</p></div>
-    <div class="rc"><h4>&#129504; LLM as opponent</h4><div class="res mid">competent (beat our RL agent 3&ndash;2) but ~9&ndash;27 s/move</div>
+      <p><b>Why:</b> playing past versions of yourself is a free, rising curriculum. But a pool with no
+      guidance <b>broke down after about 10M steps</b> and chased itself into a corner. The design of the
+      curriculum matters.</p></div>
+    <div class="rc"><h4>&#129504; LLM as opponent</h4><div class="res mid">good (beat our RL agent 3 to 2) but ~9 to 27 s/move</div>
       <p><b>Why:</b> mid-size LLMs (Qwen2.5-7B, gpt-oss-20b) play real Gin Rummy with the right prompt,
       and even beat our self-play agent in short matches. But they are <b>too slow</b> for the millions
-      of moves RL needs &mdash; live LLM-in-the-loop training would take weeks. (Vision LLMs failed outright;
-      it is a text-reasoning task.)</p></div>
-    <div class="rc"><h4>&#128221; Imitation learning (DAgger)</h4><div class="res lose">collapsed &mdash; near-zero wins</div>
-      <p><b>Why:</b> copying an expert's moves move-by-move does not transfer. The student mimics
-      actions in familiar states but never learns the <i>reasoning</i> (e.g. tracking the opponent),
-      so it falls apart off the training distribution. "Mimicking a move" &ne; "understanding strategy."</p></div>
-    <div class="rc"><h4>&#9201;&#65039; Dense / short-term rewards</h4><div class="res lose">myopia &mdash; saturates, stops improving</div>
-      <p><b>Why:</b> rewarding every little step makes the agent greedy for instant points and blind to
-      the real goal of <i>winning the hand</i>. Performance flatlined after ~500k steps. Sparse,
-      end-of-hand rewards won.</p></div>
+      of moves RL needs. Training against a live LLM would take weeks. (Vision LLMs failed completely.
+      This is a text task.)</p></div>
+    <div class="rc"><h4>&#128221; Imitation learning (DAgger)</h4><div class="res lose">it collapsed to almost no wins</div>
+      <p><b>Why:</b> copying an expert's moves one at a time does not carry over. The student copies
+      moves in familiar spots but never learns the <i>thinking</i> behind them (like tracking the
+      opponent), so it falls apart in new situations. Copying a move is not the same as understanding why.</p></div>
+    <div class="rc"><h4>&#9201;&#65039; Dense / short-term rewards</h4><div class="res lose">short-sighted, stops improving</div>
+      <p><b>Why:</b> rewarding every small step makes the agent greedy for instant points and blind to
+      the real goal of <i>winning the hand</i>. It stopped improving after about 500k steps. The simple
+      reward at the end of the hand won.</p></div>
     <div class="rc"><h4>&#128202; Algorithm: PPO vs TRPO</h4><div class="res win">TRPO ~22% vs PPO ~15% vs gold</div>
-      <p><b>Why:</b> TRPO's "trust region" takes safer policy steps, which suits a sparse-reward,
-      ever-shifting self-play target. (GRPO/DPO don't apply &mdash; they are LLM-alignment methods with no
-      per-move game analogue.)</p></div>
+      <p><b>Why:</b> TRPO takes smaller, safer steps when it updates the policy, which fits a setting
+      where rewards are rare and the opponent keeps changing. (GRPO and DPO do not apply here. They are
+      methods for aligning language models, with no per-move game version.)</p></div>
     <div class="rc"><h4>&#128279; Learned state embeddings</h4><div class="res lose">all worse than the raw input</div>
-      <p><b>Why:</b> we compressed the big sparse board into a small dense vector two ways (self-supervised
-      "states near in a game are similar", and an LLM judging strategic similarity). Both <i>lost</i> to
-      the raw input &mdash; a frozen bottleneck throws away detail the policy needs.</p></div>
+      <p><b>Why:</b> we squeezed the big, sparse board into a small dense vector two ways: one that
+      learned which game states are close together, and one where an LLM judged how similar two states
+      are. Both <i>lost</i> to the raw input. A fixed, squeezed vector throws away detail the agent needs.</p></div>
     <div class="rc"><h4>&#127941; Curriculum sweep (Phase 6)</h4><div class="res win">best ~33% vs gold (30 runs)</div>
-      <p><b>Why:</b> a careful league of random &rarr; past selves &rarr; strong models, swept over algorithm,
-      reward, and schedule. Everything plateaued near champion strength &mdash; but it pinned down exactly
-      which knobs matter (see the key finding).</p></div>
+      <p><b>Why:</b> a careful ladder of opponents (random, then past selves, then strong models),
+      swept over algorithm, reward, and schedule. Everything leveled off near champion strength, but it
+      showed clearly which dials matter (see the key finding).</p></div>
     <div class="rc"><h4>&#11088; Keep-best + warm-start (Phase 7)</h4><div class="res win">best agent {BEST:.0f}% vs gold</div>
-      <p><b>Why:</b> three fixes stacked &mdash; always <b>save the peak checkpoint</b> (training drifts past
-      its best), <b>warm-start</b> from the previous champion, and a <b>dense "lower your deadwood" reward</b>
-      that coaches the optimal style. This is our strongest agent.</p></div>
+      <p><b>Why:</b> three fixes stacked together. Always <b>save the best checkpoint</b> (training
+      drifts past its peak), <b>start from the previous champion</b> instead of from scratch, and add a
+      <b>reward for lowering your own deadwood</b> that teaches the optimal style. This is our strongest agent.</p></div>
   </div>
 </section>
 
 <section id="finding">
   <h2><span class="n">6</span>The key finding: you cannot bribe the agent into ginning</h2>
-  <p>Phase 6 ran <b>30 controlled experiments</b> &mdash; one change at a time over algorithm, reward,
-  and curriculum. The headline is honest: every recipe lands near champion strength against the
-  perfect player. But one result is clean and sturdy across all of them.</p>
-  <figure class="fig" style="max-width:700px;margin:0 auto;">{img("curriculum_reward.png","Gin rate stays under 1% for every reward")}<figcaption>Left: no matter the reward &mdash; even paying 3&times; for a gin &mdash; the agent gins under 1% of the time. Right: the "knock early" reward gives the shortest games.</figcaption></figure>
-  <div class="why"><b>What it means, simply:</b> we tried to <i>bribe</i> the agent into ginning by paying
-  three times more for a gin than a knock. It still gins under 1% of the time &mdash; the same as when gin
-  isn't rewarded at all. You cannot pay a policy into a bad habit: just like the perfect player, it
-  discovers on its own that <b>chasing gin loses</b>. The reward that actually helped did the opposite
-  &mdash; a small nudge to knock <i>faster</i>, which produced the shortest games and the best play.</div>
-  <p>The per-recipe numbers (each averaged over its seeds, best checkpoint vs the perfect player):</p>
+  <p>Phase 6 ran <b>30 controlled experiments</b>, changing one thing at a time across algorithm,
+  reward, and curriculum. The honest headline is that every recipe ends up near champion strength
+  against the perfect player. But one result is clear and holds across all of them.</p>
+  <figure class="fig" style="max-width:700px;margin:0 auto;">{img("curriculum_reward.png","Gin rate stays under 1% for every reward")}<figcaption>Left: no matter the reward, even paying 3&times; for a gin, the agent gins under 1% of the time. Right: the "knock early" reward gives the shortest games.</figcaption></figure>
+  <div class="why"><b>What it means, in plain terms.</b> We tried to <i>bribe</i> the agent into
+  ginning by paying three times more for a gin than a knock. It still gins under 1% of the time,
+  the same as when gin is not rewarded at all. You cannot pay an agent into a bad habit. Just like
+  the perfect player, it works out on its own that <b>chasing gin loses</b>. The reward that did
+  help was the opposite, a small push to knock <i>faster</i>, which gave the shortest games and the
+  best play.</div>
+  <p>The numbers per recipe (each one averaged over its seeds, best checkpoint vs the perfect player):</p>
   {curriculum_table("0")}
-  <figure class="fig" style="max-width:600px;margin:18px auto 0;">{img("learning_curves.png","Skill rises through the curriculum")}<figcaption>How the curriculum drives learning: win-rate vs the champion climbs as tougher opponents are swapped in (random &rarr; pool &rarr; self &rarr; strong). The late dip on one run is exactly the drift that "keep the best checkpoint" fixes.</figcaption></figure>
+  <figure class="fig" style="max-width:600px;margin:18px auto 0;">{img("learning_curves.png","Skill rises through the curriculum")}<figcaption>How the curriculum drives learning: win-rate vs the champion climbs as tougher opponents are swapped in (random, then pool, then self, then strong). The late dip on one run is the drift that "keep the best checkpoint" fixes.</figcaption></figure>
 </section>
 
 <section id="levers">
-  <h2><span class="n">7</span>What moved the needle &mdash; and what didn't</h2>
-  <p>Across 100+ runs, the honest summary of which ideas actually helped against the perfect player:</p>
+  <h2><span class="n">7</span>What moved the needle, and what didn't</h2>
+  <p>Across 100+ runs, here is the honest summary of which ideas actually helped against the
+  perfect player. Most of these are general lessons about training agents, not tricks special to
+  this one game.</p>
   <table>
     <tr><th>Idea</th><th>Verdict</th><th>Why</th></tr>
-    <tr><td><b>Keep the best checkpoint</b></td><td class="good">helps</td><td>training drifts past its peak; saving the best recovers 2&ndash;3 points for free</td></tr>
-    <tr><td><b>Warm-start from the champion</b></td><td class="good">helps</td><td>start strong, then specialise &mdash; better than from scratch</td></tr>
-    <tr><td><b>TRPO over PPO</b></td><td class="good">helps</td><td>safer policy steps suit sparse, shifting self-play</td></tr>
+    <tr><td><b>Keep the best checkpoint</b></td><td class="good">helps</td><td>training drifts past its peak, so saving the best one recovers 2 to 3 points for free</td></tr>
+    <tr><td><b>Warm-start from the champion</b></td><td class="good">helps</td><td>start strong, then improve. better than from scratch</td></tr>
+    <tr><td><b>TRPO over PPO</b></td><td class="good">helps</td><td>safer, smaller policy steps suit rare rewards and a changing opponent</td></tr>
     <tr><td><b>Reward knocking, not gin</b></td><td class="good">helps</td><td>copies the perfect player's low-risk style</td></tr>
-    <tr><td><b>Curriculum of rising opponents</b></td><td class="good">helps</td><td>always a fair-but-harder challenge</td></tr>
-    <tr><td>Paying more for gin</td><td class="bad">no effect</td><td>the agent refuses the bad habit no matter the bribe</td></tr>
-    <tr><td>Fancy opponent-picking (PFSP)</td><td class="muted">~neutral</td><td>no better than a simple schedule here</td></tr>
+    <tr><td><b>Curriculum of rising opponents</b></td><td class="good">helps</td><td>always a fair but harder challenge</td></tr>
+    <tr><td>Paying more for gin</td><td class="bad">no effect</td><td>the agent refuses the bad habit no matter the reward</td></tr>
+    <tr><td>Fancy opponent-picking (PFSP)</td><td class="muted">about even</td><td>no better than a simple schedule here</td></tr>
     <tr><td>Longer memory (high discount)</td><td class="bad">hurts a bit</td><td>added noise, not foresight</td></tr>
-    <tr><td>Learned state embeddings</td><td class="bad">hurts</td><td>a frozen bottleneck discards useful detail</td></tr>
-    <tr><td>Imitation (DAgger)</td><td class="bad">fails</td><td>copies moves, not the reasoning behind them</td></tr>
-    <tr><td>Dense short-term rewards</td><td class="bad">fails</td><td>myopia &mdash; greedy for points, blind to winning</td></tr>
-    <tr><td>Live LLM-in-the-loop</td><td class="bad">infeasible</td><td>strong but far too slow for millions of moves</td></tr>
+    <tr><td>Learned state embeddings</td><td class="bad">hurts</td><td>a fixed, squeezed input throws away useful detail</td></tr>
+    <tr><td>Imitation (DAgger)</td><td class="bad">fails</td><td>copies moves, not the thinking behind them</td></tr>
+    <tr><td>Dense short-term rewards</td><td class="bad">fails</td><td>short-sighted: greedy for points, blind to winning</td></tr>
+    <tr><td>Live LLM-in-the-loop</td><td class="bad">not practical</td><td>strong, but far too slow for millions of moves</td></tr>
   </table>
-  <h3>Our strongest agents (precise 2000-game re-evaluation)</h3>
+  <h3>Our strongest agents (checked carefully over 2000 games each)</h3>
   {best_models_table()}
 </section>
 
 <section id="play">
   <h2><span class="n">8</span>Play the heroes yourself</h2>
   <p>A no-install web game lets you play our strongest agents, with smooth card animations. The
-  opponent menu is curated down to a clear ladder &mdash; from a beginner-friendly bot up to the
-  perfect player nobody beats:</p>
+  opponent menu is a simple ladder, from a beginner-friendly bot up to the perfect player that
+  nobody beats.</p>
   <table>
     <tr><th>Opponent</th><th>Strength</th><th>What it is</th></tr>
-    <tr><td>&#127922; Rookie (Random)</td><td>easiest</td><td>plays a random legal move &mdash; a gentle warm-up</td></tr>
+    <tr><td>&#127922; Rookie (Random)</td><td>easiest</td><td>plays a random legal move, a gentle warm-up</td></tr>
     <tr><td>&#129302; Self-Play Champion</td><td>strong</td><td>our earlier best, trained against copies of itself</td></tr>
-    <tr><td>&#127183; Curriculum Ace</td><td>strongest learned</td><td>our best agent &mdash; ~{BEST:.0f}% vs the perfect player, built by stacking every lever that helped</td></tr>
+    <tr><td>&#127183; Curriculum Ace</td><td>strongest learned</td><td>our best agent, about {BEST:.0f}% vs the perfect player, built by stacking every idea that helped</td></tr>
     <tr><td>&#128737;&#65039; League Tactician</td><td>strongest learned</td><td>a close second, trained to practise most against whoever beats it (PFSP)</td></tr>
-    <tr><td>&#127942; Gold Standard</td><td>perfect</td><td>the hand-coded expert &mdash; the wall everyone hits</td></tr>
+    <tr><td>&#127942; Gold Standard</td><td>perfect</td><td>the hand-coded expert, the wall everyone hits</td></tr>
   </table>
   <figure class="fig">{img("game_ui.png","web game")}<figcaption>The browser game (debug view, opponent hand shown). Run <code>python game/server.py</code> and open the URL.</figcaption></figure>
 </section>
 
 <section id="bottom">
   <h2><span class="n">9</span>The bottom line, and what's next</h2>
-  <p>We set out to see how close a small, fast RL agent could get to perfect Gin Rummy and what
-  actually makes it stronger. We built the whole framework to answer that fairly, then ran the
-  experiments. The honest, bold summary:</p>
+  <p>We set out to see how close a small, fast RL agent could get to perfect play, and what really
+  makes it stronger. We built the whole framework to answer that fairly, then ran the experiments.
+  Here is the short, honest summary.</p>
   <ul>
-    <li>We pushed a lightweight agent from the old champion's ~{CHAMP_GOLD:.0f}% to <b>{BEST:.0f}%</b>
-    against a <i>perfect</i> player &mdash; by stacking the things that genuinely help.</li>
-    <li>We produced one clean, reusable result: <b>the optimal Gin Rummy policy almost never gins</b>,
-    and an RL agent rediscovers this no matter how you reward it.</li>
-    <li>We mapped what works (algorithm, reward style, curriculum, keep-best) and what doesn't
-    (imitation, dense rewards, learned embeddings, live LLM-in-the-loop) &mdash; honest negatives
-    included, because they save the next team months.</li>
+    <li>We pushed a small agent from the old champion's roughly {CHAMP_GOLD:.0f}% up to
+    <b>{BEST:.0f}%</b> against a <i>perfect</i> player, by stacking the ideas that really help.</li>
+    <li>We found one clear, reusable result. <b>The best Gin Rummy play almost never gins</b>, and an
+    RL agent learns the same thing on its own no matter how you reward it.</li>
+    <li>We mapped what works (algorithm, reward style, curriculum, keep-best) and what does not
+    (imitation, dense rewards, learned embeddings, live LLM-in-the-loop). The honest negatives are
+    included, because they can save the next team a lot of time.</li>
   </ul>
-  <p><b>The ceiling, honestly.</b> Tuning the reward, algorithm, and opponents tops out around the
-  mid-30s percent against perfect play. Breaking decisively past that almost certainly needs a
-  <i>different kind</i> of method &mdash; search / planning (like counterfactual-regret minimization,
-  which powers superhuman poker) or an agent with full-history memory &mdash; not more reward tuning.
+  <div class="why"><b>This is not really about Gin Rummy.</b> We used Gin Rummy as a clean example,
+  because it has hidden information, both fast and slow planning, and an exact score. The pieces and
+  lessons carry over to other two-player games and to RL plus LLM agent systems in general: build a
+  strong reference to grade against, train against a rising ladder of opponents, copy the style of
+  strong play through the reward, always keep your best model, and do not expect imitation, dense
+  rewards, or a slow model in the training loop to do the heavy lifting. Gin Rummy is the test case,
+  not the point.</div>
+  <p><b>The ceiling, honestly.</b> Tuning the reward, the algorithm, and the opponents tops out
+  around the mid-30s percent against perfect play. Going clearly past that almost certainly needs a
+  <i>different kind</i> of method, such as search and planning (the kind that beat the best humans at
+  poker) or an agent that remembers the whole game so far. More reward tuning will not get there.
   That is the clear next step the data points to.</p>
 </section>
 
 <section id="repro">
   <h2>How to reproduce</h2>
-  <p>Every figure on this page regenerates from saved JSON results via <code>paper/make_figures.py</code>,
-  and this page via <code>paper/make_report_html.py</code>. Sweeps run as SLURM array jobs with a
-  self-sustaining watchdog that resubmits failures, re-aggregates, and republishes &mdash; no human in
-  the loop.</p>
+  <p>Every figure on this page is rebuilt from saved JSON results by <code>paper/make_figures.py</code>,
+  and this page by <code>paper/make_report_html.py</code>. The sweeps run as SLURM array jobs with a
+  watchdog that resubmits failed runs, re-collects the results, and republishes this page on its own,
+  with no human in the loop.</p>
   <pre># play the web game
 python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
 
