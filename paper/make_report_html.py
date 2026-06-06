@@ -391,6 +391,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   &mdash; a small nudge to knock <i>faster</i>, which produced the shortest games and the best play.</div>
   <p>The per-recipe numbers (each averaged over its seeds, best checkpoint vs the perfect player):</p>
   {curriculum_table("0")}
+  <figure class="fig" style="max-width:600px;margin:18px auto 0;">{img("learning_curves.png","Skill rises through the curriculum")}<figcaption>How the curriculum drives learning: win-rate vs the champion climbs as tougher opponents are swapped in (random &rarr; pool &rarr; self &rarr; strong). The late dip on one run is exactly the drift that "keep the best checkpoint" fixes.</figcaption></figure>
 </section>
 
 <section id="levers">
