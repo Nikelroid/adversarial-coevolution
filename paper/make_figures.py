@@ -23,6 +23,18 @@ RESULTS = os.path.join(ROOT, "sweep", "results")
 FIGS = os.path.join(HERE, "figures")
 os.makedirs(FIGS, exist_ok=True)
 
+# One restrained palette for the whole paper: deep green (primary / RL), a lighter green
+# (second series), gold (the gold standard / "vs gold"), and a neutral grey (weak / random).
+C_GREEN = "#0b5b39"
+C_GREEN2 = "#4a9c78"
+C_GOLD = "#c9962b"
+C_GREY = "#9aa6a0"
+C_INK = "#16242d"
+OPP_COLORS = {"random": C_GREY, "champion": C_GREEN2, "gold": C_GOLD}
+plt.rcParams.update({"font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
+                     "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "legend.fontsize": 8.5,
+                     "axes.edgecolor": "#444", "axes.linewidth": 0.8})
+
 
 def _save(fig, name):
     fig.savefig(os.path.join(FIGS, name + ".pdf"))
@@ -335,17 +347,40 @@ def fig_algo():
         print("  [skip] fig_algo: no results")
         return
     opps = ["random", "champion", "gold"]
-    fig, ax = plt.subplots(figsize=(5.2, 3.0))
+    fig, ax = plt.subplots(figsize=(4.6, 3.4))     # matched to fig_reward_gin (paper Fig. 4)
     x = np.arange(len(opps)); w = 0.36
-    col = {"ppo": "#7f8c8d", "trpo": "#2171b5"}
+    col = {"ppo": C_GREY, "trpo": C_GREEN}
     for i, a in enumerate(algos):
         m = [st.mean(by[a][o]) for o in opps]
         e = [st.pstdev(by[a][o]) for o in opps]
         ax.bar(x + (i - 0.5) * w, m, w, yerr=e, capsize=3, label=a.upper(), color=col[a])
     ax.set_xticks(x); ax.set_xticklabels([f"vs {o}" for o in opps])
     ax.set_ylabel("win rate (%)"); ax.set_ylim(0, 100)
-    ax.set_title("Algorithm: TRPO beats PPO (2 seeds)", fontsize=10); ax.legend()
+    ax.set_title("TRPO beats PPO (2 seeds)"); ax.legend()
     fig.tight_layout(); _save(fig, "algo_compare")
+
+
+def fig_reward_gin():
+    """Single-panel companion to fig_algo (matched size/fonts for paper Fig. 4): gin-rate stays
+    under ~1% for every reward design, even one paying 3x for a gin."""
+    by, st = _curriculum_cells()
+    order = [("03_rew_R0_highgin", "high-gin\n(pays 3x)"), ("01_base_trpo", "balanced"),
+             ("04_rew_R2_knockfwd", "knock-fwd"), ("05_rew_R4_earlyknk", "early-knock")]
+    order = [(c, lab) for c, lab in order if c in by]
+    fig, ax = plt.subplots(figsize=(4.6, 3.4))
+    if not order:
+        ax.text(0.5, 0.5, "pending", ha="center"); ax.axis("off")
+        fig.tight_layout(); _save(fig, "reward_gin"); return
+    x = np.arange(len(order))
+    gin = [st.mean(by[c]["gin"]) for c, _ in order]
+    ax.bar(x, gin, 0.62, color=C_GREEN)
+    ax.axhline(GOLD_GIN, ls="--", lw=1.2, color=C_GOLD)
+    ax.text(len(order) - 0.5, GOLD_GIN + 0.04, "gold's gin rate", fontsize=8, ha="right", color=C_GOLD)
+    ax.set_xticks(x); ax.set_xticklabels([lab for _, lab in order])
+    ax.set_ylabel("gin rate vs gold (%)"); ax.set_ylim(0, 1.6)
+    ax.set_title("Rewarding gin does not make it gin")
+    fig.tight_layout(); _save(fig, "reward_gin")
+    print("  fig_reward_gin: ok")
 
 
 def fig_phase5():
@@ -468,41 +503,47 @@ def fig_curriculum_reward():
 
 
 def fig_architecture():
-    """Portable system flowchart (PNG, no LaTeX dependency) for the paper + website: how the
-    environment, the RL learner, the opponent curriculum, the gold benchmark, the distributed
-    LLM stack, and the web game connect."""
-    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-    fig, ax = plt.subplots(figsize=(8.4, 4.6)); ax.set_xlim(0, 100); ax.set_ylim(0, 62); ax.axis("off")
-    G, GD, GO, GR = "#0b5b39", "#073d27", "#d9a521", "#c0392b"
+    """Clean orthogonal system flowchart (PNG): a central spine
+    gold -- learner -- curriculum -- LLM, with the environment on the left and the game on the
+    right. Every arrow is strictly horizontal or vertical."""
+    from matplotlib.patches import FancyBboxPatch
+    fig, ax = plt.subplots(figsize=(7.6, 5.0)); ax.set_xlim(0, 100); ax.set_ylim(0, 100)
+    ax.axis("off")
 
-    def box(x, y, w, h, text, fc, tc="white", fs=9):
-        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.6,rounding_size=2",
-                                    fc=fc, ec="none"))
-        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", color=tc, fontsize=fs,
-                fontweight="bold", wrap=True)
+    def box(cx, cy, w, h, text, fc, tc="white", fs=10):
+        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
+                                    boxstyle="round,pad=0.4,rounding_size=2.2", fc=fc, ec="none"))
+        ax.text(cx, cy, text, ha="center", va="center", color=tc, fontsize=fs,
+                fontweight="bold", linespacing=1.35)
 
-    def arrow(x1, y1, x2, y2, c="#5c6b73", style="-|>"):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle=style, mutation_scale=12,
-                                     lw=1.6, color=c, shrinkA=2, shrinkB=2))
+    def harrow(x1, x2, y, c, two=False, label=None, ly=None):
+        ax.annotate("", xy=(x2, y), xytext=(x1, y),
+                    arrowprops=dict(arrowstyle="<|-|>" if two else "-|>", color=c, lw=1.7,
+                                    shrinkA=0, shrinkB=0))
+        if label:
+            ax.text((x1 + x2) / 2, ly, label, ha="center", va="bottom", fontsize=8.5, color=c)
 
-    box(2, 26, 21, 12, "Gin Rummy\nenvironment\n(PettingZoo/RLCard)", G, fs=8.5)
-    box(31, 40, 22, 12, "RL learner\nmasked PPO / TRPO", GD, fs=10)
-    box(31, 8, 22, 12, "Opponent curriculum\nrandom -> past selves\n-> strong models", G, fs=8.5)
-    box(64, 40, 24, 12, "Gold standard\n(perfect, benchmark)", GO, tc="#3a2e00", fs=8.5)
-    box(64, 24, 24, 11, "Distributed LLM\n(master + GPU workers)", GR, fs=8.5)
-    box(64, 8, 24, 11, "Web game\n(human vs agent)", "#2980b9", fs=8.5)
-    # flows
-    arrow(23, 34, 31, 44)                 # env -> learner (obs)
-    arrow(31, 42, 23, 32, c="#0b5b39")    # learner -> env (action)
-    arrow(42, 40, 42, 20)                 # learner <-> curriculum
-    arrow(42, 20, 42, 40, c="#0b5b39")
-    arrow(53, 47, 64, 47, c="#a9810a")    # learner -> gold (eval only)
-    ax.text(58.5, 50, "eval only", fontsize=7.5, color="#a9810a", ha="center")
-    arrow(64, 30, 53, 38, c="#c0392b")    # LLM -> learner (opponent)
-    ax.text(58, 27, "opponent", fontsize=7.5, color="#c0392b", ha="center")
-    arrow(53, 12, 64, 13, c="#2980b9")    # curriculum/learner -> game
-    ax.text(50, 58, "How the pieces connect (gold never trains the learner)",
-            ha="center", fontsize=11, fontweight="bold", color="#16242d")
+    def varrow(y1, y2, x, c, two=False, label=None, lx=None):
+        ax.annotate("", xy=(x, y2), xytext=(x, y1),
+                    arrowprops=dict(arrowstyle="<|-|>" if two else "-|>", color=c, lw=1.7,
+                                    shrinkA=0, shrinkB=0))
+        if label:
+            ax.text(lx, (y1 + y2) / 2, label, ha="left", va="center", fontsize=8.5, color=c)
+
+    SLATE = "#46606e"
+    ax.text(50, 97, "Framework overview", ha="center", fontsize=12, fontweight="bold", color=C_INK)
+    box(50, 86, 33, 12, "Gold standard\n(perfect — benchmark only)", C_GOLD, tc="#3a2e00")
+    box(15, 60, 24, 14, "Gin Rummy\nenvironment", C_GREEN)
+    box(50, 60, 27, 14, "RL learner\n(masked PPO / TRPO)", C_GREEN)
+    box(85, 60, 24, 14, "Web game\n(human vs agent)", SLATE)
+    box(50, 36, 34, 12, "Opponent curriculum\n(random → selves → strong)", C_GREEN)
+    box(50, 13, 31, 12, "Distributed LLM\n(master + GPU workers)", SLATE)
+    # central vertical spine + horizontal env/game arms -- all straight
+    varrow(80, 67, 50, C_GOLD, label="eval only", lx=52)            # learner -> gold (up)
+    harrow(27, 36.5, 60, C_GREEN, two=True)                         # env <-> learner (play loop)
+    harrow(63.5, 73, 60, SLATE)                                     # learner -> game
+    varrow(53, 42, 50, C_GREEN, two=True, label="opponents", lx=52)  # learner <-> curriculum
+    varrow(19, 30, 50, SLATE, label="LLM opponent", lx=52)         # LLM -> curriculum (up)
     fig.tight_layout(); _save(fig, "architecture")
     print("  fig_architecture: ok")
 
@@ -531,19 +572,19 @@ def fig_gold_bench():
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 3.4), gridspec_kw={"width_ratios": [1.55, 1]})
     y = np.arange(len(order))
     wins = [d[k]["a_win_rate"] * 100 for k, _ in order]
-    a1.barh(y, wins, color="#d9a521")
+    a1.barh(y, wins, color=C_GOLD)
     for i, w in enumerate(wins):
         a1.text(w - 2, i, f"{w:.0f}%", va="center", ha="right", color="#3a2e00", fontsize=8.5, fontweight="bold")
-    a1.set_yticks(y); a1.set_yticklabels([lab for _, lab in order], fontsize=8.5)
+    a1.set_yticks(y); a1.set_yticklabels([lab for _, lab in order])
     a1.set_xlabel("gold's win rate vs this agent (%)"); a1.set_xlim(0, 100)
-    a1.set_title("The gold expert beats every learned agent", fontsize=10)
+    a1.set_title("The gold expert beats every learned agent")
     # gin-rate panel: gold's own gin-rate is tiny everywhere
     gins = [d[k]["a_gin_rate"] * 100 for k, _ in order]
-    a2.barh(y, gins, color="#c0392b")
+    a2.barh(y, gins, color=C_GREEN)
     a2.set_yticks(y); a2.set_yticklabels([]); a2.set_xlim(0, 5)
     a2.axvline(2, ls="--", lw=1, color="#444"); a2.text(2.1, len(order) - 0.6, "2%", fontsize=8, color="#444")
     a2.set_xlabel("gold's gin rate (%)")
-    a2.set_title("...yet gins < 2%: it knocks low", fontsize=10)
+    a2.set_title("...yet gins under 2%: it knocks low")
     fig.tight_layout(); _save(fig, "gold_bench")
     print("  fig_gold_bench: ok")
 
@@ -567,23 +608,26 @@ def fig_regimes():
     # reward shaping collapsed in a separate tournament -- discussed in the text, not plotted on
     # this axis since they were not benchmarked head-to-head vs gold.)
     bars = [
-        ("PPO from scratch, short (2M)", scratch * 100, "#95a5a6"),
-        ("Frozen state-embedding (Phase 5)", 13.8, "#aab7b8"),
-        ("PPO from scratch, sparse obs (Phase 5)", 15.0, "#85c1e9"),
-        ("TRPO from scratch (2M)", 22.5, "#5dade2"),
-        ("Self-play champion (12M)", champ * 100, "#2980b9"),
-        ("Curriculum sweep best (Phase 6)", 33.0, "#27ae60"),
-        ("Keep-best + warm-start (Phase 7)", p7 * 100, "#1e8449"),
+        ("PPO from scratch, short (2M)", scratch * 100),
+        ("Frozen state-embedding (Phase 5)", 13.8),
+        ("PPO from scratch, sparse obs (Phase 5)", 15.0),
+        ("TRPO from scratch (2M)", 22.5),
+        ("Self-play champion (12M)", champ * 100),
+        ("Curriculum sweep best (Phase 6)", 33.0),
+        ("Keep-best + warm-start (Phase 7)", p7 * 100),
     ]
     bars.sort(key=lambda b: b[1])
+    import matplotlib.colors as mcolors
+    ramp = mcolors.LinearSegmentedColormap.from_list("g", [C_GREY, C_GREEN])
     fig, ax = plt.subplots(figsize=(7.6, 4.0))
     y = np.arange(len(bars))
-    ax.barh(y, [b[1] for b in bars], color=[b[2] for b in bars])
+    cols = [ramp(i / (len(bars) - 1)) for i in range(len(bars))]   # weak (grey) -> strong (green)
+    ax.barh(y, [b[1] for b in bars], color=cols)
     for i, b in enumerate(bars):
         ax.text(b[1] + 0.6, i, f"{b[1]:.1f}%", va="center", fontsize=8.5, fontweight="bold")
-    ax.set_yticks(y); ax.set_yticklabels([b[0] for b in bars], fontsize=8.5)
+    ax.set_yticks(y); ax.set_yticklabels([b[0] for b in bars])
     ax.set_xlabel("best win rate vs the gold standard (%)"); ax.set_xlim(0, 45)
-    ax.set_title("Every regime we tried, ranked by strength vs the perfect player", fontsize=10.5)
+    ax.set_title("Every regime we tried, ranked by strength vs perfect play")
     fig.tight_layout(); _save(fig, "regimes")
     print("  fig_regimes: ok")
 
@@ -606,12 +650,12 @@ def fig_journey():
     fig, ax = plt.subplots(figsize=(6.6, 3.8))
     x = np.arange(len(steps))
     vals = [s[1] for s in steps]
-    ax.plot(x, vals, "-o", color="#1e8449", lw=2.5, ms=9, zorder=3)
+    ax.plot(x, vals, "-o", color=C_GREEN, lw=2.5, ms=9, zorder=3)
     for i, v in enumerate(vals):
-        ax.text(i, v + 1.3, f"{v:.1f}%", ha="center", fontsize=10, fontweight="bold", color="#1e8449")
-    ax.axhline(100, ls="--", lw=1.4, color="#d9a521")
+        ax.text(i, v + 1.3, f"{v:.1f}%", ha="center", fontsize=10, fontweight="bold", color=C_GREEN)
+    ax.axhline(100, ls="--", lw=1.4, color=C_GOLD)
     ax.text(len(steps) - 1, 96, "gold standard = the ceiling (perfect play)", ha="right",
-            fontsize=8.5, color="#a9810a")
+            fontsize=8.5, color=C_GOLD)
     ax.set_xticks(x); ax.set_xticklabels([s[0] for s in steps], fontsize=9)
     ax.set_ylabel("win rate vs the gold standard (%)"); ax.set_ylim(0, 105)
     ax.set_title("Closing the gap to perfect play, step by step", fontsize=11)
@@ -620,14 +664,49 @@ def fig_journey():
     print(f"  fig_journey: champion {champ:.0f}% -> P7 {p7pct:.0f}%")
 
 
+def fig_learning_curves():
+    """How the curriculum drives learning: win-rate vs the champion over training steps for a few
+    representative runs, with the curriculum stage boundaries (random -> +pool -> +self -> +strong)
+    marked. Reads the per-run learning curve saved in sweep/curriculum/*.json."""
+    runs = [("01_base_trpo_s0", "TRPO baseline", C_GREEN),
+            ("05_rew_R4_earlyknk_s0", "early-knock reward", C_GREEN2),
+            ("12_ppo_ent_hi_s0", "PPO", C_GREY)]
+    fig, ax = plt.subplots(figsize=(6.8, 3.7))
+    drew = False
+    for name, lab, c in runs:
+        p = os.path.join(ROOT, "sweep", "curriculum", name + ".json")
+        if not os.path.exists(p):
+            continue
+        curve = json.load(open(p)).get("curve", [])
+        if not curve:
+            continue
+        xs = [s["step"] / 1e6 for s in curve]
+        ys = [s["champion"]["win"] * 100 for s in curve]
+        ax.plot(xs, ys, "-o", color=c, lw=2.2, ms=5, label=lab); drew = True
+    if not drew:
+        ax.text(0.5, 0.5, "learning curves pending", ha="center", va="center")
+        ax.axis("off"); fig.tight_layout(); _save(fig, "learning_curves"); return
+    ax.set_ylim(0, 60); ax.set_xlim(0, 12.3)
+    for frac, lab in [(0.25, "+ pool"), (0.45, "+ self"), (0.70, "+ strong")]:
+        x = frac * 12
+        ax.axvline(x, ls=":", lw=1, color="#9aa6a0")
+        ax.text(x + 0.1, 57, lab, fontsize=8, color="#5c6b73", va="top")
+    ax.text(0.2, 57, "vs random", fontsize=8, color="#5c6b73", va="top")
+    ax.set_xlabel("training steps (millions)"); ax.set_ylabel("win rate vs champion (%)")
+    ax.set_title("Skill rises as the curriculum adds tougher opponents")
+    ax.legend(loc="lower right"); ax.grid(ls=":", alpha=0.4)
+    fig.tight_layout(); _save(fig, "learning_curves")
+    print("  fig_learning_curves: ok")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
     fig_winrate(rs); fig_mean_reward(rs); fig_lr_vs_reward(rs); write_summary_csv(rs)
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
-               fig_curriculum, fig_curriculum_reward,
-               fig_gold_bench, fig_regimes, fig_journey, fig_architecture):
+               fig_curriculum, fig_curriculum_reward, fig_reward_gin,
+               fig_gold_bench, fig_regimes, fig_journey, fig_architecture, fig_learning_curves):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

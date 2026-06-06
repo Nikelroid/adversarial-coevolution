@@ -29,7 +29,7 @@
 \newcommand{\no}{\textcolor{bad}{\textbf{fails}}}
 
 \title{Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy:\\
-       A Gold-Standard Study of What Actually Makes a Lightweight Agent Strong}
+       A Gold-Standard Study of What Makes a Lightweight Agent Strong}
 
 \author{Nima Kelidari \quad Mahdi Salmani \quad Mohammadsaeed Haghi \\
   \texttt{\{kelidari, salmanis, haghim\}@usc.edu} \\
@@ -170,9 +170,9 @@ still discards detail the policy needs; size and un-freezing did not recover it.
 \begin{figure}[h]\centering
 \begin{subfigure}{0.49\linewidth}\centering\includegraphics[width=\linewidth]{algo_compare.png}
 \caption{TRPO $>$ PPO vs.\ every opponent.}\end{subfigure}\hfill
-\begin{subfigure}{0.49\linewidth}\centering\includegraphics[width=\linewidth]{curriculum_reward.png}
+\begin{subfigure}{0.49\linewidth}\centering\includegraphics[width=\linewidth]{reward_gin.png}
 \caption{Gin-rate stays $<\!1\%$ for every reward.}\end{subfigure}
-\caption{Algorithm and reward studies.}\label{fig:algo}
+\caption{Algorithm and reward studies (2 seeds each).}\label{fig:algo}
 \end{figure}
 
 \subsection{The curriculum sweep and the key finding}
@@ -182,7 +182,16 @@ near champion strength ($\sim\!30$--$33\%$ vs.\ gold), but yields one clean, stu
 $3\times$ for a gin does not raise it above the balanced baseline. \emph{Reason:} like the optimal
 player, the policy discovers that chasing gin loses; you cannot bribe it into the bad habit. The
 reward that actually helps does the opposite---a small ``knock earlier'' penalty that yields the
-shortest games and the best play.
+shortest games and the best play. Fig.~\ref{fig:learn} shows the mechanism: win-rate against the
+champion climbs as the curriculum swaps in tougher opponents (random $\rightarrow$ pool
+$\rightarrow$ self $\rightarrow$ strong), and the late dip on one run is exactly the drift that
+motivates keep-the-best (Sec.~4.7).
+
+\begin{figure}[h]\centering
+\includegraphics[width=0.64\linewidth]{learning_curves.png}
+\caption{Skill (win-rate vs.\ the champion) rises through the curriculum stages; the late dip
+motivates best-checkpoint selection.}\label{fig:learn}
+\end{figure}
 
 \subsection{Keep-the-best and warm-start (the recipe)}
 A final series stacks the helpful levers: \emph{warm-start} from the champion, the knock-oriented
