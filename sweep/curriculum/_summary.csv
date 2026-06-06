@@ -1,7 +1,10 @@
 name,algo,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin_vs_gold,steps,secs
+p7_03_warm_deadwood_hi_s0,trpo,warm,0.5,0.5,1.0,0,0.992,0.48,0.357,0.007,16000000,19117
+p7_02_warm_deadwood_s0,trpo,warm,0.5,0.5,1.0,0,0.991,0.473,0.335,0.004,16000000,19223
 03_rew_R0_highgin_s0,trpo,designed,0.5,1.5,1.0,0,0.99,0.427,0.33,0.005,12000000,13048
 05_rew_R4_earlyknk_s1,trpo,designed,0.5,0.5,1.0,1,0.988,0.494,0.328,0.003,12000000,18289
 06_cur_noRandTail_s2,trpo,no_random_tail,0.5,0.5,1.0,2,0.988,0.46,0.328,0.005,12000000,13878
+p7_02_warm_deadwood_s1,trpo,warm,0.5,0.5,1.0,1,0.989,0.494,0.328,0.004,16000000,19280
 09_trpo_kl_small_s1,trpo,designed,0.5,0.5,1.0,1,0.984,0.466,0.326,0.003,12000000,23007
 04_rew_R2_knockfwd_s0,trpo,designed,0.75,0.75,1.0,0,0.986,0.472,0.324,0.001,12000000,22542
 07_cur_pfsp_s1,trpo,designed,0.5,0.5,1.0,1,0.985,0.461,0.319,0.004,12000000,18684
