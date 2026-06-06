@@ -92,7 +92,9 @@ infrastructure result stood out: putting 7B weights on scratch (BeeGFS) instead 
 worker load from about $28$\,min to about $27$\,s, a $62\times$ speedup, and a $14$-worker pool
 handled about $32$ questions per second. \textbf{Curriculum and game.} A scheduler ramps opponents
 (random, then past selves, then strong models), and a zero-dependency browser client lets people play
-any agent. Fig.~\ref{fig:arch} shows how the parts connect.
+any agent. Fig.~\ref{fig:arch} shows how the parts connect. Nothing in this loop is specific to Gin
+Rummy: we release it as a small, game-agnostic package (\texttt{coev}) that trains a masked agent
+against the same curriculum in any PettingZoo game, or in a user's own environment.
 
 \begin{figure}[h]\centering
 \includegraphics[width=0.80\linewidth]{architecture.png}
