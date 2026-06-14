@@ -406,24 +406,81 @@ ol li,ul li{margin:4px 0;}
 
 <section id="venues">
   <h2><span class="n">11</span>Where this can go: realistic publication targets</h2>
-  <p>Being honest: with the current results, the right home is the specialized games and RL venues,
-  the benchmarks track, and workshops, not the main tracks of the very top conferences as it stands.
-  A main-track paper would need a new method or a clear win over a strong baseline. Here are eight
-  realistic targets, best fit first. Workshop names change every year, so treat those as the type of
-  venue rather than the exact name.</p>
-  <table>
-    <tr><th>Venue</th><th>What it is</th><th>Why it fits</th><th class="n">How realistic</th></tr>
-    <tr><td><b>IEEE Conference on Games (CoG)</b></td><td>a conference on AI for games</td><td>RL agents in card games, hidden information, and benchmarks land squarely here</td><td class="good">strong</td></tr>
-    <tr><td><b>Reinforcement Learning Conference (RLC)</b></td><td>a dedicated RL conference (and its workshops)</td><td>values careful empirical studies, ablations, and honest negative results</td><td class="good">strong</td></tr>
-    <tr><td><b>AAMAS / ALA workshop</b></td><td>the Adaptive and Learning Agents workshop at the main multi-agent conference</td><td>self-play, curricula, and opponent design are core topics</td><td class="good">strong</td></tr>
-    <tr><td><b>AIIDE</b></td><td>AAAI conference on AI and interactive digital entertainment</td><td>game-playing agents and the playable demo fit well</td><td class="good">strong</td></tr>
-    <tr><td><b>NeurIPS Datasets &amp; Benchmarks</b></td><td>a top venue for benchmarks and tools</td><td>if we frame the pipeline plus the perfect-player benchmark as a reusable benchmark for masked RL in PettingZoo games</td><td class="mid">our best shot at a top venue, competitive</td></tr>
-    <tr><td><b>An RL workshop at NeurIPS / ICML / ICLR</b></td><td>a deep-RL or agents workshop</td><td>work-in-progress and negative results are welcome; the algorithm, reward, and curriculum study fits</td><td class="good">realistic</td></tr>
-    <tr><td><b>An LLM-agents workshop</b></td><td>a foundation-models-for-decision-making or LLM-agents workshop</td><td>the RL-meets-LLM angle and the lessons about combining them are on topic</td><td class="good">realistic</td></tr>
-    <tr><td><b>CoLLAs</b></td><td>Conference on Lifelong Learning Agents</td><td>the opponent curriculum and keep-best fit the curriculum and continual-learning theme</td><td class="mid">moderate</td></tr>
+  <p>Being honest: with today's results, the right home is the specialized games and RL venues, the
+  benchmarks track, and workshops, not the main tracks of the very top conferences. A main-track
+  paper would need a new method or a clear win over a strong baseline. Below are eight realistic
+  targets, best fit first, with the dates from the most recent cycle as a reference. Most of the 2026
+  deadlines have already passed (it is mid-2026 now), so read the dates as the timeline to expect for
+  the next cycle, and always confirm on the official page.</p>
+  <div class="why"><b>Can you put it on arXiv first?</b> Yes, for all eight. Every venue here allows
+  an arXiv preprint before or after you submit. For the double-blind ones (RLC, CoLLAs, AIIDE, the
+  NeurIPS track, and the main AAMAS track), just keep the arXiv version from breaking anonymity in a
+  way the reviewers would notice, and do not label it "under review at [venue]". The single-blind
+  venue (IEEE CoG) and the non-archival workshops have no such limit, so a public preprint is
+  completely fine.</div>
+  <table style="font-size:13px;">
+    <tr><th>Venue (link)</th><th>Where &amp; when</th><th>Key dates (most recent cycle)</th><th>Format &amp; review</th><th class="n">arXiv</th></tr>
+    <tr>
+      <td><b><a href="https://cog2026.org/">IEEE CoG 2026</a></b><br/><span class="good">strong fit</span></td>
+      <td>Madrid, Spain<br/>Sep 1-4, 2026</td>
+      <td>paper: Mar 17, 2026<br/>notify: May 1<br/>camera-ready: May 28</td>
+      <td>8 pp full, 4 pp short (incl. refs); IEEE 2-column template; single-blind; EasyChair</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://rl-conference.cc/">RLC 2026</a></b> (Reinforcement Learning Journal)<br/><span class="good">strong fit</span></td>
+      <td>Montreal, Canada<br/>Aug 15-18, 2026</td>
+      <td>abstract: Mar 1, 2026<br/>paper: Mar 5<br/>notify: May 5 &middot; camera-ready: Jul 18</td>
+      <td>8 pp recommended, 12 pp max main text; RLC style file; double-blind; OpenReview; published in RLJ</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://warwick.ac.uk/fac/sci/dcs/aamas2027/">AAMAS 2027</a></b> + <a href="https://ala2024.github.io/">ALA workshop</a><br/><span class="good">strong (via ALA)</span></td>
+      <td>Hanoi, Vietnam<br/>May 3-7, 2027</td>
+      <td>AAMAS main: deadline ~Oct-Nov 2026 (to be posted)<br/>ALA: ~Feb-Mar each year</td>
+      <td>ACM template; ALA 8 pp (6 work-in-progress), non-archival; main AAMAS double-blind; OpenReview</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://sites.google.com/view/aiide2026/home">AIIDE 2026</a></b><br/><span class="good">strong fit</span></td>
+      <td>Belo Horizonte, Brazil<br/>Nov 9-13, 2026</td>
+      <td>paper: ~mid-2026 (check the CFP)<br/>notify: ~Aug 2026</td>
+      <td>~9 pp; AAAI template; double-blind; published in the AAAI AIIDE proceedings</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://neurips.cc/Conferences/2026/CallForEvaluationsDatasets">NeurIPS 2026 Evaluations &amp; Datasets</a></b> (was Datasets &amp; Benchmarks)<br/><span class="mid">best shot at a top venue, competitive</span></td>
+      <td>Sydney, Australia<br/>Dec 6-12, 2026</td>
+      <td>abstract: May 4, 2026<br/>paper: May 6<br/>notify: ~Sep 2026</td>
+      <td>~9 pp; NeurIPS style; double-blind; OpenReview</td>
+      <td class="mid">yes, anonymized; do not advertise</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://neurips.cc/Conferences/2026/CallForWorkshops">A NeurIPS / ICML / ICLR RL workshop</a></b><br/><span class="good">realistic</span></td>
+      <td>e.g. NeurIPS 2026 workshops<br/>Dec 11-13, 2026 (Sydney/Paris/Atlanta)</td>
+      <td>workshop proposals due Jun 6, 2026<br/>paper deadlines set per workshop (~Sep-Oct)</td>
+      <td>short (4-9 pp), workshop template; non-archival; OpenReview</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b>A NeurIPS / ICML / ICLR LLM-agents workshop</b> (e.g. Foundation Models for Decision Making)<br/><span class="good">realistic</span></td>
+      <td>co-located with the host conference<br/>announced per year</td>
+      <td>same window as the RL workshops above (~Sep-Oct for NeurIPS)</td>
+      <td>short, workshop template; non-archival</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b><a href="https://lifelong-ml.cc/Conferences/2026/call">CoLLAs 2026</a></b><br/><span class="mid">moderate fit</span></td>
+      <td>Bucharest, Romania<br/>Sep 14-17, 2026</td>
+      <td>abstract: Apr 10, 2026<br/>paper: Apr 15</td>
+      <td>9 pp + unlimited refs/appendix (10 pp camera-ready); CoLLAs single-column template; double-blind; OpenReview</td>
+      <td class="good">yes</td>
+    </tr>
   </table>
-  <p style="font-size:13.5px;color:#5c6b73;">Honorable mentions: an AAAI student-abstract or demo track
-  (a good home for a first paper), and ALA as a standalone workshop.</p>
+  <p style="font-size:13px;color:#5c6b73;"><b>Honorable mentions:</b> an
+  <a href="https://aaai.org/">AAAI</a> student-abstract or demo track (a good home for a first paper),
+  and ALA as a standalone workshop. Dates above are from each venue's most recent cycle and are
+  meant as a reference; the exact dates for the next cycle appear on the linked pages.</p>
   <div class="note"><b>Bottom line.</b> With today's results, aim for a games or RL conference, the
   benchmarks track, or a workshop. To reach an ICML, NeurIPS, or ICLR main track, we would need to
   pass the ceiling with a new method (search or memory), or grow the pipeline and benchmark into
