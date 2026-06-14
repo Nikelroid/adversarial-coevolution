@@ -544,22 +544,25 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   venue (IEEE CoG) and the non-archival workshops have no such limit, so a public preprint is
   completely fine.</div>
   <table style="font-size:13px;">
-    <tr><th>Venue (link) and fit</th><th>Next deadline (still ahead)</th><th>Conference</th><th>Format and review</th><th>arXiv?</th></tr>
+    <tr><th>#</th><th>Venue (link) and fit</th><th>Next deadline (soonest first)</th><th>Conference</th><th>Format and review</th><th>arXiv?</th></tr>
     <tr>
+      <td><b>1</b></td>
+      <td><b><a href="https://sites.google.com/view/aiide2026/home">AIIDE 2026</a></b><br/><span class="good">best fit</span></td>
+      <td><b>paper: Jun 19, 2026</b> <span class="good">(confirmed)</span><br/>notify: Aug 7, 2026</td>
+      <td>Belo Horizonte, Brazil<br/>Nov 9-13, 2026</td>
+      <td>~9 pp; AAAI template; double-blind; published in the AAAI AIIDE proceedings</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b>2</b></td>
       <td><b><a href="https://aaai.org/conference/aaai/aaai-27/main-technical-track-call/">AAAI-27</a></b><br/><span class="mid">broad AI; realistic via the student-abstract or demo track</span></td>
-      <td><b>paper: Jul 27, 2026</b> <span class="good">(confirmed)</span><br/>abstract: Jul 20, 2026</td>
+      <td><b>abstract: Jul 21, 2026<br/>paper: Jul 28, 2026</b> <span class="good">(confirmed)</span><br/>notify: Nov 30, 2026</td>
       <td>Montreal, Canada<br/>Feb 16-23, 2027</td>
       <td>AAAI 2-column template; double-blind; OpenReview</td>
       <td class="good">yes</td>
     </tr>
     <tr>
-      <td><b><a href="https://neurips.cc/Conferences/2026/CallForWorkshops">NeurIPS 2026 workshops</a></b> (RL / LLM-agents)<br/><span class="good">realistic, soonest</span></td>
-      <td><b>paper: ~Sep to Oct 2026</b> <span class="mid">(set per workshop)</span><br/>workshop list posts ~Aug 2026</td>
-      <td>Sydney, Australia<br/>workshops Dec 11-13, 2026</td>
-      <td>short (4 to 9 pp); workshop template; non-archival; OpenReview</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
+      <td><b>3</b></td>
       <td><b><a href="https://iclr.cc/">ICLR 2027</a></b> (main or its workshops)<br/><span class="mid">main hard; workshops realistic</span></td>
       <td><b>paper: ~late Sep 2026</b> <span class="mid">(expected; not posted yet)</span></td>
       <td>spring 2027 (to be posted)</td>
@@ -567,13 +570,23 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
       <td class="good">yes</td>
     </tr>
     <tr>
+      <td><b>4</b></td>
+      <td><b><a href="https://neurips.cc/Conferences/2026/CallForWorkshops">NeurIPS 2026 workshops</a></b> (RL / LLM-agents)<br/><span class="good">realistic</span></td>
+      <td><b>paper: ~late Sep to mid Oct 2026</b> <span class="mid">(set per workshop; calls post ~Aug)</span></td>
+      <td>Sydney, Australia<br/>workshops Dec 11-13, 2026</td>
+      <td>short (4 to 9 pp); workshop template; non-archival; OpenReview</td>
+      <td class="good">yes</td>
+    </tr>
+    <tr>
+      <td><b>5</b></td>
       <td><b><a href="https://warwick.ac.uk/fac/sci/dcs/aamas2027/">AAMAS 2027</a></b> + <a href="https://ala2024.github.io/">ALA workshop</a><br/><span class="good">strong fit</span></td>
-      <td><b>paper: Oct 8, 2026</b> <span class="good">(confirmed)</span><br/>abstract: Oct 1 &middot; ALA: ~Feb 2027</td>
+      <td><b>abstract: Oct 1, 2026<br/>paper: Oct 8, 2026</b> <span class="good">(confirmed)</span><br/>ALA: ~Feb 2027</td>
       <td>Hanoi, Vietnam<br/>May 3-7, 2027</td>
       <td>ACM template; main 8 to 9 pp double-blind; ALA 8 pp non-archival; OpenReview</td>
       <td class="good">yes</td>
     </tr>
     <tr>
+      <td><b>6</b></td>
       <td><b><a href="https://lifelong-ml.cc/">CoLLAs 2027</a></b><br/><span class="mid">moderate fit</span></td>
       <td><b>paper: ~Feb to Mar 2027</b> <span class="mid">(expected; not posted yet)</span></td>
       <td>~Sep 2027 (to be posted)</td>
@@ -581,6 +594,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
       <td class="good">yes</td>
     </tr>
     <tr>
+      <td><b>7</b></td>
       <td><b><a href="https://rl-conference.cc/">RLC 2027</a></b> (Reinforcement Learning Journal)<br/><span class="good">strong fit</span></td>
       <td><b>paper: ~early Mar 2027</b> <span class="mid">(expected; not posted yet)</span></td>
       <td>~Aug 2027 (to be posted)</td>
@@ -588,17 +602,11 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
       <td class="good">yes</td>
     </tr>
     <tr>
+      <td><b>8</b></td>
       <td><b><a href="https://cog2026.org/">IEEE CoG 2027</a></b><br/><span class="good">best fit</span></td>
       <td><b>paper: ~Mar to Apr 2027</b> <span class="mid">(expected; 2027 site to be posted)</span></td>
       <td>~Sep 2027 (to be posted)</td>
       <td>IEEE 2-column, 8 pp full / 4 short (incl. refs); single-blind; EasyChair</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b><a href="http://aiide.org/">AIIDE 2027</a></b><br/><span class="good">best fit</span></td>
-      <td><b>paper: ~Jun 2027</b> <span class="mid">(expected; AIIDE 2026 was Jun 19)</span></td>
-      <td>~Nov 2027 (to be posted)</td>
-      <td>AAAI template, ~9 pp; double-blind; published in the AAAI AIIDE proceedings</td>
       <td class="good">yes</td>
     </tr>
   </table>
@@ -607,12 +615,14 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   not posted yet, so check the linked page before you plan around it. Honorable mentions: the NeurIPS
   2026 Evaluations and Datasets track (its 2026 deadline has passed, but it is a strong home for the
   benchmark in 2027), and ALA as a standalone workshop.</p>
-  <div class="note"><b>Bottom line.</b> The soonest realistic shots are the AAAI-27 student or demo
-  track (July 2026), the NeurIPS 2026 workshops (around September to October 2026), and AAMAS 2027
-  (October 2026). The best-fit homes (IEEE CoG, RLC, AIIDE, CoLLAs) come back around in early to
-  mid 2027. To reach an ICML, NeurIPS, or ICLR main track, we would first need to pass the ceiling
-  with a new method (search or memory), or grow the pipeline and benchmark into something the
-  community adopts.</div>
+  <div class="note"><b>Bottom line.</b> The single nearest deadline is <b>AIIDE 2026</b> on June 19,
+  2026, and it is also our best-fit home (game AI, AAAI proceedings), so it is the one to aim at
+  first. After that come the <b>AAAI-27</b> student or demo track (paper July 28, 2026), the NeurIPS
+  2026 workshops (around late September to mid October 2026), and <b>AAMAS 2027</b> (paper October 8,
+  2026). The remaining best-fit homes (RLC, IEEE CoG, CoLLAs) come back around in early to mid 2027.
+  To reach an ICML, NeurIPS, or ICLR main track, we would first need to pass the ceiling with a new
+  method (search or memory), or grow the pipeline and benchmark into something the community
+  adopts.</div>
 </section>
 
 <section id="repro">
