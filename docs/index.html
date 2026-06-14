@@ -45,6 +45,7 @@ th{background:#f0f4f2;color:var(--green2);font-weight:700;}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;}
 tr:hover td{background:#fafcfb;}
 .good{color:var(--good);font-weight:700;}.bad{color:var(--bad);font-weight:700;}
+.mid{color:#a9810a;font-weight:700;}.muted{color:var(--muted);font-weight:600;}
 .note{background:#fff8e6;border-left:4px solid var(--gold);padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14.5px;}
 .why{background:#eef6f1;border-left:4px solid var(--good);padding:11px 16px;border-radius:6px;margin:10px 0;font-size:14.5px;}
 .why b{color:var(--green2);}
@@ -98,7 +99,7 @@ ol li,ul li{margin:4px 0;}
 <div class="nav">
   <a href="#story">The story</a><a href="#challenge">The game</a><a href="#framework">What we built</a>
   <a href="#gold">Gold standard</a><a href="#regimes">Everything we tried</a><a href="#finding">Key finding</a>
-  <a href="#levers">What mattered</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#repro">Reproduce</a>
+  <a href="#levers">What mattered</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a>
 </div>
 
 <div class="wrap">
@@ -343,6 +344,90 @@ ol li,ul li{margin:4px 0;}
   <i>different kind</i> of method, such as search and planning (the kind that beat the best humans at
   poker) or an agent that remembers the whole game so far. More reward tuning will not get there.
   That is the clear next step the data points to.</p>
+</section>
+
+<section id="roadmap">
+  <h2><span class="n">10</span>Roadmap: strengths, limits, and what is next</h2>
+  <p>Here is an honest look at where the project stands today, what is strong, what is weak, and what
+  we would do next to turn it into a paper.</p>
+
+  <h3>What is strong</h3>
+  <ul>
+    <li>A complete, working system end to end: a masked RL learner, a perfect benchmark to grade
+    against, a distributed LLM server, an opponent curriculum, and a playable web game.</li>
+    <li>A <b>universal pipeline</b>. The same code trains on any PettingZoo game or your own
+    environment, not just Gin Rummy.</li>
+    <li>A lot of careful evidence: 100+ controlled runs, all judged on one fair number (win rate vs
+    the perfect player), with honest results for the methods that did not work.</li>
+    <li>One clean, reusable finding: the best play almost never gins, and an RL agent learns this no
+    matter the reward. You cannot pay it into a bad habit.</li>
+    <li>Solid engineering: a 62&times; faster model-serving setup, and a self-running sweep that
+    resubmits failures, re-collects results, and republishes this report with no human in the loop.</li>
+    <li>Fully reproducible: every figure rebuilds from saved JSON, and training curves are on
+    Weights and Biases.</li>
+  </ul>
+
+  <h3>Where it is weak (the honest part)</h3>
+  <ul>
+    <li>We did not beat the perfect player. Our best agent wins about <b>34%</b> against it. This is
+    a clear picture of the ceiling, not a state-of-the-art win.</li>
+    <li>The main results are on one game (Gin Rummy). The universal pipeline is checked on small
+    games (Connect Four, Tic-Tac-Toe) with short smoke runs, not trained to convergence.</li>
+    <li>The original idea, training against a live LLM, turned out to be too slow to be practical.
+    The LLM ended up helping only indirectly (as a benchmark, in the design, and in an embedding
+    experiment that also did not help).</li>
+    <li>The methods themselves (PPO, TRPO, curriculum, keep-best) are standard. The contribution is
+    the careful study, the benchmark, the universal pipeline, and the honest negatives, not a new
+    algorithm.</li>
+    <li>We did not run a search or planning method or a memory-based agent, which are the most likely
+    ways to pass the ceiling. They are listed as future work, not done.</li>
+    <li>Compute was limited to one cluster, and some comparison runs are short (2M steps).</li>
+  </ul>
+
+  <h3>What is next, in order</h3>
+  <ol>
+    <li>Train the universal pipeline to convergence on two or three non-Gin PettingZoo games, to show
+    the generality with real numbers, not just smoke tests.</li>
+    <li>Add one search or planning baseline (counterfactual-regret or a small lookahead at decision
+    time) and one memory baseline (a masked recurrent agent with a memory-aware evaluator), and see
+    if either passes the 34% ceiling.</li>
+    <li>Test richer inputs (hand-structure features) trained to convergence. We only built and
+    smoke-tested this.</li>
+    <li>Try the offline-RL path: build a large dataset of LLM-vs-LLM games and learn from it offline,
+    so the slow LLM is used once, not inside the training loop.</li>
+    <li>Tighten the statistics on the headline runs (more seeds, paired confidence intervals) and turn
+    the gold benchmark plus the curriculum harness into a small public benchmark suite.</li>
+    <li>Write the paper for one specific venue (see below).</li>
+  </ol>
+  <div class="why"><b>The shortest path to a paper:</b> pick a venue, add real multi-game results and
+  one search-or-memory baseline, and frame the contribution as the universal pipeline, plus the
+  perfect-player benchmark, plus the honest study of what helps and what does not.</div>
+</section>
+
+<section id="venues">
+  <h2><span class="n">11</span>Where this can go: realistic publication targets</h2>
+  <p>Being honest: with the current results, the right home is the specialized games and RL venues,
+  the benchmarks track, and workshops, not the main tracks of the very top conferences as it stands.
+  A main-track paper would need a new method or a clear win over a strong baseline. Here are eight
+  realistic targets, best fit first. Workshop names change every year, so treat those as the type of
+  venue rather than the exact name.</p>
+  <table>
+    <tr><th>Venue</th><th>What it is</th><th>Why it fits</th><th class="n">How realistic</th></tr>
+    <tr><td><b>IEEE Conference on Games (CoG)</b></td><td>a conference on AI for games</td><td>RL agents in card games, hidden information, and benchmarks land squarely here</td><td class="good">strong</td></tr>
+    <tr><td><b>Reinforcement Learning Conference (RLC)</b></td><td>a dedicated RL conference (and its workshops)</td><td>values careful empirical studies, ablations, and honest negative results</td><td class="good">strong</td></tr>
+    <tr><td><b>AAMAS / ALA workshop</b></td><td>the Adaptive and Learning Agents workshop at the main multi-agent conference</td><td>self-play, curricula, and opponent design are core topics</td><td class="good">strong</td></tr>
+    <tr><td><b>AIIDE</b></td><td>AAAI conference on AI and interactive digital entertainment</td><td>game-playing agents and the playable demo fit well</td><td class="good">strong</td></tr>
+    <tr><td><b>NeurIPS Datasets &amp; Benchmarks</b></td><td>a top venue for benchmarks and tools</td><td>if we frame the pipeline plus the perfect-player benchmark as a reusable benchmark for masked RL in PettingZoo games</td><td class="mid">our best shot at a top venue, competitive</td></tr>
+    <tr><td><b>An RL workshop at NeurIPS / ICML / ICLR</b></td><td>a deep-RL or agents workshop</td><td>work-in-progress and negative results are welcome; the algorithm, reward, and curriculum study fits</td><td class="good">realistic</td></tr>
+    <tr><td><b>An LLM-agents workshop</b></td><td>a foundation-models-for-decision-making or LLM-agents workshop</td><td>the RL-meets-LLM angle and the lessons about combining them are on topic</td><td class="good">realistic</td></tr>
+    <tr><td><b>CoLLAs</b></td><td>Conference on Lifelong Learning Agents</td><td>the opponent curriculum and keep-best fit the curriculum and continual-learning theme</td><td class="mid">moderate</td></tr>
+  </table>
+  <p style="font-size:13.5px;color:#5c6b73;">Honorable mentions: an AAAI student-abstract or demo track
+  (a good home for a first paper), and ALA as a standalone workshop.</p>
+  <div class="note"><b>Bottom line.</b> With today's results, aim for a games or RL conference, the
+  benchmarks track, or a workshop. To reach an ICML, NeurIPS, or ICLR main track, we would need to
+  pass the ceiling with a new method (search or memory), or grow the pipeline and benchmark into
+  something the community adopts.</div>
 </section>
 
 <section id="repro">
