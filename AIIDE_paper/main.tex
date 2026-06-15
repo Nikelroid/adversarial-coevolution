@@ -1,0 +1,853 @@
+%% ============================================================================
+%% AIIDE 2026 submission (anonymous, double-blind).
+%%
+%% FORMAT NOTE: AIIDE 2026 requires the official AAAI Press author kit
+%% (AAAI two-column, 9 pages of content + unlimited references, double-blind).
+%% This preamble is a faithful, self-contained approximation so the paper
+%% compiles anywhere. Before submitting, drop in the official aaai2026.sty and
+%% aaai2026.bst from the AAAI author kit and replace the preamble block marked
+%% below; the body and bibliography are written to transfer with no changes.
+%% Do NOT post this paper on CEUR: AIIDE 2026 treats CEUR as archival and will
+%% reject papers available there. arXiv is allowed.
+%% ============================================================================
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%% ---- begin AAAI-style approximation (swap for \usepackage{aaai2026}) -------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}                 % Times for text and math (AAAI base font)
+\usepackage{helvet}                   % Helvetica for headings
+\usepackage{courier}
+\usepackage[letterpaper,top=0.95in,bottom=1.0in,left=0.75in,right=0.75in]{geometry}
+\setlength{\columnsep}{0.27in}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\usepackage[round]{natbib}
+\bibpunct{(}{)}{;}{a}{}{,}            % AAAI author-year: (Author Year)
+\captionsetup{font=small,labelfont=bf}
+%% Let large (often full-width) figures place cleanly without bunching.
+\setcounter{topnumber}{2}\setcounter{totalnumber}{3}
+\setcounter{dbltopnumber}{2}
+\renewcommand{\topfraction}{0.92}\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus .2ex}{0.8ex}
+\titlespacing*{\subsection}{0pt}{1.1ex plus .2ex}{0.5ex}
+\pagestyle{empty}                     % AAAI camera style: no page numbers
+\setlength{\parindent}{1.2em}
+\definecolor{good}{RGB}{11,91,57}
+\definecolor{bad}{RGB}{150,40,40}
+\definecolor{mid}{RGB}{120,110,40}
+\newcommand{\helps}{\textcolor{good}{\textbf{helps}}}
+\newcommand{\nofx}{\textcolor{mid}{\textbf{no effect}}}
+\newcommand{\fails}{\textcolor{bad}{\textbf{fails}}}
+%% Author identity toggle. Names are SHOWN now. For the AIIDE double-blind
+%% submission, set this to \anonymoustrue (the only change needed to anonymize).
+\newif\ifanonymous
+\anonymousfalse
+%% ---- end AAAI-style approximation ------------------------------------------
+
+\title{\bf A Gold-Standard Study of What Makes\\ a Lightweight Game-Playing Agent Strong}
+
+\ifanonymous
+  \author{Anonymous Submission}
+\else
+  \author{Nima Kelidari \quad Mohammadsaeed Haghi \quad Mahdi Salmani \\[2pt]
+    University of Southern California \\[2pt]
+    \texttt{kelidari@usc.edu} \quad \texttt{haghim@usc.edu} \quad \texttt{salmanis@usc.edu}}
+\fi
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Reinforcement learning agents for imperfect-information card games are only as
+strong as the opponents they train against, and a practitioner usually has no
+cheap, absolute yardstick for how good an agent really is. The many training
+choices that go into a small, fast agent (algorithm, reward shaping, curriculum,
+state representation, checkpoint selection) then get tuned against weak or
+moving references. We address this by building a strong, fixed, deterministic
+expert for Gin Rummy that plays exact-optimal melds and principled endgame
+moves, and by using it only as a grading yardstick, never to train the agent.
+The expert beats every agent we trained 70 to 99 percent of the time, yet it
+gins in under two percent of games: it wins by knocking early with low deadwood.
+Graded against this fixed reference across more than one hundred controlled runs,
+we find that trust-region updates, a knock-first reward, a rising opponent
+curriculum, warm-starting, and keeping the best checkpoint each help, while
+learned state embeddings, dense step rewards, imitation learning, and a live
+large-language-model opponent each fail for an identifiable reason. The clearest
+result is that reward shaping cannot push the agent into the human-intuitive but
+losing habit of chasing gin: paying three times more for a gin leaves the gin
+rate under one percent, the same as not rewarding gin at all. Stacking the
+choices that help moves a lightweight agent from a self-play champion's roughly
+30 percent against the expert to 34 percent. We release the pipeline as a
+game-agnostic package so the same study can be run on other games.
+\end{abstract}
+
+%% ===========================================================================
+\section{Introduction}
+%% ===========================================================================
+Learning to play imperfect-information card games well is a long-standing
+testbed for game AI. Games such as poker, DouDizhu, Mahjong, and Gin Rummy hide
+the opponent's hand and the order of the deck, so a player must act under
+uncertainty, plan over a long horizon, and adapt to whoever sits across the
+table. The dominant recipe for building agents in these games is deep
+reinforcement learning (RL) with self-play, which has produced superhuman play
+in several of them \citep{nfsp,suphx,douzero}. Behind those headline results,
+though, a practitioner who wants a small and fast agent runs into two practical
+problems that the headline results do not solve.
+
+The first is the \emph{opponent bottleneck}. An RL agent is only as good as the
+opponents it practices against. Training against a weak fixed opponent teaches a
+weak ceiling, and pure self-play can chase its own tail, cycling through
+strategies that beat the last version without getting stronger in any absolute
+sense. The second problem is that, for most of these games, the practitioner has
+\emph{no cheap absolute yardstick}. Strength is usually measured against random
+play or against the agent's own past checkpoints, both of which can flatter a
+mediocre agent. As a result, the design choices that actually build a strong
+lightweight agent (which RL algorithm, how to shape the reward, how to schedule
+opponents, how to represent the state, which checkpoint to ship) are tuned
+against references that are either too weak or constantly moving. The field has
+many strong single agents but few clean, controlled accounts of which of these
+choices matter and why. If we had a fixed, strong, and cheap reference opponent,
+we could measure these choices honestly and turn them into a reusable recipe.
+
+Existing lines of work do not fill this gap directly. The famous self-play
+systems \citep{alphazero,alphastar,openaifive} answer what is possible with very
+large compute, not which lightweight choices matter on a single GPU. Search and
+equilibrium methods such as counterfactual regret minimization and its
+descendants \citep{cfr,libratus,deepcfr} produce extremely strong play, but they
+are a different family of method (search over the game tree), and they do not
+tell you how to set the reward or curriculum for a compact reactive policy.
+Prior Gin Rummy work studies single methods in isolation, for example
+temporal-difference self-play \citep{tdrummy} or hand-tuned heuristic and
+ensemble agents \citep{ginensemble}, rather than a controlled head-to-head of
+training choices graded against one fixed expert.
+
+We take a deliberately simple position. For Gin Rummy we build a strong, fixed,
+deterministic expert that solves the one subproblem with a clean optimum (meld
+decomposition, that is, the lowest-deadwood way to arrange a hand) and otherwise
+plays principled endgame moves. It is not a game-theoretic optimum for the full
+imperfect-information game, and we do not claim it is; what matters is that it is
+strong, reproducible, and cheap, so it makes an honest yardstick. We never train
+against it. We then run more than one hundred controlled experiments that change
+one factor at a time and grade every result against this fixed expert. This
+paper makes the following contributions.
+
+\begin{itemize}
+\itemsep0.15em
+\item A reproducible gold-standard expert benchmark for Gin Rummy, and the
+empirical finding that strong play almost never gins. The expert gins in 0.7 to
+1.7 percent of games and wins by knocking early with low deadwood. This single
+fact reframes how reward should be designed for the game.
+\item A controlled, apples-to-apples study, graded against the fixed expert, of
+which lightweight training choices actually help. Trust-region updates, a
+knock-first reward, a rising opponent curriculum, warm-starting, and keeping the
+best checkpoint each help; learned state embeddings, dense step rewards,
+imitation learning, and a live large-language-model (LLM) opponent each fail,
+each for an identified reason.
+\item The result that reward shaping cannot induce the human-intuitive but
+losing habit of chasing gin. Paying three times more for a gin than a knock
+leaves the gin rate under one percent, the same as not rewarding gin at all. We
+connect the parallel failure of imitation learning to causal confusion.
+\item A game-agnostic release of the pipeline that reproduces the study on any
+two-player game in a standard multi-agent interface, so the method is not tied
+to Gin Rummy.
+\end{itemize}
+
+%% ===========================================================================
+\section{Related Work}
+%% ===========================================================================
+
+\paragraph{Deep RL for imperfect-information card games.}
+Self-play deep RL has mastered several hidden-information card and tile games.
+Neural Fictitious Self-Play approximates a Nash equilibrium by mixing a
+best-response network with an average-policy network \citep{nfsp}. Suphx reached
+expert human level at Mahjong with global reward prediction and oracle guiding
+\citep{suphx}, and DouZero mastered the three-player game DouDizhu by combining
+deep networks with parallel Monte-Carlo self-play \citep{douzero}. RLCard
+provides a common toolkit and environments for this line of work, including Gin
+Rummy \citep{rlcard}. Within Gin Rummy specifically, \citet{tdrummy} compared
+temporal-difference self-play with coevolution, and the EAAI undergraduate
+challenge produced strong hand-tuned and ensemble agents \citep{ginensemble}.
+These works each introduce a single strong agent. We differ in goal: rather than
+proposing one more agent, we hold a fixed expert constant and use it to measure,
+in controlled experiments, which training choices make a lightweight agent
+stronger.
+
+\paragraph{Self-play, leagues, and opponent curricula.}
+AlphaGo Zero and AlphaZero showed that pure self-play with search can reach
+superhuman play in perfect-information games \citep{alphagozero,alphazero}.
+AlphaStar added a league with prioritized fictitious self-play (PFSP), sampling
+harder opponents more often \citep{alphastar}, and OpenAI Five scaled self-play
+to a complex video game \citep{openaifive}. Curriculum learning more broadly
+orders training from easy to hard \citep{curriculum}, and a large literature
+studies curricula for RL \citep{curriculumsurvey}. We adopt a small opponent
+curriculum and a PFSP variant, but our question is not how far self-play scales;
+it is which curriculum and checkpoint choices matter at small scale, measured
+against a fixed expert rather than against the moving target of self-play.
+
+\paragraph{Search and equilibrium solving.}
+Counterfactual regret minimization \citep{cfr} and its deep variants
+\citep{deepcfr} underpin the superhuman poker agents Libratus and Pluribus
+\citep{libratus,pluribus}. These methods search or solve over the game tree and
+are complementary to ours: we do not use them as our method, but we use them to
+frame the performance ceiling we observe and to point at what a future agent
+would need in order to break it.
+
+\paragraph{Reward shaping and imitation learning.}
+Potential-based reward shaping preserves the optimal policy while changing the
+learning signal \citep{shaping}; we use this view to interpret why some shaped
+rewards help and others hurt. DAgger reduces imitation learning to no-regret
+online learning by querying an expert on states the student visits
+\citep{dagger}. We find that imitation collapses here, and we attribute the
+collapse to causal confusion, the phenomenon in which a cloned policy latches
+onto spurious correlates of the expert action and breaks under distribution
+shift \citep{causalconfusion}.
+
+\paragraph{Language models as game players.}
+Cicero combined a language model with planning and RL to reach human-level play
+in Diplomacy, a game built on negotiation \citep{cicero}. Motivated by such
+results, we test a modern instruction-tuned LLM \citep{qwen} as a live opponent
+inside the training loop. We find it plays competently but is far too slow to
+serve the millions of moves that RL needs, which is itself a useful negative
+result for anyone considering live LLM opponents.
+
+\paragraph{Action masking and tooling.}
+Invalid-action masking is the standard way to keep a policy-gradient agent
+inside the legal action set \citep{mask}. We build on PettingZoo for the
+multi-agent interface \citep{pettingzoo}, Stable-Baselines3 for PPO and TRPO
+\citep{sb3,ppo,trpo,gae}, and a paged-attention server for LLM inference
+\citep{vllm}.
+
+%% ===========================================================================
+\section{Problem Setup}
+%% ===========================================================================
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.84\textwidth]{architecture.pdf}
+\caption{System overview. A masked PPO or TRPO learner trains against a rising
+curriculum of opponents (random play, a growing pool of past checkpoints, then
+self-play), with a distributed LLM available as an optional opponent. The fixed
+expert sits outside the training loop and is used only to grade agents, so no
+trained agent ever practices against the yardstick it is measured with.}
+\label{fig:arch}
+\end{figure*}
+We study two-player Gin Rummy as implemented in RLCard and exposed through
+PettingZoo as \texttt{gin\_rummy\_v4} \citep{rlcard,pettingzoo}.
+Figure~\ref{fig:arch} shows how the pieces fit together: a masked RL learner, a
+curriculum of opponents, and the fixed expert that grades agents without ever
+entering training. Each turn a
+player draws (from the stock or the discard pile), then discards, and may knock
+when the deadwood (the point value of cards left outside melds) is at most ten,
+or declare gin at zero deadwood. Knocking with low deadwood wins a small score;
+gin wins a larger bonus but requires a complete hand and so is riskier.
+
+\paragraph{Observation and actions.}
+The agent sees a $4\times52$ binary tensor: its own hand, the top of the discard
+pile, the other visible discards, and the set of unknown cards (in the
+opponent's hand or the stock). It never sees the opponent's hand. The action
+space has $110$ discrete actions (draw, pick up, declare, and one discard or
+knock per card), and at every step the environment supplies a binary mask of the
+legal actions.
+
+\paragraph{Single-agent reduction.}
+We turn the two-player game into a single-agent learning problem: one seat is the
+learner and the other is an opponent drawn from a curriculum (described below).
+The wrapper steps the opponent to completion between the learner's decisions and
+rotates seats across games so that neither position is favored. This reduction is
+what lets us swap in any opponent, including the fixed expert for evaluation and
+the LLM for the live-opponent test, without changing the learner.
+
+\paragraph{Masked actor-critic.}
+Our policy is a masked actor-critic shared by PPO and TRPO \citep{ppo,trpo}. We
+compute action logits, then set the logits of illegal actions to a large finite
+negative value before the softmax. We use a large finite value rather than
+negative infinity on purpose: PPO tolerates infinities, but the
+conjugate-gradient and KL computations in TRPO produce NaNs on them, so a large
+finite fill gives near-zero probability to illegal moves while keeping the same
+network usable by both algorithms. At evaluation we always take the
+highest-probability \emph{legal} action. We never fall back to a random legal
+move, because a random fallback would quietly inflate measured strength by
+hiding states where the policy is undecided.
+
+%% ===========================================================================
+\section{The Gold-Standard Expert}
+%% ===========================================================================
+The center of our method is a fixed reference opponent that is strong, cheap,
+and fully reproducible. We build it from one exact component and a few
+principled heuristics, and we are precise about which is which.
+
+\paragraph{Exact melding.}
+Given a hand, the lowest achievable deadwood is a well-defined optimization:
+enumerate the valid ways to group cards into runs and sets, and keep the
+arrangement with the least leftover value. We solve this exactly using RLCard's
+meld enumeration, memoized over hands so that the whole benchmark runs quickly.
+This is the one place where the expert is provably optimal, and it is optimal
+only for this subproblem, not for the full game.
+
+\paragraph{Principled endgame.}
+On top of exact deadwood, the expert draws the up-card only when doing so
+strictly lowers its best achievable deadwood, discards the card that minimizes
+resulting deadwood (breaking ties by shedding the highest-value card), and
+knocks as soon as it legally can, declaring gin only when gin is reachable
+without delay. These are sensible, deterministic rules. They are not tuned to
+the opponent and they do not reason about the opponent's hidden cards, so the
+expert is not a game-theoretic optimum.
+
+\paragraph{Why this is the right yardstick.}
+A game-theoretic optimum for imperfect-information Gin Rummy is not available at
+low cost, and we do not need one. What an honest study needs is a reference that
+is (i) strong enough to separate good agents from weak ones, (ii) identical in
+every comparison, and (iii) cheap enough to grade thousands of games. Our expert
+satisfies all three. As we show next, it beats every agent we trained by a wide
+margin, so it is a meaningful ceiling, and because it is fixed and
+deterministic, a win-rate against it is directly comparable across every
+experiment in the paper. We use the expert only to score agents; it never
+appears in the training loop, so no result below is contaminated by training
+against the thing we measure with.
+
+%% ===========================================================================
+\section{Training Methods Studied}
+%% ===========================================================================
+All learning agents share the masked actor-critic above. Around it we vary one
+ingredient at a time. This section describes the ingredients; the next two
+describe how we evaluate them and what we found.
+
+\paragraph{Algorithm.}
+We compare PPO, which clips the policy update, with TRPO, which bounds the
+update by a trust region on the policy's KL divergence \citep{ppo,trpo}. Both use
+generalized advantage estimation \citep{gae} and the same network, curriculum,
+and reward, so any difference is the algorithm.
+
+\paragraph{Reward shaping.}
+The native reward is sparse: a score at the end of the game. We study shaped
+rewards that change the relative payoff of knocking and ginning, and a small
+dense bonus for reducing one's own deadwood. We read these through the lens of
+potential-based shaping \citep{shaping}: a shaping term that tracks real progress
+should help, while one that rewards a proxy can pull the agent off the true
+objective.
+
+\paragraph{Opponent curriculum.}
+We schedule opponents in three stages: first random play, then a growing pool of
+past checkpoints, then a mix that adds self-play. The pool can be sampled
+uniformly over recent checkpoints or with a PFSP weighting that practices more
+against opponents the agent is currently losing to \citep{alphastar}. The stage
+boundaries are set as fractions of the training budget and synchronized across
+parallel workers through a small shared state file.
+
+\paragraph{Warm-start and keep-the-best.}
+We optionally warm-start a run from a strong earlier agent rather than from
+scratch. During training we evaluate against the hardest reference every fixed
+number of steps and save a copy whenever the agent improves, then ship that best
+checkpoint instead of the final one. The motivation, which the results confirm,
+is that training in a shifting self-play environment often drifts past its own
+peak.
+
+\paragraph{State representation.}
+The native observation is a sparse $4\times52$ tensor. We test whether a compact
+dense embedding helps by squeezing it into a small vector two ways: one learned
+to place game states that lead to similar outcomes near each other, and one
+where an LLM judges state similarity and we fit an embedding to those judgments.
+We test several embedding sizes and both frozen and unfrozen variants.
+
+\paragraph{Imitation and dense supervision.}
+We test DAgger, which trains the student to copy the expert's action on the
+states the student actually visits \citep{dagger}, and a short-horizon dense
+reward that scores each move by agreement with an evaluator over the next $L$
+steps. Both are popular shortcuts for injecting expert knowledge.
+
+\paragraph{Live LLM opponent.}
+Finally, we test whether a modern LLM can serve as a strong in-the-loop opponent.
+Because a single RL run issues tens of thousands of opponent queries and a 7B
+model answers in seconds, a naive loop would take far too long, so we built a
+distributed serving stack: a CPU master with a response cache that canonicalizes
+suit-equivalent positions into one cache key, and a pool of GPU workers that
+self-register and are health-checked and load-balanced by the master
+\citep{vllm,qwen}. One engineering finding from this stack is reported with the
+results, because it matters for anyone trying the same thing: where the model
+weights are stored dominates worker start-up time.
+
+%% ===========================================================================
+\section{Experimental Setup}
+%% ===========================================================================
+\paragraph{One metric, applied the same way everywhere.}
+Every agent is graded by its win-rate against the fixed expert, with seats
+rotated so that each agent plays both positions equally. We use this single
+metric because the expert is strong, identical across comparisons, and cheap, so
+a win-rate against it isolates the effect of whatever ingredient we changed. We
+report two supporting numbers where useful: win-rate against the prior self-play
+champion (a moving but familiar reference) and against random play (a floor that
+saturates). For the headline agents we run $2000$ games and report a $95$ percent
+confidence interval; for the broad sweeps we run $400$ to $600$ games per cell,
+which is enough to rank regimes.
+
+\paragraph{Protocol.}
+Each study changes one factor and holds the rest fixed. Algorithm runs use two
+random seeds at two million steps. The reward and curriculum sweep changes one
+setting at a time from a common baseline. Representation runs hold the trainer
+fixed and swap only the input. Evaluation always uses the highest-probability
+legal action, never a random fallback, for the reason given above. Win-rates
+count a positive game score as a win.
+
+%% ===========================================================================
+\section{Results}
+%% ===========================================================================
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{gold_bench.pdf}
+\caption{The fixed expert beats every agent we trained (left) yet gins in under
+two percent of games (right). It wins by knocking early with low deadwood, not
+by chasing gin. This is the observation that reframes reward design for the
+game.}
+\label{fig:gold}
+\end{figure*}
+
+\subsection{The expert is strong, and it almost never gins}
+The expert beats every agent we trained between $70$ and $99$ percent of the
+time: for example $70.2$ percent against the self-play champion and $99.5$
+percent against random play (Figure~\ref{fig:gold}, left). The surprise is on the
+right of Figure~\ref{fig:gold}: despite gin scoring the most points, the expert
+gins in only $0.7$ to $1.7$ percent of games. It wins by knocking early with low
+deadwood. Chasing gin, the move a beginner reaches for, is a trap. The best style
+is patient, low-risk knocking. Every reward result below should be read with this
+in mind.
+
+\subsection{Algorithm: trust-region updates win}
+With the same masking, curriculum, and reward at two million steps, TRPO beats
+PPO on every opponent and both seeds. Against the expert, TRPO reaches $22.5$
+percent and PPO $15.0$ percent; against the champion, $50.5$ percent versus
+$31.0$ percent (Figure~\ref{fig:algoreward}, left). The reason fits the setting:
+rewards here are rare and the opponent keeps changing, and a trust region takes
+smaller, safer steps that do not overreact to a lucky or unlucky batch. We note
+that some popular alternatives do not apply here: methods like GRPO and DPO are
+built for aligning language models from preference data, not for per-move control
+in a game environment, so they are out of scope.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.49\textwidth]{algo_compare.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{reward_gin.pdf}
+\caption{Left: TRPO beats PPO against every opponent. Right: the gin rate stays
+under one percent for every reward design we tried, including one that pays three
+times more for a gin than a knock. The dashed line marks the expert's own gin
+rate. You cannot pay the agent into chasing gin.}
+\label{fig:algoreward}
+\end{figure*}
+
+\subsection{Reward: you cannot pay the agent into ginning}
+The gin-to-knock payoff is a real dial for \emph{style}: when we reward gin
+heavily the agent gins more often against weak opponents, and when we reward
+knocking it knocks almost always. Against random play, a knock-first reward
+yields $97$ percent knocks at a $99.4$ percent win-rate, and a gin-first reward
+yields $22$ percent gins at a $98.3$ percent win-rate. But style is not strength.
+When graded against the expert, the gin rate collapses no matter how we set the
+reward. Across the controlled sweep, paying three times more for a gin than a
+knock leaves the gin rate under one percent, statistically the same as not
+rewarding gin at all (Figure~\ref{fig:algoreward}, right). Just like the expert,
+the agent works out on its own that against strong play, chasing gin loses. This
+is the cleanest result in the paper: a shaped reward can set the agent's style,
+but it cannot bribe the agent into a habit that loses.
+
+\subsection{Representation: the raw sparse input wins}
+Compressing the sparse $4\times52$ observation into a small dense embedding hurt
+in every variant we tried. Against the expert, the raw sparse input reaches about
+$15$ percent, while learned and LLM-judged embeddings land between $6$ and $14$
+percent depending on size, and never above the sparse baseline
+(Figure~\ref{fig:regimes}). Larger embeddings and unfreezing the encoder did not
+close the gap. The reason is that a fixed low-dimensional bottleneck is good at
+saying whether two states are broadly similar, but it discards the fine detail
+(which exact cards are where) that the policy needs to act well.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.86\textwidth]{regimes.pdf}
+\caption{Every regime ranked by best win-rate against the fixed expert. Learned
+representations sit below the raw sparse input; trust-region self-play with the
+right reward, a rising curriculum, warm-starting, and keep-the-best sits at the
+top.}
+\label{fig:regimes}
+\end{figure*}
+
+\subsection{Curriculum, warm-start, and keep-the-best}
+Self-play makes difficulty free: a three-million-step self-play agent beats its
+own parent $61$ percent of the time. But unguided self-play is fragile; a pool of
+past selves with no schedule broke down after about ten million steps as the
+agents chased circular strategies. A rising curriculum (random, then a pool, then
+self-play) keeps the challenge fair but always a little harder, and avoids that
+collapse. Two cheap additions matter on top of it. Warm-starting from the
+champion starts a run strong and lets it specialize. Keeping the best checkpoint
+matters most: because training drifts past its peak, evaluating every million
+steps and shipping the best checkpoint recovers two to three points for free
+(Figure~\ref{fig:curves}). A more elaborate opponent-picking scheme (PFSP) was
+about even with a simple schedule here, and a longer reward horizon (a higher
+discount) slightly hurt, adding noise rather than foresight.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{learning_curves.pdf}
+\caption{Win-rate against the champion as training moves through curriculum
+stages. The climb is real, but the late dip is why keeping the best checkpoint,
+rather than the last one, is worth two to three points.}
+\label{fig:curves}
+\end{figure*}
+
+Stacking the ingredients that help (TRPO, a knock-first reward with a small
+deadwood-reduction bonus, a curriculum seeded with the strongest earlier agents,
+warm-starting, and keep-the-best) and checking over $2000$ games, the strongest
+agent reaches $\mathbf{34.2 \pm 2.1}$ percent against the expert and $51.4$
+percent against the old champion, up from the champion's roughly $30$ percent
+(Table~\ref{tab:numbers}). Two sibling agents trained with PFSP reach $34.0$
+percent, statistically the same. Table~\ref{tab:verdicts} summarizes every
+ingredient and its verdict.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Win-rate against the fixed expert for the main milestones (higher is
+better), with win-rate against the prior self-play champion for context. The
+headline agent is evaluated over $2000$ games with a $95$ percent confidence
+interval; the others over $400$ to $600$ games. Tuning the algorithm, reward,
+curriculum, and checkpointing tops out in the mid-thirties against the expert.}
+\label{tab:numbers}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Regime} & \textbf{vs.\ expert} & \textbf{vs.\ champion} \\
+\midrule
+PPO baseline, 2M steps          & 15.0 & 31.0 \\
+TRPO baseline, 2M steps         & 22.5 & 50.5 \\
+Self-play champion (prior best) & $\sim$30 & (self) \\
+Stacked recipe (this work)      & \textbf{34.2 $\pm$ 2.1} & \textbf{51.4} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.78\textwidth]{journey.pdf}
+\caption{Closing the gap to the fixed expert, milestone by milestone, from the
+self-play champion to the final stacked recipe. The gain is modest but real, and
+it comes from a controlled search rather than from luck.}
+\label{fig:journey}
+\end{figure*}
+
+\subsection{The honest negatives}
+Three popular shortcuts each failed, and the failures are as informative as the
+successes.
+
+\emph{Imitation learning (DAgger).} Copying the expert's moves one at a time
+drove the training loss to near zero but produced an agent that wins almost no
+games. This is a textbook case of causal confusion \citep{causalconfusion}: the
+student learns to reproduce the expert's move in familiar positions without
+learning the reasoning behind it (tracking what the opponent is collecting), so
+it falls apart the moment the game leaves the demonstrated distribution. Copying
+a move is not the same as understanding why.
+
+\emph{Dense step rewards.} Scoring every move against an evaluator over a short
+horizon made the agent short-sighted. A horizon of two showed no real learning,
+and a horizon of five stopped improving after about five hundred thousand steps,
+at which point the agent farmed instant points instead of trying to win. Dense
+shaping pulled the policy away from the real, sparse goal, exactly the failure
+mode that the theory of reward shaping warns about when the bonus is not aligned
+with the true return \citep{shaping}.
+
+\emph{Live LLM opponent.} Modern instruction-tuned LLMs played Gin Rummy
+competently with a chain-of-thought prompt, reaching $98.2$ percent legal moves
+(against $79.3$ percent with a terse prompt), and one even beat our self-play
+agent three games to two in a short match. But at $9$ to $27$ seconds per move
+they are far too slow to supply the millions of moves an RL run needs; training
+this way would take weeks. A vision-language variant fed the board as an image failed
+outright at roughly ten percent legal moves, confirming that this is a text task,
+not an image task. The serving stack did expose one transferable engineering
+lesson: loading a 7B worker from networked home storage ran at about eleven
+megabytes per second and took roughly twenty-eight minutes, blowing the
+health-check timeout, while staging the same weights on fast scratch storage cut
+start-up to about twenty-seven seconds, a $62\times$ speedup, after which a
+fourteen-worker pool sustained about thirty-two queries per second. The LLM is
+strong enough to be interesting and too slow to be useful as a live opponent.
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Which ingredients moved the needle against the fixed expert, across
+more than one hundred controlled runs. Verdicts are measured by win-rate against
+the expert; the ``why'' column gives the mechanism we observe.}
+\label{tab:verdicts}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Ingredient} & \textbf{Verdict} & \textbf{Why} \\
+\midrule
+Keep the best checkpoint        & \helps & training drifts past its peak, so saving the best recovers two to three points \\
+Warm-start from the champion    & \helps & start strong, then specialize, rather than relearn from scratch \\
+TRPO over PPO                    & \helps & smaller, safer steps suit rare rewards and a shifting opponent \\
+Reward knocking, not gin         & \helps & matches the expert's low-risk, knock-early style \\
+Rising opponent curriculum      & \helps & always a fair but slightly harder challenge; avoids self-play collapse \\
+Pay three times more for gin     & \nofx  & the agent refuses the losing habit at any payoff; gin rate stays under one percent \\
+PFSP opponent picking           & \nofx  & about even with a simple schedule at this scale \\
+Learned state embeddings        & \fails & a fixed low-dimensional bottleneck throws away detail the policy needs \\
+Imitation learning (DAgger)     & \fails & causal confusion: copies moves, not the reasoning behind them \\
+Dense short-horizon rewards     & \fails & short-sighted: farms instant points, blind to winning \\
+Live LLM opponent               & \fails & competent but $9$ to $27$ seconds per move, far too slow for RL-scale rollouts \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+%% ===========================================================================
+\section{Discussion, Limitations, and Future Work}
+%% ===========================================================================
+\paragraph{A ceiling, and what it means.}
+Stacking every choice that helps moves a lightweight agent from roughly $30$ to
+about $34$ percent against the expert (Figure~\ref{fig:journey}). The honest
+reading is that tuning the reward, the algorithm, and the opponents tops out in
+the mid-thirties. This is not a disappointment; it is a measurement. The expert
+exploits exactly the things our compact, reactive policy cannot: it never
+miscounts deadwood, and although it does not model the opponent, it plays a
+disciplined low-variance style that a reactive network struggles to match move
+for move. Reading the ceiling this way tells us what a stronger agent would need,
+rather than leaving us to guess.
+
+\paragraph{Limitations.}
+We study one game, so the specific numbers are about Gin Rummy. Our expert is a
+strong heuristic, not a game-theoretic optimum, so ``win-rate against the
+expert'' is a fixed and meaningful yardstick rather than a distance from perfect
+play, and we have been careful to frame it that way. Our learner is a reactive
+feed-forward policy with no recurrence or explicit memory, which is part of why
+it cannot track hidden information. And we tested the LLM only as a live
+opponent; we did not use it to generate an offline dataset, which our serving
+stack was in fact built to support.
+
+\paragraph{Future work.}
+The shape of the ceiling points at the methods most likely to break it. Search
+and regret-minimization approaches \citep{cfr,deepcfr} and equilibrium-finding
+self-play \citep{nfsp} buy strength in imperfect-information games precisely by
+reasoning about hidden information, which our reactive policy does not do. Giving
+the agent memory, or a small amount of search at decision time, is the natural
+next step. So is explicit opponent-hand estimation, a thread already present in
+the Gin Rummy literature. Finally, because our LLM serving stack can produce
+strong play offline even though it is too slow online, a promising direction is
+to distill a large batch of LLM-versus-LLM games into the policy with offline RL,
+sidestepping the latency that killed the live-opponent approach.
+
+\paragraph{Beyond one game.}
+Nothing in the method is specific to Gin Rummy. The recipe is a pattern: build a
+fixed strong reference for the game, grade every training choice against it,
+schedule a rising curriculum of opponents, and ship the best checkpoint rather
+than the last. We package the pipeline so that pointing it at another two-player
+game in the same multi-agent interface requires changing only the environment,
+and we hope the controlled, expert-graded style of study is useful to others
+building lightweight agents for interactive games.
+
+%% ===========================================================================
+\section{Conclusion}
+%% ===========================================================================
+We set out to answer two questions for a small, fast Gin Rummy agent: how strong
+can it get, and which training choices make it strong. By building a fixed expert
+yardstick and grading more than one hundred controlled runs against it, we found
+a clear answer. Strong play knocks early and almost never gins, and no reward we
+tried could pay the agent into the losing habit of chasing gin. Trust-region
+self-play with a knock-first reward, a rising curriculum, warm-starting, and
+keeping the best checkpoint is the recipe that works, reaching about $34$ percent
+against the expert; learned embeddings, imitation, dense rewards, and a live LLM
+opponent each fail for a reason we can name. The biggest lesson is methodological:
+a fixed, strong, reproducible reference turns a pile of training tricks into a
+study with answers. We release the pipeline so the same study can be run on other
+games.
+
+%% ===========================================================================
+%% Reproducibility (anonymized for review)
+%% ===========================================================================
+\paragraph{Reproducibility.}
+Every figure is generated from saved evaluation logs, and the training curves are
+tracked online during runs. The training pipeline, the fixed expert, the
+distributed LLM serving stack, and the web client used for human play will be
+released as open source on acceptance.
+
+%% ===========================================================================
+\bibliographystyle{plainnat}
+\begin{thebibliography}{99}
+\setlength{\itemsep}{0.15em}
+
+\bibitem[Bakhtin et al.(2022)]{cicero}
+Meta Fundamental AI Research Diplomacy Team (FAIR); Bakhtin, A.; Brown, N.;
+Dinan, E.; Farina, G.; Flaherty, C.; Fried, D.; Goff, A.; Gray, J.; Hu, H.;
+et al. 2022.
+Human-Level Play in the Game of \emph{Diplomacy} by Combining Language Models
+with Strategic Reasoning.
+\emph{Science} 378(6624): 1067--1074.
+
+\bibitem[Bengio et al.(2009)]{curriculum}
+Bengio, Y.; Louradour, J.; Collobert, R.; and Weston, J. 2009.
+Curriculum Learning.
+In \emph{Proceedings of the 26th International Conference on Machine Learning
+(ICML)}, 41--48.
+
+\bibitem[Berner et al.(2019)]{openaifive}
+Berner, C.; Brockman, G.; Chan, B.; Cheung, V.; D\k{e}biak, P.; Dennison, C.;
+Farhi, D.; Fischer, Q.; Hashme, S.; Hesse, C.; et al. 2019.
+Dota 2 with Large Scale Deep Reinforcement Learning.
+arXiv:1912.06680.
+
+\bibitem[Brown and Sandholm(2018)]{libratus}
+Brown, N.; and Sandholm, T. 2018.
+Superhuman AI for Heads-up No-Limit Poker: Libratus Beats Top Professionals.
+\emph{Science} 359(6374): 418--424.
+
+\bibitem[Brown and Sandholm(2019)]{pluribus}
+Brown, N.; and Sandholm, T. 2019.
+Superhuman AI for Multiplayer Poker.
+\emph{Science} 365(6456): 885--890.
+
+\bibitem[Brown et al.(2019)]{deepcfr}
+Brown, N.; Lerer, A.; Gross, S.; and Sandholm, T. 2019.
+Deep Counterfactual Regret Minimization.
+In \emph{Proceedings of the 36th International Conference on Machine Learning
+(ICML)}, 793--802.
+
+\bibitem[de Haan et al.(2019)]{causalconfusion}
+de Haan, P.; Jayaraman, D.; and Levine, S. 2019.
+Causal Confusion in Imitation Learning.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 32.
+
+\bibitem[Heinrich and Silver(2016)]{nfsp}
+Heinrich, J.; and Silver, D. 2016.
+Deep Reinforcement Learning from Self-Play in Imperfect-Information Games.
+arXiv:1603.01121.
+
+\bibitem[Huang and Onta\~{n}\'{o}n(2022)]{mask}
+Huang, S.; and Onta\~{n}\'{o}n, S. 2022.
+A Closer Look at Invalid Action Masking in Policy Gradient Algorithms.
+In \emph{Proceedings of the 35th International FLAIRS Conference}.
+
+\bibitem[Kotnik and Kalita(2003)]{tdrummy}
+Kotnik, C.; and Kalita, J. 2003.
+The Significance of Temporal-Difference Learning in Self-Play Training:
+TD-rummy versus EVO-rummy.
+In \emph{Proceedings of the 20th International Conference on Machine Learning
+(ICML)}, 369--375.
+
+\bibitem[Kwon et al.(2023)]{vllm}
+Kwon, W.; Li, Z.; Zhuang, S.; Sheng, Y.; Zheng, L.; Yu, C.~H.; Gonzalez, J.~E.;
+Zhang, H.; and Stoica, I. 2023.
+Efficient Memory Management for Large Language Model Serving with PagedAttention.
+In \emph{Proceedings of the 29th ACM Symposium on Operating Systems Principles
+(SOSP)}.
+
+\bibitem[Li et al.(2020)]{suphx}
+Li, J.; Koyamada, S.; Ye, Q.; Liu, G.; Wang, C.; Yang, R.; Zhao, L.; Qin, T.;
+Liu, T.-Y.; and Hon, H.-W. 2020.
+Suphx: Mastering Mahjong with Deep Reinforcement Learning.
+arXiv:2003.13590.
+
+\bibitem[Nagai et al.(2021)]{ginensemble}
+Nagai, M.; Shrivastava, K.; Ta, K.; Bogaerts, S.; and Byers, C. 2021.
+A Highly-Parameterized Ensemble to Play Gin Rummy.
+\emph{Proceedings of the AAAI Conference on Artificial Intelligence} 35(17):
+15614--15621 (EAAI Symposium).
+
+\bibitem[Narvekar et al.(2020)]{curriculumsurvey}
+Narvekar, S.; Peng, B.; Leonetti, M.; Sinapov, J.; Taylor, M.~E.; and Stone, P.
+2020.
+Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey.
+\emph{Journal of Machine Learning Research} 21(181): 1--50.
+
+\bibitem[Ng et al.(1999)]{shaping}
+Ng, A.~Y.; Harada, D.; and Russell, S. 1999.
+Policy Invariance under Reward Transformations: Theory and Application to Reward
+Shaping.
+In \emph{Proceedings of the 16th International Conference on Machine Learning
+(ICML)}, 278--287.
+
+\bibitem[Qwen Team(2024)]{qwen}
+Qwen Team. 2024.
+Qwen2.5 Technical Report.
+arXiv:2412.15115.
+
+\bibitem[Raffin et al.(2021)]{sb3}
+Raffin, A.; Hill, A.; Gleave, A.; Kanervisto, A.; Ernestus, M.; and Dormann, N.
+2021.
+Stable-Baselines3: Reliable Reinforcement Learning Implementations.
+\emph{Journal of Machine Learning Research} 22(268): 1--8.
+
+\bibitem[Ross et al.(2011)]{dagger}
+Ross, S.; Gordon, G.~J.; and Bagnell, J.~A. 2011.
+A Reduction of Imitation Learning and Structured Prediction to No-Regret Online
+Learning.
+In \emph{Proceedings of the 14th International Conference on Artificial
+Intelligence and Statistics (AISTATS)}, 627--635.
+
+\bibitem[Schulman et al.(2015)]{trpo}
+Schulman, J.; Levine, S.; Abbeel, P.; Jordan, M.; and Moritz, P. 2015.
+Trust Region Policy Optimization.
+In \emph{Proceedings of the 32nd International Conference on Machine Learning
+(ICML)}, 1889--1897.
+
+\bibitem[Schulman et al.(2016)]{gae}
+Schulman, J.; Moritz, P.; Levine, S.; Jordan, M.; and Abbeel, P. 2016.
+High-Dimensional Continuous Control Using Generalized Advantage Estimation.
+In \emph{International Conference on Learning Representations (ICLR)}.
+
+\bibitem[Schulman et al.(2017)]{ppo}
+Schulman, J.; Wolski, F.; Dhariwal, P.; Radford, A.; and Klimov, O. 2017.
+Proximal Policy Optimization Algorithms.
+arXiv:1707.06347.
+
+\bibitem[Silver et al.(2017)]{alphagozero}
+Silver, D.; Schrittwieser, J.; Simonyan, K.; Antonoglou, I.; Huang, A.; Guez, A.;
+Hubert, T.; Baker, L.; Lai, M.; Bolton, A.; et al. 2017.
+Mastering the Game of Go without Human Knowledge.
+\emph{Nature} 550(7676): 354--359.
+
+\bibitem[Silver et al.(2018)]{alphazero}
+Silver, D.; Hubert, T.; Schrittwieser, J.; Antonoglou, I.; Lai, M.; Guez, A.;
+Lanctot, M.; Sifre, L.; Kumaran, D.; Graepel, T.; et al. 2018.
+A General Reinforcement Learning Algorithm that Masters Chess, Shogi, and Go
+through Self-Play.
+\emph{Science} 362(6419): 1140--1144.
+
+\bibitem[Terry et al.(2021)]{pettingzoo}
+Terry, J.~K.; Black, B.; Grammel, N.; Jayakumar, M.; Hari, A.; Sullivan, R.;
+Santos, L.; Perez, R.; Horsch, C.; Dieffendahl, C.; et al. 2021.
+PettingZoo: Gym for Multi-Agent Reinforcement Learning.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 34.
+
+\bibitem[Vinyals et al.(2019)]{alphastar}
+Vinyals, O.; Babuschkin, I.; Czarnecki, W.~M.; Mathieu, M.; Dudzik, A.; Chung, J.;
+Choi, D.~H.; Powell, R.; Ewalds, T.; Georgiev, P.; et al. 2019.
+Grandmaster Level in StarCraft II using Multi-Agent Reinforcement Learning.
+\emph{Nature} 575(7782): 350--354.
+
+\bibitem[Zha et al.(2020)]{rlcard}
+Zha, D.; Lai, K.-H.; Huang, S.; Cao, Y.; Reddy, K.; Vargas, J.; Nguyen, A.; Wei,
+R.; Guo, J.; and Hu, X. 2020.
+RLCard: A Platform for Reinforcement Learning in Card Games.
+In \emph{Proceedings of the 29th International Joint Conference on Artificial
+Intelligence (IJCAI)}, Demo Track.
+
+\bibitem[Zha et al.(2021)]{douzero}
+Zha, D.; Xie, J.; Ma, W.; Zhang, S.; Lian, X.; Hu, X.; and Liu, J. 2021.
+DouZero: Mastering DouDizhu with Self-Play Deep Reinforcement Learning.
+In \emph{Proceedings of the 38th International Conference on Machine Learning
+(ICML)}, 12333--12344.
+
+\bibitem[Zinkevich et al.(2007)]{cfr}
+Zinkevich, M.; Johanson, M.; Bowling, M.; and Piccione, C. 2007.
+Regret Minimization in Games with Incomplete Information.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 20.
+
+\end{thebibliography}
+
+\end{document}
