@@ -48,6 +48,18 @@ CELLS = [
     # --- regularization (Wave 2): safe weight-decay lever on the winner MLP net ---
     ("arch_wd_lo", dict(weight_decay=1e-4), [0], "MLP + weight-decay 1e-4 (regularization)."),
     ("arch_wd_hi", dict(weight_decay=1e-3), [0], "MLP + weight-decay 1e-3 (regularization)."),
+    # --- Stage-B: EXTRA SEEDS for the headline cells. Appended -> NEW indices, so the cells already
+    #     running (indices 0-16) are untouched. arch_collect aggregates by cell name, so these simply
+    #     tighten the rliable IQM/CIs on the key architectures. ---
+    ("arch_mlp_default", {}, [2, 3], "Extra seeds for the anchor (tighter CIs)."),
+    ("arch_mlp_asym", dict(net_arch=dict(pi=[128, 64], vf=[512, 256])), [1, 2, 3], "Extra seeds."),
+    ("arch_conv1d", dict(arch="conv1d", extractor_kwargs=dict(features_dim=256)), [2, 3], "Extra seeds."),
+    ("arch_deepsets", dict(arch="deepsets", extractor_kwargs=dict(features_dim=128)), [2, 3], "Extra seeds."),
+    ("arch_attn", dict(arch="attn", extractor_kwargs=dict(features_dim=128, layers=2)), [2, 3], "Extra seeds."),
+    # --- new architecture variants for broader coverage ---
+    ("arch_mlp_xwide", dict(net_arch=dict(pi=[768, 384], vf=[768, 384])), [0, 1], "Extra-wide MLP."),
+    ("arch_attn_deep", dict(arch="attn", extractor_kwargs=dict(features_dim=128, layers=3)), [0, 1], "3-layer attention."),
+    ("arch_deepsets_big", dict(arch="deepsets", extractor_kwargs=dict(features_dim=256, hidden=128)), [0, 1], "Bigger DeepSets."),
 ]
 
 
