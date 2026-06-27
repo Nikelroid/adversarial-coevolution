@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AIIDE 2026 — Plan &amp; Abstract (Lightweight Game-Playing Agents)</title>
+<style>
+  :root{--good:#0b5b39;--mid:#7a6e28;--bad:#962828;--ink:#1b2227;--mut:#5c6b73;--line:#e3e8ea;--bg:#fbfcfd;--card:#fff}
+  *{box-sizing:border-box}
+  body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);margin:0;padding:0}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 22px 64px}
+  h1{font-size:25px;margin:0 0 4px}
+  h2{font-size:19px;margin:34px 0 10px;border-bottom:2px solid var(--line);padding-bottom:6px}
+  h3{font-size:15px;margin:18px 0 6px}
+  .sub{color:var(--mut);font-size:14px;margin:0 0 18px}
+  .banner{background:#0b5b39;color:#fff;border-radius:10px;padding:12px 16px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px}
+  .banner b{font-size:15px}
+  .pill{background:rgba(255,255,255,.16);border-radius:20px;padding:3px 11px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+  .abstract{background:#f4f8f6;border-left:4px solid var(--good)}
+  .good{color:var(--good);font-weight:600}.mid{color:var(--mid);font-weight:600}.bad{color:var(--bad);font-weight:600}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#f1f5f6}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  ul{margin:6px 0 6px 18px;padding:0}li{margin:3px 0}
+  code{background:#eef2f3;border-radius:4px;padding:1px 5px;font-size:13px}
+  .mut{color:var(--mut)}.small{font-size:13px}
+  footer{margin-top:34px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>What Makes a Lightweight Game-Playing Agent Strong</h1>
+  <p class="sub">AIIDE 2026 submission — plan &amp; abstract for the team. Title: <i>A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong</i>.</p>
+
+  <div class="banner">
+    <span><b>Abstract due:</b> Jun 26 (tonight, AoE)</span>
+    <span class="pill">Full paper: Jul 3</span>
+    <span class="pill">Notify: Aug 7</span>
+    <span class="pill">AAAI 2-col · 9pp · double-blind · EasyChair</span>
+  </div>
+
+  <h2>The paper in one breath</h2>
+  <p>We build a <b>fixed, deterministic expert</b> for Gin Rummy and use it only as a <b>grading yardstick</b> (never to train). Against it we run a controlled study of <b>what makes a small RL agent strong</b> — algorithm, reward, curriculum, checkpointing, representation — and report honestly what helps and what doesn't. The expert ceiling (~36% win-rate for our best agent) becomes a clean, reproducible benchmark, and the study isolates the <i>source</i> of every gain.</p>
+
+  <div class="card abstract">
+    <h3 style="margin-top:0">Abstract (tonight's submission, ~248 words)</h3>
+    <p class="small">Reinforcement-learning agents for imperfect-information card games are only as strong as the opponents they train against, and practitioners rarely have a cheap, absolute yardstick for how good an agent really is. We address this by building a strong, fixed, deterministic expert for Gin Rummy that decomposes melds exact-optimally and otherwise plays principled endgame moves, and by using it only as a grading yardstick, never for training. The expert beats every agent we trained 70–99% of the time, yet gins in under 2% of games: it wins by knocking early with low deadwood. Graded against this fixed reference across more than one hundred controlled runs, we isolate what makes a lightweight agent strong: trust-region updates, a knock-first reward, a rising opponent curriculum, warm-starting, and keeping the best checkpoint each help, whereas learned state embeddings, dense step rewards, imitation learning, and a live large-language-model opponent each fail for an identifiable reason. Reward shaping cannot induce the human-intuitive but losing habit of chasing gin, and stacking the choices that help lifts a self-play champion from roughly 30% to 36% against the expert. We then test whether network architecture is the missing lever—comparing MLP width and depth, convolutional, permutation-invariant set, attention, and recurrent encoders—benchmark against standard imperfect-information references (neural fictitious self-play and information-set Monte Carlo search), and probe generality on a second game, Leduc Hold'em, graded against a counterfactual-regret-optimal expert, reporting interquartile means with stratified bootstrap intervals. We release the pipeline as a game-agnostic package.</p>
+    <p class="small mut">Revisable before Jul 3 — registration tonight just assigns reviewers. We update the headline number and trim any axis that doesn't land.</p>
+  </div>
+
+  <h2>What we're adding (the new work)</h2>
+  <div class="grid">
+    <div class="card"><h3>1 · Architecture sweep</h3><p class="small">Hold the winning recipe fixed; vary <b>only the network</b>: MLP depth/width, Conv1D, permutation-invariant <b>DeepSets</b>, self-attention, and <b>recurrent (LSTM)</b> encoders, plus activation &amp; regularization. Tests whether the ceiling is <i>capacity-bound or information-bound</i>.</p></div>
+    <div class="card"><h3>2 · Real baselines</h3><p class="small">Compare against the references reviewers expect: <b>NFSP</b> (neural fictitious self-play, via OpenSpiel) and <b>ISMCTS</b> (information-set Monte Carlo search). Blunts the #1 reject reason (weak baselines).</p></div>
+    <div class="card"><h3>3 · Second game (generality)</h3><p class="small"><b>Leduc Hold'em</b> with a <b>CFR-optimal expert</b> — a game where the <i>true optimum is computable</i>, validating that the expert-yardstick method reproduces the Gin Rummy conclusions.</p></div>
+    <div class="card"><h3>4 · Statistical rigor</h3><p class="small"><b>rliable</b>: interquartile means + stratified bootstrap 95% CIs over ≥5 seeds. Pre-empts "Deep RL that Matters" critiques.</p></div>
+  </div>
+
+  <h2>Execution plan (Jun 26 → Jul 3)</h2>
+  <table>
+    <tr><th>Wave</th><th>Work</th><th>Confidence</th></tr>
+    <tr><td><b>1</b> now</td><td>Config-driven architecture code + extractors; smoke-test; launch the 16-run architecture scan (W&amp;B group <code>phase8-arch</code>) + watchdog; wire rliable into figures.</td><td><span class="good">high</span></td></tr>
+    <tr><td><b>2</b></td><td>Recurrence (masked PPO-LSTM + PPO-MLP control) and weight-decay/dropout cells; ISMCTS Gin Rummy baseline (search, no training).</td><td><span class="good">high</span> / <span class="mid">med</span></td></tr>
+    <tr><td><b>3</b></td><td>Leduc Hold'em wrapper + CFR expert + winning-recipe run; OpenSpiel NFSP for Gin Rummy.</td><td><span class="mid">med</span></td></tr>
+    <tr><td><b>4</b></td><td>Extra rliable seeds + cross-recipe robustness (apply the best architecture to the top 2–3 recipes); collect, publish, refresh figures.</td><td><span class="good">high</span></td></tr>
+  </table>
+  <p class="small mut">Runs are hands-free on SLURM (hours each, in parallel), logging to Weights &amp; Biases. Everything is gated behind a &lt;10s self-test + a smoke run, and never touches the reward/curriculum/algorithm the 36% result depends on. Items that don't finish cleanly become honest Future Work — no overclaiming.</p>
+
+  <h2>How we're maximizing acceptance</h2>
+  <div class="grid">
+    <div class="card"><h3 class="good">Apply (accepted-paper traits)</h3><ul class="small">
+      <li>Explicit <b>bulleted contributions</b>, each traced to evidence</li>
+      <li><b>Targeted ablations</b> that isolate which components matter</li>
+      <li><b>Statistical rigor</b> (IQM + bootstrap CIs, ≥5 seeds)</li>
+      <li><b>Reproducibility</b>: released code, configs, seeds</li>
+      <li><b>≥1 negative result</b> (we have several)</li>
+      <li>Honest scoping — "<b>expert</b>", not "optimal/perfect"</li>
+    </ul></div>
+    <div class="card"><h3 class="bad">Avoid (rejected-paper traits)</h3><ul class="small">
+      <li><b>Weak/missing baselines</b> → add NFSP + ISMCTS</li>
+      <li><b>Single-game overfit</b> → add Leduc + cross-recipe checks</li>
+      <li><b>No CIs / point estimates</b> → rliable</li>
+      <li><b>Overclaiming</b> / suggestive language</li>
+      <li><b>Not identifying the source of gains</b> → the ablations do</li>
+      <li>Unclear / incremental novelty</li>
+    </ul></div>
+  </div>
+  <div class="card"><h3>Guzdial alignment ("How to Write an AIIDE Paper")</h3><p class="small">Intro skips "games are important," names one gap, bulleted contributions, no overclaim · related work in <b>differentiating subsections</b> (≥20 diverse citations) · methodology replicable by another lab, every decision justified · experiments argue <b>appropriateness</b> and link each contribution to evidence · results summarized + walked-through · Limitations/Future Work is defensive · conclusion = 2–4 takeaways. <span class="mut">(AIIDE ≈25% oral + 25% poster, same proceedings; EXAG/INT are the fallback.)</span></p></div>
+
+  <h2>Key references we lean on</h2>
+  <p class="small">Andrychowicz et al. 2021 (<i>What Matters in On-Policy RL</i>) · Henderson et al. 2018 (<i>Deep RL that Matters</i>) · Agarwal et al. 2021 (<i>rliable / Statistical Precipice</i>) · Lipton &amp; Steinhardt 2018 (<i>Troubling Trends</i>) · Zaheer et al. 2017 (<i>Deep Sets</i>) · Hausknecht &amp; Wagener 2022 (<i>Consistent Dropout</i>) · Cowling et al. 2012 (<i>ISMCTS</i>) · Heinrich &amp; Silver 2016 (<i>NFSP</i>) · Brown et al. 2019 (<i>Deep CFR</i>) · Kotnik &amp; Kalita 2003 &amp; Nagai et al. 2021 (Gin Rummy) · Zha et al. 2020 (RLCard) · Guzdial 2021 (AIIDE writing guide).</p>
+
+  <footer>Internal planning brief · AIIDE 2026 (Belo Horizonte, Nov 9–13) · abstract Jun 26 / paper Jul 3 · status: architecture sweep + baselines + Leduc generality in progress.</footer>
+
+</div>
+</body>
+</html>
