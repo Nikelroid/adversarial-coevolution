@@ -1,0 +1,2 @@
+name,cell,arch,activation,net_arch,seed,vs_gold,gin_vs_gold,len_vs_gold,vs_champion,vs_random,best_step,secs
+arch_mlp_default_s0,arch_mlp_default,mlp,tanh,"[256,128]",0,0.264,0.006,33.81,0.437,0.985,10000000,8189

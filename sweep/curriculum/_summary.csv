@@ -38,3 +38,4 @@ p7_05_scratch_deadwood_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.989,0.448,0.3
 01_base_trpo_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.983,0.454,0.281,0.003,12000000,22469
 08_trpo_gamma_high_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.981,0.422,0.279,0.006,12000000,18387
 08_trpo_gamma_high_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.97,0.507,0.268,0.005,12000000,18164
+arch_mlp_default_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.985,0.437,0.264,0.006,10000000,8189
