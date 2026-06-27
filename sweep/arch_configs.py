@@ -45,6 +45,9 @@ CELLS = [
      "Permutation-invariant set encoder (Deep Sets): principled for an unordered hand."),
     ("arch_attn", dict(arch="attn", extractor_kwargs=dict(features_dim=128, layers=2)), [0, 1],
      "Self-attention over the 52 card tokens (light transformer)."),
+    # --- regularization (Wave 2): safe weight-decay lever on the winner MLP net ---
+    ("arch_wd_lo", dict(weight_decay=1e-4), [0], "MLP + weight-decay 1e-4 (regularization)."),
+    ("arch_wd_hi", dict(weight_decay=1e-3), [0], "MLP + weight-decay 1e-3 (regularization)."),
 ]
 
 
