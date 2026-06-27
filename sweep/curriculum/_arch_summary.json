@@ -16,21 +16,6 @@
       "secs": 10805
     },
     {
-      "name": "arch_act_relu_s0",
-      "cell": "arch_act_relu",
-      "arch": "mlp",
-      "activation": "relu",
-      "net_arch": "[256,128]",
-      "seed": 0,
-      "vs_gold": 0.29,
-      "gin_vs_gold": 0.003,
-      "len_vs_gold": 34.71,
-      "vs_champion": 0.445,
-      "vs_random": 0.996,
-      "best_step": 4000000,
-      "secs": 10285
-    },
-    {
       "name": "arch_mlp_narrow_s0",
       "cell": "arch_mlp_narrow",
       "arch": "mlp",
@@ -44,6 +29,36 @@
       "vs_random": 0.988,
       "best_step": 8000000,
       "secs": 8623
+    },
+    {
+      "name": "arch_act_relu_s0",
+      "cell": "arch_act_relu",
+      "arch": "mlp",
+      "activation": "relu",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.279,
+      "gin_vs_gold": 0.007,
+      "len_vs_gold": 34.86,
+      "vs_champion": 0.417,
+      "vs_random": 0.989,
+      "best_step": 10000000,
+      "secs": 13633
+    },
+    {
+      "name": "arch_act_gelu_s0",
+      "cell": "arch_act_gelu",
+      "arch": "mlp",
+      "activation": "gelu",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.268,
+      "gin_vs_gold": 0.002,
+      "len_vs_gold": 34.91,
+      "vs_champion": 0.451,
+      "vs_random": 0.988,
+      "best_step": 7000000,
+      "secs": 11644
     },
     {
       "name": "arch_mlp_default_s1",
@@ -85,18 +100,25 @@
       "delta_vs_anchor": 0.0305
     },
     {
-      "cell": "arch_act_relu",
-      "n": 1,
-      "mean_vs_gold": 0.29,
-      "std": 0.0,
-      "delta_vs_anchor": 0.0255
-    },
-    {
       "cell": "arch_mlp_narrow",
       "n": 1,
       "mean_vs_gold": 0.281,
       "std": 0.0,
       "delta_vs_anchor": 0.0165
+    },
+    {
+      "cell": "arch_act_relu",
+      "n": 1,
+      "mean_vs_gold": 0.279,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0145
+    },
+    {
+      "cell": "arch_act_gelu",
+      "n": 1,
+      "mean_vs_gold": 0.268,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0035
     },
     {
       "cell": "arch_mlp_default",

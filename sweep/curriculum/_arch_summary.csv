@@ -1,6 +1,7 @@
 name,cell,arch,activation,net_arch,seed,vs_gold,gin_vs_gold,len_vs_gold,vs_champion,vs_random,best_step,secs
 arch_mlp_asym_s0,arch_mlp_asym,mlp,tanh,"[128, 64]",0,0.295,0.01,34.18,0.436,0.99,8000000,10805
-arch_act_relu_s0,arch_act_relu,mlp,relu,"[256,128]",0,0.29,0.003,34.71,0.445,0.996,4000000,10285
 arch_mlp_narrow_s0,arch_mlp_narrow,mlp,tanh,"[128, 64]",0,0.281,0.002,34.18,0.426,0.988,8000000,8623
+arch_act_relu_s0,arch_act_relu,mlp,relu,"[256,128]",0,0.279,0.007,34.86,0.417,0.989,10000000,13633
+arch_act_gelu_s0,arch_act_gelu,mlp,gelu,"[256,128]",0,0.268,0.002,34.91,0.451,0.988,7000000,11644
 arch_mlp_default_s1,arch_mlp_default,mlp,tanh,"[256,128]",1,0.265,0.004,35.07,0.392,0.986,7000000,8668
 arch_mlp_default_s0,arch_mlp_default,mlp,tanh,"[256,128]",0,0.264,0.006,33.81,0.437,0.985,10000000,8189
