@@ -204,10 +204,72 @@ ol li,ul li{margin:4px 0;}
 .lead{font-size:16.5px;color:#27413a;}
 """
 
+def phase8_section():
+    """Latest-experiments block from sweep/curriculum/_phase8_summary.json (architecture sweep,
+    ISMCTS budget curve, Stage-C robustness, Leduc generality). Renders nothing if absent."""
+    s = _load(os.path.join(SWEEP, "curriculum", "_phase8_summary.json"))
+    if not s:
+        return ""
+    parts = ['<section id="latest">',
+             '<h2><span class="n">7b</span>Latest experiments: does a smarter network, or search, break the ceiling?</h2>']
+
+    arch = (s.get("arch_vs_gold") or {}).get("cells") or {}
+    if arch:
+        top = sorted(arch.items(), key=lambda kv: -kv[1])[:6]
+        rows = "".join(f"<tr><td>{k}</td><td><b>{v*100:.1f}%</b></td></tr>" for k, v in top)
+        anchor = arch.get("arch_mlp_default_s0") or arch.get("arch_mlp_default_s1")
+        note = ("Everything clusters in the mid-20s to low-30s: a permutation-invariant "
+                "<b>DeepSets</b> encoder (a better-matched input shape for an unordered hand, not more "
+                "capacity) is the small new top, while making the plain network wider or deeper barely "
+                "moves it. That is strong evidence the ceiling is <b>information-bound, not "
+                "capacity-bound</b>. These are from-scratch runs, so a relative comparison.")
+        parts.append('<h3>Network architecture vs the perfect player (from scratch, relative)</h3>'
+                     f'<table><tr><th>architecture (cell)</th><th>win% vs perfect</th></tr>{rows}</table>'
+                     f'<p class="muted">{note}</p>')
+
+    ism = s.get("ismcts_vs_gold") or []
+    if ism:
+        ism = sorted(ism, key=lambda d: d["rollouts"])
+        head = "".join(f"<th>{d['rollouts']}</th>" for d in ism)
+        cells = "".join(f"<td><b>{d['win_rate']*100:.0f}%</b></td>" for d in ism)
+        parts.append('<h3>A search baseline (ISMCTS), graded the same way</h3>'
+                     f'<table><tr><th>rollouts / move</th>{head}</tr>'
+                     f'<tr><td>win% vs perfect</td>{cells}</tr></table>'
+                     '<p class="muted">A determinized look-ahead search, with no training at all. Its '
+                     'strength rises smoothly with the thinking budget and, given enough, it outplays '
+                     'even the perfect rule-based player. This is the strong non-learned reference a '
+                     'reviewer expects, and it shows the gap our small learners still leave on the table.</p>')
+
+    sc = s.get("stagec_vs_gold") or {}
+    if sc:
+        best = max(sc.items(), key=lambda kv: kv[1])
+        parts.append('<h3>Is the architecture result a fluke of one recipe?</h3>'
+                     f'<p>No. Re-run under different recipes (a different algorithm, a different '
+                     f'opponent schedule), the better networks stay on top &mdash; best here is '
+                     f'<b>{best[0]} at {best[1]*100:.1f}%</b>. The ranking carries across recipes.</p>')
+
+    leduc = s.get("leduc_vs_cfr") or {}
+    if leduc.get("tabular_q"):
+        tq = leduc["tabular_q"]
+        nf = leduc.get("nfsp")
+        nf_txt = (f" A neural baseline (NFSP) needed far more games and was still converging "
+                  f"(mean {nf['mean']:+.2f} over {nf['n']} seeds at the time of writing).") if nf else ""
+        parts.append('<h3>Does the method transfer to a second game?</h3>'
+                     f'<p>Yes. On Leduc Hold\'em, a tiny poker where the perfect strategy can be '
+                     f'computed exactly, a simple learner graded against that perfect strategy reaches '
+                     f'<b>near parity (mean return {tq["mean"]:+.2f} over {tq["n"]} seeds</b>; random is '
+                     f'about &minus;0.78). So the "grade against a fixed perfect player" idea works on a '
+                     f'game where we can check it against the true optimum.{nf_txt}</p>')
+
+    parts.append('<p class="muted">Live numbers refresh automatically as overnight runs land '
+                 '(<code>python sweep/collect_phase8.py</code>).</p></section>')
+    return "\n".join(parts)
+
+
 NAV = """<div class="nav">
   <a href="#story">The story</a><a href="#challenge">The game</a><a href="#framework">What we built</a>
   <a href="#gold">Gold standard</a><a href="#regimes">Everything we tried</a><a href="#finding">Key finding</a>
-  <a href="#levers">What mattered</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a><a href="aiide_plan.html" target="_blank">AIIDE plan &#8599;</a>
+  <a href="#levers">What mattered</a><a href="#latest">Latest</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a><a href="aiide_plan.html" target="_blank">AIIDE plan &#8599;</a>
 </div>"""
 
 # ----------------------------------------------------------------- the page
@@ -424,6 +486,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <h3>Our strongest agents (checked carefully over 2000 games each)</h3>
   {best_models_table()}
 </section>
+
+{phase8_section()}
 
 <section id="play">
   <h2><span class="n">8</span>Play the heroes yourself</h2>

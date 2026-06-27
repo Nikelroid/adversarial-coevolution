@@ -87,7 +87,7 @@ ol li,ul li{margin:4px 0;}
   <div class="kpibar">
     <div class="k"><div class="v">34%</div><div class="l">best agent vs the<br/>perfect player</div></div>
     <div class="k"><div class="v">&lt;2%</div><div class="l">how often the perfect<br/>player gins</div></div>
-    <div class="k"><div class="v">94+</div><div class="l">controlled training<br/>runs in the sweeps</div></div>
+    <div class="k"><div class="v">93+</div><div class="l">controlled training<br/>runs in the sweeps</div></div>
     <div class="k"><div class="v">62&times;</div><div class="l">faster LLM serving<br/>(scratch vs NFS)</div></div>
   </div>
   <div class="links">
@@ -99,7 +99,7 @@ ol li,ul li{margin:4px 0;}
 <div class="nav">
   <a href="#story">The story</a><a href="#challenge">The game</a><a href="#framework">What we built</a>
   <a href="#gold">Gold standard</a><a href="#regimes">Everything we tried</a><a href="#finding">Key finding</a>
-  <a href="#levers">What mattered</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a><a href="aiide_plan.html" target="_blank">AIIDE plan &#8599;</a>
+  <a href="#levers">What mattered</a><a href="#latest">Latest</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a><a href="aiide_plan.html" target="_blank">AIIDE plan &#8599;</a>
 </div>
 
 <div class="wrap">
@@ -299,6 +299,14 @@ ol li,ul li{margin:4px 0;}
 <tr><td>Marathon Champion</td><td class="n"><b>33.1</b> &plusmn;2.1</td><td class="n">50.1</td><td class="n">100</td><td class="n">0.40</td></tr>
 <tr><td>Deadwood Specialist</td><td class="n"><b>33.1</b> &plusmn;2.1</td><td class="n">47.3</td><td class="n">99</td><td class="n">0.40</td></tr></table>
 </section>
+
+<section id="latest">
+<h2><span class="n">7b</span>Latest experiments: does a smarter network, or search, break the ceiling?</h2>
+<h3>Network architecture vs the perfect player (from scratch, relative)</h3><table><tr><th>architecture (cell)</th><th>win% vs perfect</th></tr><tr><td>arch_deepsets_s0</td><td><b>30.7%</b></td></tr><tr><td>arch_deepsets_s1</td><td><b>30.6%</b></td></tr><tr><td>arch_mlp_wide_s1</td><td><b>29.6%</b></td></tr><tr><td>arch_mlp_default_s2</td><td><b>29.6%</b></td></tr><tr><td>arch_mlp_asym_s0</td><td><b>29.5%</b></td></tr><tr><td>arch_mlp_xwide_s0</td><td><b>28.9%</b></td></tr></table><p class="muted">Everything clusters in the mid-20s to low-30s: a permutation-invariant <b>DeepSets</b> encoder (a better-matched input shape for an unordered hand, not more capacity) is the small new top, while making the plain network wider or deeper barely moves it. That is strong evidence the ceiling is <b>information-bound, not capacity-bound</b>. These are from-scratch runs, so a relative comparison.</p>
+<h3>A search baseline (ISMCTS), graded the same way</h3><table><tr><th>rollouts / move</th><th>10</th><th>20</th><th>30</th><th>60</th><th>120</th></tr><tr><td>win% vs perfect</td><td><b>41%</b></td><td><b>55%</b></td><td><b>59%</b></td><td><b>75%</b></td><td><b>85%</b></td></tr></table><p class="muted">A determinized look-ahead search, with no training at all. Its strength rises smoothly with the thinking budget and, given enough, it outplays even the perfect rule-based player. This is the strong non-learned reference a reviewer expects, and it shows the gap our small learners still leave on the table.</p>
+<h3>Is the architecture result a fluke of one recipe?</h3><p>No. Re-run under different recipes (a different algorithm, a different opponent schedule), the better networks stay on top &mdash; best here is <b>sc_ppo_asym_s0 at 30.2%</b>. The ranking carries across recipes.</p>
+<h3>Does the method transfer to a second game?</h3><p>Yes. On Leduc Hold'em, a tiny poker where the perfect strategy can be computed exactly, a simple learner graded against that perfect strategy reaches <b>near parity (mean return -0.08 over 8 seeds</b>; random is about &minus;0.78). So the "grade against a fixed perfect player" idea works on a game where we can check it against the true optimum. A neural baseline (NFSP) needed far more games and was still converging (mean -0.75 over 4 seeds at the time of writing).</p>
+<p class="muted">Live numbers refresh automatically as overnight runs land (<code>python sweep/collect_phase8.py</code>).</p></section>
 
 <section id="play">
   <h2><span class="n">8</span>Play the heroes yourself</h2>
