@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>AIIDE 2026 — Plan &amp; Abstract (Lightweight Game-Playing Agents)</title>
+<title>AIIDE 2026 — Plan, Status &amp; Results (Lightweight Game-Playing Agents)</title>
 <style>
   :root{--good:#0b5b39;--mid:#7a6e28;--bad:#962828;--ink:#1b2227;--mut:#5c6b73;--line:#e3e8ea;--bg:#fbfcfd;--card:#fff}
   *{box-sizing:border-box}
@@ -34,55 +34,72 @@
 <div class="wrap">
 
   <h1>What Makes a Lightweight Game-Playing Agent Strong</h1>
-  <p class="sub">AIIDE 2026 submission — plan &amp; abstract for the team. Title: <i>A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong</i>.</p>
+  <p class="sub">AIIDE 2026 — team brief (plan, live status &amp; early results). Title: <i>A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong</i>.</p>
 
   <div class="banner">
-    <span><b>Abstract due:</b> Jun 26 (tonight, AoE)</span>
+    <span><b>Abstract:</b> submitted (Jun 26)</span>
     <span class="pill">Full paper: Jul 3</span>
     <span class="pill">Notify: Aug 7</span>
     <span class="pill">AAAI 2-col · 9pp · double-blind · EasyChair</span>
   </div>
 
   <h2>The paper in one breath</h2>
-  <p>We build a <b>fixed, deterministic expert</b> for Gin Rummy and use it only as a <b>grading yardstick</b> (never to train). Against it we run a controlled study of <b>what makes a small RL agent strong</b> — algorithm, reward, curriculum, checkpointing, representation — and report honestly what helps and what doesn't. The expert ceiling (~36% win-rate for our best agent) becomes a clean, reproducible benchmark, and the study isolates the <i>source</i> of every gain.</p>
+  <p>We build a <b>fixed, deterministic expert</b> for Gin Rummy and use it only as a <b>grading yardstick</b> (never to train). Against it we run a controlled study of <b>what makes a small RL agent strong</b> — algorithm, reward, curriculum, checkpointing, representation — and report honestly what helps and what doesn't. The expert ceiling (~36% win-rate for our best agent) is a clean, reproducible benchmark, and the study isolates the <i>source</i> of every gain. We are now adding a network-architecture axis, real imperfect-information baselines, and a second game (Leduc Hold'em with a CFR-optimal expert) to show the method generalises.</p>
 
   <div class="card abstract">
-    <h3 style="margin-top:0">Abstract (tonight's submission, ~248 words)</h3>
+    <h3 style="margin-top:0">Abstract (submitted; revisable until Jul 3)</h3>
     <p class="small">Reinforcement-learning agents for imperfect-information card games are only as strong as the opponents they train against, and practitioners rarely have a cheap, absolute yardstick for how good an agent really is. We address this by building a strong, fixed, deterministic expert for Gin Rummy that decomposes melds exact-optimally and otherwise plays principled endgame moves, and by using it only as a grading yardstick, never for training. The expert beats every agent we trained 70–99% of the time, yet gins in under 2% of games: it wins by knocking early with low deadwood. Graded against this fixed reference across more than one hundred controlled runs, we isolate what makes a lightweight agent strong: trust-region updates, a knock-first reward, a rising opponent curriculum, warm-starting, and keeping the best checkpoint each help, whereas learned state embeddings, dense step rewards, imitation learning, and a live large-language-model opponent each fail for an identifiable reason. Reward shaping cannot induce the human-intuitive but losing habit of chasing gin, and stacking the choices that help lifts a self-play champion from roughly 30% to 36% against the expert. We then test whether network architecture is the missing lever—comparing MLP width and depth, convolutional, permutation-invariant set, attention, and recurrent encoders—benchmark against standard imperfect-information references (neural fictitious self-play and information-set Monte Carlo search), and probe generality on a second game, Leduc Hold'em, graded against a counterfactual-regret-optimal expert, reporting interquartile means with stratified bootstrap intervals. We release the pipeline as a game-agnostic package.</p>
-    <p class="small mut">Revisable before Jul 3 — registration tonight just assigns reviewers. We update the headline number and trim any axis that doesn't land.</p>
   </div>
+
+  <h2>Live status (Jun 27)</h2>
+  <table>
+    <tr><th>Component</th><th>State</th></tr>
+    <tr><td><b>Architecture sweep</b> — MLP depth/width/asym, ReLU/GELU, Conv1D, DeepSets, attention (now <b>34 cells</b> incl. extra seeds + variants)</td><td><span class="good">running</span> — ~20 in parallel, auto-collecting</td></tr>
+    <tr><td><b>Regularization</b> — weight-decay cells</td><td><span class="good">running</span></td></tr>
+    <tr><td><b>Recurrence</b> — masked PPO-LSTM + matched PPO-MLP control (×2 seeds)</td><td><span class="good">running</span> — isolated, group <code>phase8-recurrent</code></td></tr>
+    <tr><td><b>Statistical rigor</b> — rliable IQM + 95% bootstrap CIs</td><td><span class="good">live</span> in the figures + <code>_arch_summary</code></td></tr>
+    <tr><td><b>Leduc generality</b> — CFR-optimal expert</td><td><span class="good">delivered</span> ✓ (below)</td></tr>
+    <tr><td><b>ISMCTS baseline</b> — determinized search vs the expert</td><td><span class="mid">next</span></td></tr>
+    <tr><td><b>NFSP baseline</b></td><td><span class="mid">deferred</span> — OpenSpiel NFSP needs a missing dependency</td></tr>
+  </table>
+  <p class="small mut">Live curves: <b>wandb.ai/VLAvengers/Adversarial-CoEvolution</b> (groups <code>phase8-arch</code>, <code>phase8-recurrent</code>). Organized eval: <code>sweep/curriculum/_arch_summary.md</code>. All hands-free on SLURM; the watchdog auto-publishes results, figures, and docs.</p>
+
+  <h2>Results so far</h2>
+  <div class="card"><h3>Architecture vs the expert (early; from scratch — a relative comparison)</h3>
+  <table>
+    <tr><th>architecture</th><th>win% vs expert</th><th>Δ vs MLP anchor</th></tr>
+    <tr><td>mlp_asym (narrow policy + wide value)</td><td><b>0.295</b></td><td>+0.030</td></tr>
+    <tr><td>mlp_narrow</td><td>0.281</td><td>+0.017</td></tr>
+    <tr><td>act_relu</td><td>0.279</td><td>+0.015</td></tr>
+    <tr><td>act_gelu</td><td>0.268</td><td>+0.004</td></tr>
+    <tr><td>mlp_default (anchor)</td><td>0.265</td><td>—</td></tr>
+  </table>
+  <p class="small mut">From-scratch runs (so below the 36% warm-started winner; the comparison here is <i>relative</i>, all from the same scratch budget). MLP variants cluster at 26–30% — an early signal that capacity isn't the bottleneck (consistent with the information-bound-ceiling thesis). Structured encoders (Conv1D / DeepSets / attention) + extra seeds are still training; numbers firm up with the rliable CIs.</p></div>
+
+  <div class="card"><h3>Leduc Hold'em — generality validated ✓</h3>
+  <p class="small">CFR expert is near-optimal: <b>exploitability 2.37 → 0.026</b> over 400 iterations. The yardstick is monotone — mean return vs the expert: <b>random −0.78 → CFR-10-iter −0.14 → CFR-50-iter −0.12</b> (weaker agents lose badly; stronger agents approach parity). So "return vs a fixed near-optimal expert" is a meaningful yardstick on a second imperfect-information game where the optimum is <i>computable</i> — the methodology transfers.</p></div>
 
   <h2>What we're adding (the new work)</h2>
   <div class="grid">
     <div class="card"><h3>1 · Architecture sweep</h3><p class="small">Hold the winning recipe fixed; vary <b>only the network</b>: MLP depth/width, Conv1D, permutation-invariant <b>DeepSets</b>, self-attention, and <b>recurrent (LSTM)</b> encoders, plus activation &amp; regularization. Tests whether the ceiling is <i>capacity-bound or information-bound</i>.</p></div>
-    <div class="card"><h3>2 · Real baselines</h3><p class="small">Compare against the references reviewers expect: <b>NFSP</b> (neural fictitious self-play, via OpenSpiel) and <b>ISMCTS</b> (information-set Monte Carlo search). Blunts the #1 reject reason (weak baselines).</p></div>
-    <div class="card"><h3>3 · Second game (generality)</h3><p class="small"><b>Leduc Hold'em</b> with a <b>CFR-optimal expert</b> — a game where the <i>true optimum is computable</i>, validating that the expert-yardstick method reproduces the Gin Rummy conclusions.</p></div>
-    <div class="card"><h3>4 · Statistical rigor</h3><p class="small"><b>rliable</b>: interquartile means + stratified bootstrap 95% CIs over ≥5 seeds. Pre-empts "Deep RL that Matters" critiques.</p></div>
+    <div class="card"><h3>2 · Real baselines</h3><p class="small"><b>ISMCTS</b> (information-set Monte Carlo search) graded vs the expert; NFSP cited. Blunts the #1 reject reason (weak baselines).</p></div>
+    <div class="card"><h3>3 · Second game (generality)</h3><p class="small"><b>Leduc Hold'em</b> with a <b>CFR-optimal expert</b> — done: a game where the true optimum is computable, validating the expert-yardstick method.</p></div>
+    <div class="card"><h3>4 · Statistical rigor</h3><p class="small"><b>rliable</b>: interquartile means + stratified bootstrap 95% CIs over multiple seeds. Pre-empts "Deep RL that Matters" critiques.</p></div>
   </div>
-
-  <h2>Execution plan (Jun 26 → Jul 3)</h2>
-  <table>
-    <tr><th>Wave</th><th>Work</th><th>Confidence</th></tr>
-    <tr><td><b>1</b> now</td><td>Config-driven architecture code + extractors; smoke-test; launch the 16-run architecture scan (W&amp;B group <code>phase8-arch</code>) + watchdog; wire rliable into figures.</td><td><span class="good">high</span></td></tr>
-    <tr><td><b>2</b></td><td>Recurrence (masked PPO-LSTM + PPO-MLP control) and weight-decay/dropout cells; ISMCTS Gin Rummy baseline (search, no training).</td><td><span class="good">high</span> / <span class="mid">med</span></td></tr>
-    <tr><td><b>3</b></td><td>Leduc Hold'em wrapper + CFR expert + winning-recipe run; OpenSpiel NFSP for Gin Rummy.</td><td><span class="mid">med</span></td></tr>
-    <tr><td><b>4</b></td><td>Extra rliable seeds + cross-recipe robustness (apply the best architecture to the top 2–3 recipes); collect, publish, refresh figures.</td><td><span class="good">high</span></td></tr>
-  </table>
-  <p class="small mut">Runs are hands-free on SLURM (hours each, in parallel), logging to Weights &amp; Biases. Everything is gated behind a &lt;10s self-test + a smoke run, and never touches the reward/curriculum/algorithm the 36% result depends on. Items that don't finish cleanly become honest Future Work — no overclaiming.</p>
 
   <h2>How we're maximizing acceptance</h2>
   <div class="grid">
     <div class="card"><h3 class="good">Apply (accepted-paper traits)</h3><ul class="small">
       <li>Explicit <b>bulleted contributions</b>, each traced to evidence</li>
       <li><b>Targeted ablations</b> that isolate which components matter</li>
-      <li><b>Statistical rigor</b> (IQM + bootstrap CIs, ≥5 seeds)</li>
+      <li><b>Statistical rigor</b> (IQM + bootstrap CIs, multiple seeds)</li>
       <li><b>Reproducibility</b>: released code, configs, seeds</li>
       <li><b>≥1 negative result</b> (we have several)</li>
       <li>Honest scoping — "<b>expert</b>", not "optimal/perfect"</li>
     </ul></div>
     <div class="card"><h3 class="bad">Avoid (rejected-paper traits)</h3><ul class="small">
-      <li><b>Weak/missing baselines</b> → add NFSP + ISMCTS</li>
-      <li><b>Single-game overfit</b> → add Leduc + cross-recipe checks</li>
+      <li><b>Weak/missing baselines</b> → ISMCTS + cited NFSP</li>
+      <li><b>Single-game overfit</b> → Leduc generality + cross-recipe checks</li>
       <li><b>No CIs / point estimates</b> → rliable</li>
       <li><b>Overclaiming</b> / suggestive language</li>
       <li><b>Not identifying the source of gains</b> → the ablations do</li>
@@ -94,7 +111,7 @@
   <h2>Key references we lean on</h2>
   <p class="small">Andrychowicz et al. 2021 (<i>What Matters in On-Policy RL</i>) · Henderson et al. 2018 (<i>Deep RL that Matters</i>) · Agarwal et al. 2021 (<i>rliable / Statistical Precipice</i>) · Lipton &amp; Steinhardt 2018 (<i>Troubling Trends</i>) · Zaheer et al. 2017 (<i>Deep Sets</i>) · Hausknecht &amp; Wagener 2022 (<i>Consistent Dropout</i>) · Cowling et al. 2012 (<i>ISMCTS</i>) · Heinrich &amp; Silver 2016 (<i>NFSP</i>) · Brown et al. 2019 (<i>Deep CFR</i>) · Kotnik &amp; Kalita 2003 &amp; Nagai et al. 2021 (Gin Rummy) · Zha et al. 2020 (RLCard) · Guzdial 2021 (AIIDE writing guide).</p>
 
-  <footer>Internal planning brief · AIIDE 2026 (Belo Horizonte, Nov 9–13) · abstract Jun 26 / paper Jul 3 · status: architecture sweep + baselines + Leduc generality in progress.</footer>
+  <footer>Team brief · AIIDE 2026 (Belo Horizonte, Nov 9–13) · abstract Jun 26 / paper Jul 3 · status: 34-cell architecture sweep + recurrence + regularization running; Leduc generality + rliable delivered; ISMCTS next.</footer>
 
 </div>
 </body>
