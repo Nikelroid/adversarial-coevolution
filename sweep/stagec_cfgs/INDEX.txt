@@ -1,0 +1,12 @@
+sc_ppo_mlpdef_s0
+sc_ppo_mlpdef_s1
+sc_ppo_asym_s0
+sc_ppo_asym_s1
+sc_ppo_wide_s0
+sc_ppo_wide_s1
+sc_pfsp_mlpdef_s0
+sc_pfsp_mlpdef_s1
+sc_pfsp_asym_s0
+sc_pfsp_asym_s1
+sc_pfsp_wide_s0
+sc_pfsp_wide_s1

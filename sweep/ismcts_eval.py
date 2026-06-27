@@ -26,6 +26,7 @@ from agents.random_agent import RandomAgent
 from agents.ppo_agent import PPOAgent
 import ppo_train  # noqa: F401
 from sweep.llm_dagger_one import ENVK, GIN
+from sweep.wandb_util import wandb_init, wandb_finish
 
 
 def play(opp_kind, n, seed0, champ=None):
@@ -72,18 +73,23 @@ def main():
     if opp == "champion":
         cp = os.environ.get("CHAMP_MODEL", "game/model/gin_curriculum_champion.zip")
         champ = PPO.load(cp[:-4] if cp.endswith(".zip") else cp, device="cpu")
-    print(f"=== ISMCTS eval vs {opp}: {n} games, rollouts="
-          f"{os.environ.get('ISMCTS_ROLLOUTS', 20)} ===", flush=True)
+    rollouts = int(os.environ.get("ISMCTS_ROLLOUTS", 20))
+    print(f"=== ISMCTS eval vs {opp}: {n} games, rollouts={rollouts} ===", flush=True)
+    wandb_init(name=name, group="phase8-ismcts",
+               config=dict(agent="ismcts_pimc", opponent=opp, rollouts=rollouts, n=n),
+               tags=["ismcts", "baseline", f"vs_{opp}"])
     t0 = time.time()
     res = play(opp, n, 10_000, champ)
     secs = time.time() - t0
     out = os.path.join(PROJECT_ROOT, "sweep", "curriculum", f"{name}.json")
-    result = dict(name=name, agent="ismcts_pimc", opponent=opp, rollouts=int(os.environ.get("ISMCTS_ROLLOUTS", 20)),
+    result = dict(name=name, agent="ismcts_pimc", opponent=opp, rollouts=rollouts,
                   eval_seconds=secs, **{f"vs_{opp}": res})
     tmp = out + ".tmp"
     with open(tmp, "w") as f:
         json.dump(result, f, indent=2)
     os.replace(tmp, out)
+    wandb_finish(summary=dict(win_rate=res["win_rate"], gin_rate=res["gin_rate"],
+                              loss_rate=res["loss_rate"], mean_len=res["mean_len"], rollouts=rollouts))
     print(f"[done] {name}: win_rate={res['win_rate']:.3f} gin_rate={res['gin_rate']:.3f} "
           f"loss_rate={res['loss_rate']:.3f} mean_len={res['mean_len']:.1f} in {secs:.0f}s -> {out}",
           flush=True)
