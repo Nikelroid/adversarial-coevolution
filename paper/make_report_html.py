@@ -232,13 +232,32 @@ def phase8_section():
         ism = sorted(ism, key=lambda d: d["rollouts"])
         head = "".join(f"<th>{d['rollouts']}</th>" for d in ism)
         cells = "".join(f"<td><b>{d['win_rate']*100:.0f}%</b></td>" for d in ism)
-        parts.append('<h3>A search baseline (ISMCTS), graded the same way</h3>'
-                     f'<table><tr><th>rollouts / move</th>{head}</tr>'
-                     f'<tr><td>win% vs perfect</td>{cells}</tr></table>'
-                     '<p class="muted">A determinized look-ahead search, with no training at all. Its '
-                     'strength rises smoothly with the thinking budget and, given enough, it outplays '
-                     'even the perfect rule-based player. This is the strong non-learned reference a '
-                     'reviewer expects, and it shows the gap our small learners still leave on the table.</p>')
+        parts.append(
+            '<h3>A search baseline (ISMCTS), graded the same way</h3>'
+            '<p><b>ISMCTS</b> stands for <b>Information-Set Monte-Carlo Tree Search</b>. It is not a '
+            'trained network and it does no learning at all &mdash; it is a planner that thinks fresh '
+            'on every single turn. The hard part of this game is that you cannot see the opponent\'s '
+            'cards, and ISMCTS deals with that by <b>imagining</b>. On each turn it:</p>'
+            '<ol>'
+            '<li><b>Guesses the hidden cards.</b> It deals out many possible arrangements of the '
+            'unseen cards that are consistent with everything it has actually observed (its own hand, '
+            'what was discarded, what was picked up).</li>'
+            '<li><b>Plays each guess out.</b> For every move it is considering, it quickly simulates '
+            'the rest of the hand to the end, many times, across those imagined deals.</li>'
+            '<li><b>Picks what wins most.</b> It plays the move that came out best on average across '
+            'all those imagined worlds.</li>'
+            '</ol>'
+            '<p>The number of "rollouts per move" is how many of those imagined playouts it runs &mdash; '
+            'more rollouts means more imagined worlds explored, so stronger play and a little more '
+            'thinking time per move. That is exactly the trade-off below:</p>'
+            f'<table><tr><th>rollouts / move</th>{head}</tr>'
+            f'<tr><td>win% vs the expert</td>{cells}</tr></table>'
+            '<p class="muted">Win-rate vs the gold expert rises smoothly with the thinking budget, and '
+            'with enough of it the search outplays even the expert. This is the strong, non-learned '
+            'reference point a reviewer expects, and it shows the headroom our small <i>learned</i> '
+            'agents still leave on the table: the way past the ceiling is a different <i>kind</i> of '
+            'method (search/planning), not a bigger network. You can play it yourself as the '
+            '&#129504; <b>Search Mastermind</b> in the game.</p>')
 
     sc = s.get("stagec_vs_gold") or {}
     if sc:
