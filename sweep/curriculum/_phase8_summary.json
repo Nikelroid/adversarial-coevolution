@@ -9,6 +9,7 @@
       "arch_mlp_deep_s0": 0.28,
       "arch_act_relu_s0": 0.277,
       "arch_mlp_asym_s2": 0.272,
+      "arch_mlp_xwide_s1": 0.271,
       "arch_mlp_default_s3": 0.269,
       "arch_act_gelu_s0": 0.268,
       "arch_mlp_default_s1": 0.265,
@@ -78,6 +79,17 @@
           0.264
         ]
       },
+      "arch_mlp_xwide": {
+        "n": 1,
+        "iqm": 0.271,
+        "ci": [
+          0.271,
+          0.271
+        ],
+        "seeds": [
+          0.271
+        ]
+      },
       "arch_mlp_asym": {
         "n": 4,
         "iqm": 0.27849999999999997,
@@ -130,8 +142,14 @@
   "stagec_vs_gold": {
     "sc_ppo_asym_s0": 0.302,
     "sc_ppo_mlpdef_s1": 0.28,
+    "sc_ppo_wide_s0": 0.278,
     "sc_ppo_asym_s1": 0.278,
-    "sc_ppo_mlpdef_s0": 0.271
+    "sc_ppo_wide_s1": 0.276,
+    "sc_ppo_mlpdef_s0": 0.271,
+    "sc_pfsp_mlpdef_s1": 0.27,
+    "sc_pfsp_asym_s1": 0.253,
+    "sc_pfsp_mlpdef_s0": 0.25,
+    "sc_pfsp_asym_s0": 0.243
   },
   "ismcts_vs_gold": [
     {
@@ -153,6 +171,11 @@
       "rollouts": 60,
       "win_rate": 0.7533333333333333,
       "cell": "ismcts_vs_gold_r60"
+    },
+    {
+      "rollouts": 120,
+      "win_rate": 0.8533333333333334,
+      "cell": "ismcts_vs_gold_r120"
     }
   ],
   "leduc_vs_cfr": {
