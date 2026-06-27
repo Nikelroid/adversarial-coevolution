@@ -699,6 +699,67 @@ def fig_learning_curves():
     print("  fig_learning_curves: ok")
 
 
+# ----- Phase-8: architecture comparison with IQM + 95% stratified bootstrap CIs (rliable-style)
+def _iqm(x):
+    """Interquartile mean (Agarwal et al. 2021): mean of the middle 50%. With <4 samples there is
+    nothing to trim, so it degrades to the plain mean."""
+    x = np.sort(np.asarray(x, dtype=float))
+    n = len(x)
+    if n >= 4:
+        return float(x[int(np.floor(n * 0.25)):int(np.ceil(n * 0.75))].mean())
+    return float(x.mean())
+
+
+def _bootstrap_ci(x, B=2000, alpha=0.05):
+    """95% bootstrap CI of the IQM by resampling the seeds with replacement."""
+    x = np.asarray(x, dtype=float)
+    if len(x) < 2:
+        return float(x.mean()), float(x.mean())
+    rng = np.random.default_rng(0)
+    stats = np.array([_iqm(rng.choice(x, size=len(x), replace=True)) for _ in range(B)])
+    return float(np.percentile(stats, 100 * alpha / 2)), float(np.percentile(stats, 100 * (1 - alpha / 2)))
+
+
+def fig_arch_rliable():
+    """Phase-8: win-rate vs the fixed expert per architecture, as the IQM with 95% bootstrap CIs
+    over seeds. Reads sweep/curriculum/arch_*.json; skips until >=2 architectures have finished."""
+    paths = sorted(glob.glob(os.path.join(ROOT, "sweep", "curriculum", "arch_*.json")))
+    by = {}
+    for p in paths:
+        try:
+            c = json.load(open(p))
+        except Exception:  # noqa: BLE001
+            continue
+        wr = (c.get("vs_gold") or {}).get("win_rate")
+        if wr is None:
+            continue
+        by.setdefault(c.get("name", "?").rsplit("_s", 1)[0], []).append(100.0 * wr)
+    if len(by) < 2:
+        print("  [skip] fig_arch_rliable: <2 architectures finished")
+        return
+    rows = []
+    for cell, vs in by.items():
+        lo, hi = _bootstrap_ci(vs)
+        rows.append((cell.replace("arch_", ""), _iqm(vs), lo, hi, len(vs)))
+    rows.sort(key=lambda r: r[1])
+    fig, ax = plt.subplots(figsize=(7.2, max(2.4, 0.42 * len(rows) + 1.0)))
+    ys = np.arange(len(rows))
+    pts = [r[1] for r in rows]
+    err = [[r[1] - r[2] for r in rows], [r[3] - r[1] for r in rows]]
+    ax.errorbar(pts, ys, xerr=err, fmt="o", color=C_GREEN, ecolor=C_GREY, capsize=3, ms=5, lw=1.2)
+    anchor = next((r[1] for r in rows if r[0] == "mlp_default"), None)
+    if anchor is not None:
+        ax.axvline(anchor, ls="--", color=C_GOLD, lw=1, label="MLP anchor")
+        ax.legend(loc="lower right")
+    ax.set_yticks(ys)
+    ax.set_yticklabels([f"{r[0]} (n={r[4]})" for r in rows])
+    ax.set_xlabel("win rate vs the fixed expert (%) — IQM, 95% bootstrap CI")
+    ax.set_title("Does network architecture move the agent past the expert ceiling?")
+    ax.grid(ls=":", axis="x", alpha=0.4)
+    fig.tight_layout(); _save(fig, "arch_rliable")
+    print(f"  fig_arch_rliable: ok ({len(rows)} architectures)")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
@@ -706,7 +767,8 @@ def main():
     for fn in (fig_selfplay, fig_pool, fig_llm_opponent, fig_infra, fig_throughput,
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
                fig_curriculum, fig_curriculum_reward, fig_reward_gin,
-               fig_gold_bench, fig_regimes, fig_journey, fig_architecture, fig_learning_curves):
+               fig_gold_bench, fig_regimes, fig_journey, fig_architecture, fig_learning_curves,
+               fig_arch_rliable):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
