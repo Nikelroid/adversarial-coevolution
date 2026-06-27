@@ -40,9 +40,13 @@ vector PDFs so the charts and numbers stay legible.
    submission, change that single line to `\anonymoustrue` to print "Anonymous
    Submission" instead. Also double-check the figures contain no identifying text
    (the figure generator has none).
-4. **Dates (from the official CFP).** Abstract due **June 19, 2026**; full paper
-   due **June 26, 2026**; notification **August 7, 2026**; conference
-   **November 9 to 13, 2026**, Belo Horizonte, Brazil.
+4. **Dates (from the official CFP, both deadlines extended one week).** Abstract
+   due **June 26, 2026**; full paper due **July 3, 2026**; reviews released
+   July 26; author response July 27 to 31; notification **August 7, 2026**;
+   camera-ready **August 28, 2026**; conference **November 9 to 13, 2026**, Belo
+   Horizonte, Brazil. All deadlines are 11:59 PM AoE (UTC-12). Submit on
+   **EasyChair** (`aiide26`); the abstract must be registered before the paper
+   deadline.
 
 ## Figures
 

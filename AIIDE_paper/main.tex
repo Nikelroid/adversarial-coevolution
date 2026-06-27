@@ -74,27 +74,27 @@
 
 \begin{abstract}
 \noindent
-Reinforcement learning agents for imperfect-information card games are only as
-strong as the opponents they train against, and a practitioner usually has no
-cheap, absolute yardstick for how good an agent really is. The many training
-choices that go into a small, fast agent (algorithm, reward shaping, curriculum,
-state representation, checkpoint selection) then get tuned against weak or
-moving references. We address this by building a strong, fixed, deterministic
-expert for Gin Rummy that plays exact-optimal melds and principled endgame
-moves, and by using it only as a grading yardstick, never to train the agent.
-The expert beats every agent we trained 70 to 99 percent of the time, yet it
-gins in under two percent of games: it wins by knocking early with low deadwood.
-Graded against this fixed reference across more than one hundred controlled runs,
-we find that trust-region updates, a knock-first reward, a rising opponent
-curriculum, warm-starting, and keeping the best checkpoint each help, while
+Reinforcement-learning agents for imperfect-information card games are only as
+strong as the opponents they train against, and practitioners rarely have a
+cheap, absolute yardstick for how good an agent really is. The many choices
+behind a small, fast agent---algorithm, reward shaping, curriculum, state
+representation, checkpoint selection---then get tuned against weak or moving
+references. We address this by building a strong, fixed, deterministic expert
+for Gin Rummy that decomposes melds exact-optimally and otherwise plays
+principled endgame moves, and by using it only as a grading yardstick, never for
+training. The expert beats every agent we trained 70--99\% of the time, yet gins
+in under 2\% of games: it wins by knocking early with low deadwood. Graded
+against this fixed reference across more than one hundred controlled runs, we
+find that trust-region updates, a knock-first reward, a rising opponent
+curriculum, warm-starting, and keeping the best checkpoint each help, whereas
 learned state embeddings, dense step rewards, imitation learning, and a live
 large-language-model opponent each fail for an identifiable reason. The clearest
 result is that reward shaping cannot push the agent into the human-intuitive but
 losing habit of chasing gin: paying three times more for a gin leaves the gin
-rate under one percent, the same as not rewarding gin at all. Stacking the
-choices that help moves a lightweight agent from a self-play champion's roughly
-30 percent against the expert to 34 percent. We release the pipeline as a
-game-agnostic package so the same study can be run on other games.
+rate under 1\%, the same as not rewarding gin at all. Stacking the choices that
+help moves a lightweight agent from a self-play champion's roughly 30\% against
+the expert to 34\%. We release the pipeline as a game-agnostic package so the
+same study can run on other games.
 \end{abstract}
 
 %% ===========================================================================
