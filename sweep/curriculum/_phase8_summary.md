@@ -1,13 +1,15 @@
 # Phase-8 results summary
 
 ## Gin Rummy: architecture sweep vs GOLD expert (win-rate, best ckpt)
-_17 cells with results_
+_19 cells with results_
 
 | win% vs gold | cell | arch | act |
 |---:|---|---|---|
+| 0.306 | arch_deepsets_s1 | deepsets | tanh |
 | 0.296 | arch_mlp_wide_s1 | mlp | tanh |
 | 0.296 | arch_mlp_default_s2 | mlp | tanh |
 | 0.295 | arch_mlp_asym_s0 | mlp | tanh |
+| 0.289 | arch_mlp_xwide_s0 | mlp | tanh |
 | 0.285 | arch_mlp_asym_s3 | mlp | tanh |
 | 0.281 | arch_mlp_narrow_s0 | mlp | tanh |
 | 0.280 | arch_mlp_deep_s0 | mlp | tanh |
@@ -27,12 +29,13 @@ _17 cells with results_
 
 | cell | n | IQM | CI low | CI high |
 |---|---:|---:|---:|---:|
+| arch_deepsets | 1 | 0.306 | 0.306 | 0.306 |
 | arch_mlp_narrow | 1 | 0.281 | 0.281 | 0.281 |
+| arch_mlp_xwide | 2 | 0.280 | 0.271 | 0.289 |
 | arch_mlp_deep | 1 | 0.280 | 0.280 | 0.280 |
 | arch_act_relu | 1 | 0.277 | 0.277 | 0.277 |
 | arch_mlp_wide | 2 | 0.274 | 0.252 | 0.296 |
 | arch_mlp_default | 4 | 0.267 | 0.264 | 0.296 |
-| arch_mlp_xwide | 1 | 0.271 | 0.271 | 0.271 |
 | arch_mlp_asym | 4 | 0.278 | 0.221 | 0.295 |
 | arch_act_gelu | 1 | 0.268 | 0.268 | 0.268 |
 | arch_wd_lo | 1 | 0.264 | 0.264 | 0.264 |
@@ -43,6 +46,7 @@ _17 cells with results_
 | win% vs gold | cell (recipe_arch_seed) |
 |---:|---|
 | 0.302 | sc_ppo_asym_s0 |
+| 0.287 | sc_pfsp_wide_s0 |
 | 0.280 | sc_ppo_mlpdef_s1 |
 | 0.278 | sc_ppo_wide_s0 |
 | 0.278 | sc_ppo_asym_s1 |
