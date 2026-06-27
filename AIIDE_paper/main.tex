@@ -75,31 +75,25 @@
 \begin{abstract}
 \noindent
 Reinforcement learning agents for imperfect-information card games are only as
-strong as the opponents they train against, and it is usually hard to tell how
-good an agent really is without a cheap, fixed reference to compare against. We
-build one for Gin Rummy. It is a strong, fixed, rule-based expert that works out
-the best card groupings exactly and otherwise plays sensible endgame moves, and
-we use it only to grade agents, never to train them. The expert beats every agent
-we trained between 70 and 99 percent of the time, and it almost never goes for
-gin. It wins by knocking early with a low score. Using this expert as a yardstick
-across more than a hundred controlled runs, we find which choices actually make a
-small agent stronger. Trust region updates, a reward that encourages knocking, a
-curriculum of gradually tougher opponents, warm starting from a good model, and
-keeping the best checkpoint all help. We also tried many ideas that did not pay
-off, and we report each one and why. Short term and longer term reward shaping,
-learned state embeddings, learning from the expert by imitation and DAgger, and
-playing against a live large language model opponent were each either unhelpful,
-too slow, or too heavy to train at the scale we needed. No amount of reward
-shaping makes the agent chase gin the way people do, because that habit simply
-loses. Combining the
-choices that help lifts a self play champion from about 30 to 36 percent against
-the expert. We then ask whether the network itself is the missing piece,
-comparing plain networks of different sizes against convolutional, set based,
-attention, and recurrent ones. We add standard baselines, neural fictitious self
-play and information set Monte Carlo search, and we check that the same approach
-carries over to a second game, Leduc Hold'em, where the best possible player can
-be computed exactly. We report results with solid statistics and release the
-whole pipeline as a reusable package that works on other games.
+strong as the opponents they train against, yet judging how good an agent is
+needs a cheap, fixed reference. We built one for Gin Rummy, a strong, fixed,
+rule-based expert that groups cards optimally and plays sensible endgame moves,
+used only to grade agents, never to train them. The expert beats every agent we
+trained 70 to 99 percent of the time, rarely gins, and wins by knocking early
+with a low score. Across more than a hundred controlled runs, we find which
+choices make a small agent stronger. Trust region updates, a reward that
+encourages knocking, a curriculum of tougher opponents, warm starting, and
+keeping the best checkpoint all help. Several ideas did not pay off. Short-term
+and longer-term reward shaping, learned state embeddings, imitation and DAgger,
+and a live large language model opponent were each unhelpful, too slow, or too
+heavy to train at scale. Reward shaping cannot make the agent chase gin the way
+people do, because that habit loses. Combining the choices that help lifts a
+self-play champion from about 30 to 36 percent against the expert. We then test
+whether the network is the missing piece across MLP, convolutional, set-based,
+attention, and recurrent encoders. We add baselines (neural fictitious self-play
+and information set Monte Carlo search) and show the method carries over to Leduc
+Hold'em, where the optimal player is computable. We report robust statistics and
+release the pipeline as a reusable, game-agnostic package.
 \end{abstract}
 
 %% ===========================================================================
