@@ -227,11 +227,20 @@ def phase8_section():
                      f'<table><tr><th>architecture (cell)</th><th>win% vs perfect</th></tr>{rows}</table>'
                      f'<p class="muted">{note}</p>')
 
-    ism = s.get("ismcts_vs_gold") or []
+    ism_all = s.get("ismcts_vs_gold") or []
+    # Prefer the FAIR determinized runs for the headline table; fall back to oracle if that's all we have.
+    ism = [d for d in ism_all if d.get("determinize")] or ism_all
+    is_fair = any(d.get("determinize") for d in ism)
     if ism:
         ism = sorted(ism, key=lambda d: d["rollouts"])
         head = "".join(f"<th>{d['rollouts']}</th>" for d in ism)
         cells = "".join(f"<td><b>{d['win_rate']*100:.0f}%</b></td>" for d in ism)
+        mode_note = ("These are the <b>fair</b> numbers: the search re-deals the hidden cards every "
+                     "rollout and never sees the opponent's true hand."
+                     if is_fair else
+                     "<b>Note:</b> the numbers below are the <i>oracle upper bound</i> (the search was "
+                     "allowed to see the true hidden cards); the fair determinized numbers are still "
+                     "computing and will replace these.")
         parts.append(
             '<h3>A search baseline (ISMCTS), graded the same way</h3>'
             '<p><b>ISMCTS</b> stands for <b>Information-Set Monte-Carlo Tree Search</b>. It is not a '
@@ -250,14 +259,29 @@ def phase8_section():
             '<p>The number of "rollouts per move" is how many of those imagined playouts it runs &mdash; '
             'more rollouts means more imagined worlds explored, so stronger play and a little more '
             'thinking time per move. That is exactly the trade-off below:</p>'
+            f'<p class="muted">{mode_note}</p>'
             f'<table><tr><th>rollouts / move</th>{head}</tr>'
             f'<tr><td>win% vs the expert</td>{cells}</tr></table>'
             '<p class="muted">Win-rate vs the gold expert rises smoothly with the thinking budget, and '
             'with enough of it the search outplays even the expert. This is the strong, non-learned '
             'reference point a reviewer expects, and it shows the headroom our small <i>learned</i> '
             'agents still leave on the table: the way past the ceiling is a different <i>kind</i> of '
-            'method (search/planning), not a bigger network. You can play it yourself as the '
-            '&#129504; <b>Search Mastermind</b> in the game.</p>')
+            'method (search/planning), not a bigger network. (We also measure an <i>oracle</i> version '
+            'that is allowed to peek at the hidden cards, as an upper bound.) You can play the fair '
+            'version yourself as the &#129504; <b>Search Mastermind</b> in the game.</p>')
+
+    h2h = s.get("model_vs_ismcts") or []
+    if h2h:
+        hrows = "".join(f"<tr><td>{d['model']}</td><td><b>{d['win_rate']*100:.0f}%</b></td>"
+                        f"<td>{d['rollouts']}</td></tr>" for d in h2h)
+        parts.append(
+            '<h3>How do our trained agents do against the search, head-to-head?</h3>'
+            '<p>We also played each learned agent directly against the (fair) search. This is a '
+            'like-for-like fight between a fast trained network and a slow planner:</p>'
+            f'<table><tr><th>trained model</th><th>win% vs ISMCTS</th><th>search rollouts</th></tr>'
+            f'{hrows}</table>'
+            '<p class="muted">A point near 50% means the trained agent roughly trades blows with the '
+            'search at that thinking budget; well below 50% means the search is clearly stronger.</p>')
 
     sc = s.get("stagec_vs_gold") or {}
     if sc:

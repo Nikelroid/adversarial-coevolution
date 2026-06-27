@@ -116,20 +116,43 @@ def main():
             wr = _wr_vs_gold(d) or (d.get("vs_gold", {}) or {}).get("win_rate")
             md.append(f"| {wr if wr is None else round(wr,3)} | {k} |")
 
-    # ---- ISMCTS search baseline vs gold, by rollout budget ----
+    # ---- ISMCTS search baseline vs gold, by rollout budget; split fair (determinized) vs oracle ----
     ism = {k: v for k, v in A.items() if k.startswith("ismcts_")}
     if ism:
-        md += ["", "## ISMCTS search baseline vs GOLD, by rollout budget", "",
-               "| rollouts | win% vs gold | gin% | mean len | cell |", "|---:|---:|---:|---:|---|"]
         irows = []
         for k, d in ism.items():
             vg = d.get("vs_gold") or {}
             if vg:
-                irows.append((d.get("rollouts", 0), vg.get("win_rate"), vg.get("gin_rate"),
+                det = bool(d.get("determinize", False))   # old files (no field) were oracle
+                irows.append((det, d.get("rollouts", 0), vg.get("win_rate"), vg.get("gin_rate"),
                               vg.get("mean_len"), k))
-        for r, wr, gr, ml, k in sorted(irows):
-            md.append(f"| {r} | {wr} | {gr} | {ml} | {k} |")
-        summary["ismcts_vs_gold"] = [dict(rollouts=r, win_rate=wr, cell=k) for r, wr, _, _, k in sorted(irows)]
+        for det, title in [(True, "determinized = FAIR imperfect-info baseline"),
+                           (False, "oracle = perfect-info UPPER BOUND (sees opponent cards)")]:
+            sub = sorted([r for r in irows if r[0] == det], key=lambda r: r[1])
+            if not sub:
+                continue
+            md += ["", f"## ISMCTS vs GOLD by rollout budget &mdash; {title}", "",
+                   "| rollouts | win% vs gold | gin% | mean len | cell |", "|---:|---:|---:|---:|---|"]
+            for _, r, wr, gr, ml, k in sub:
+                md.append(f"| {r} | {wr} | {gr} | {ml} | {k} |")
+        summary["ismcts_vs_gold"] = [dict(rollouts=r, win_rate=wr, determinize=det, cell=k)
+                                     for det, r, wr, _, _, k in sorted(irows, key=lambda x: (x[0], x[1]))]
+
+    # ---- Head-to-head: trained models vs ISMCTS ----
+    h2h = {k: v for k, v in A.items() if k.startswith("h2h_")}
+    if h2h:
+        md += ["", "## Head-to-head: trained models vs ISMCTS (model win-rate)", "",
+               "| model | win% vs ISMCTS | rollouts | mode | cell |", "|---|---:|---:|---|---|"]
+        hrows = []
+        for k, d in h2h.items():
+            vi = d.get("vs_ismcts") or {}
+            if vi:
+                hrows.append((vi.get("win_rate"), d.get("model"), d.get("rollouts"),
+                              "det" if d.get("determinize") else "oracle", k))
+        for wr, mdl, r, mode, k in sorted(hrows, reverse=True):
+            md.append(f"| {mdl} | {wr} | {r} | {mode} | {k} |")
+        summary["model_vs_ismcts"] = [dict(model=mdl, win_rate=wr, rollouts=r, mode=mode)
+                                      for wr, mdl, r, mode, k in sorted(hrows, reverse=True)]
 
     # ---- Leduc generality vs CFR-optimal expert ----
     leduc = {k: v for k, v in A.items() if k.startswith("leduc_")}
