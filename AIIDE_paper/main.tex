@@ -54,7 +54,7 @@
 %% Author identity toggle. Names are SHOWN now. For the AIIDE double-blind
 %% submission, set this to \anonymoustrue (the only change needed to anonymize).
 \newif\ifanonymous
-\anonymousfalse
+\anonymoustrue
 %% ---- end AAAI-style approximation ------------------------------------------
 
 \title{\bf A Gold-Standard Study of What Makes\\ a Lightweight Game-Playing Agent Strong}
@@ -76,25 +76,27 @@
 \noindent
 Reinforcement-learning agents for imperfect-information card games are only as
 strong as the opponents they train against, and practitioners rarely have a
-cheap, absolute yardstick for how good an agent really is. The many choices
-behind a small, fast agent---algorithm, reward shaping, curriculum, state
-representation, checkpoint selection---then get tuned against weak or moving
-references. We address this by building a strong, fixed, deterministic expert
-for Gin Rummy that decomposes melds exact-optimally and otherwise plays
-principled endgame moves, and by using it only as a grading yardstick, never for
-training. The expert beats every agent we trained 70--99\% of the time, yet gins
-in under 2\% of games: it wins by knocking early with low deadwood. Graded
-against this fixed reference across more than one hundred controlled runs, we
-find that trust-region updates, a knock-first reward, a rising opponent
-curriculum, warm-starting, and keeping the best checkpoint each help, whereas
-learned state embeddings, dense step rewards, imitation learning, and a live
-large-language-model opponent each fail for an identifiable reason. The clearest
-result is that reward shaping cannot push the agent into the human-intuitive but
-losing habit of chasing gin: paying three times more for a gin leaves the gin
-rate under 1\%, the same as not rewarding gin at all. Stacking the choices that
-help moves a lightweight agent from a self-play champion's roughly 30\% against
-the expert to 34\%. We release the pipeline as a game-agnostic package so the
-same study can run on other games.
+cheap, absolute yardstick for how good an agent really is. We address this by
+building a strong, fixed, deterministic expert for Gin Rummy that decomposes
+melds exact-optimally and otherwise plays principled endgame moves, and by using
+it only as a grading yardstick, never for training. The expert beats every agent
+we trained 70--99\% of the time, yet gins in under 2\% of games: it wins by
+knocking early with low deadwood. Graded against this fixed reference across more
+than one hundred controlled runs, we isolate what makes a lightweight agent
+strong: trust-region updates, a knock-first reward, a rising opponent curriculum,
+warm-starting, and keeping the best checkpoint each help, whereas learned state
+embeddings, dense step rewards, imitation learning, and a live
+large-language-model opponent each fail for an identifiable reason. Reward shaping
+cannot induce the human-intuitive but losing habit of chasing gin, and stacking
+the choices that help lifts a self-play champion from roughly 30\% to 36\% against
+the expert. We then test whether network architecture is the missing
+lever---comparing MLP width and depth, convolutional, permutation-invariant set,
+attention, and recurrent encoders---benchmark against standard
+imperfect-information references (neural fictitious self-play and information-set
+Monte Carlo search), and probe generality on a second game, Leduc Hold'em, graded
+against a counterfactual-regret-optimal expert, reporting interquartile means with
+stratified bootstrap intervals. We release the pipeline as a game-agnostic
+package.
 \end{abstract}
 
 %% ===========================================================================
