@@ -1,0 +1,150 @@
+{
+  "arch_vs_gold": {
+    "cells": {
+      "arch_mlp_wide_s1": 0.296,
+      "arch_mlp_default_s2": 0.296,
+      "arch_mlp_asym_s0": 0.295,
+      "arch_mlp_asym_s3": 0.285,
+      "arch_mlp_narrow_s0": 0.281,
+      "arch_mlp_deep_s0": 0.28,
+      "arch_act_relu_s0": 0.277,
+      "arch_mlp_asym_s2": 0.272,
+      "arch_act_gelu_s0": 0.268,
+      "arch_mlp_default_s1": 0.265,
+      "arch_wd_lo_s0": 0.264,
+      "arch_mlp_default_s0": 0.264,
+      "arch_mlp_wide_s0": 0.252,
+      "arch_wd_hi_s0": 0.241,
+      "arch_mlp_asym_s1": 0.221
+    },
+    "families": {
+      "arch_mlp_narrow": {
+        "n": 1,
+        "iqm": 0.281,
+        "ci": [
+          0.281,
+          0.281
+        ],
+        "seeds": [
+          0.281
+        ]
+      },
+      "arch_mlp_deep": {
+        "n": 1,
+        "iqm": 0.28,
+        "ci": [
+          0.28,
+          0.28
+        ],
+        "seeds": [
+          0.28
+        ]
+      },
+      "arch_act_relu": {
+        "n": 1,
+        "iqm": 0.277,
+        "ci": [
+          0.277,
+          0.277
+        ],
+        "seeds": [
+          0.277
+        ]
+      },
+      "arch_mlp_default": {
+        "n": 3,
+        "iqm": 0.27499999999999997,
+        "ci": [
+          0.264,
+          0.296
+        ],
+        "seeds": [
+          0.296,
+          0.265,
+          0.264
+        ]
+      },
+      "arch_mlp_wide": {
+        "n": 2,
+        "iqm": 0.274,
+        "ci": [
+          0.252,
+          0.296
+        ],
+        "seeds": [
+          0.296,
+          0.252
+        ]
+      },
+      "arch_mlp_asym": {
+        "n": 4,
+        "iqm": 0.27849999999999997,
+        "ci": [
+          0.221,
+          0.295
+        ],
+        "seeds": [
+          0.295,
+          0.285,
+          0.272,
+          0.221
+        ]
+      },
+      "arch_act_gelu": {
+        "n": 1,
+        "iqm": 0.268,
+        "ci": [
+          0.268,
+          0.268
+        ],
+        "seeds": [
+          0.268
+        ]
+      },
+      "arch_wd_lo": {
+        "n": 1,
+        "iqm": 0.264,
+        "ci": [
+          0.264,
+          0.264
+        ],
+        "seeds": [
+          0.264
+        ]
+      },
+      "arch_wd_hi": {
+        "n": 1,
+        "iqm": 0.241,
+        "ci": [
+          0.241,
+          0.241
+        ],
+        "seeds": [
+          0.241
+        ]
+      }
+    }
+  },
+  "ismcts_vs_gold": [
+    {
+      "rollouts": 10,
+      "win_rate": 0.4066666666666667,
+      "cell": "ismcts_vs_gold_r10"
+    },
+    {
+      "rollouts": 20,
+      "win_rate": 0.55,
+      "cell": "ismcts_vs_gold"
+    }
+  ],
+  "leduc_vs_cfr": {
+    "tabular_q": {
+      "n": 9,
+      "mean": -0.08406666666666668
+    },
+    "nfsp": {
+      "n": 4,
+      "mean": -0.74745
+    }
+  }
+}

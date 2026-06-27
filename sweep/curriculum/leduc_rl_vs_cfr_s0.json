@@ -1,0 +1,77 @@
+{
+  "name": "leduc_rl_vs_cfr_s0",
+  "game": "leduc_poker",
+  "agent": "tabular_qlearning_selfplay",
+  "expert": "cfr",
+  "seed": 0,
+  "cfr_iters": 400,
+  "cfr_exploitability": 0.0264,
+  "episodes": 500000,
+  "final_return_vs_expert": -0.169,
+  "curve": [
+    {
+      "episode": 33333,
+      "return_vs_expert": -0.2318
+    },
+    {
+      "episode": 66666,
+      "return_vs_expert": -0.3227
+    },
+    {
+      "episode": 99999,
+      "return_vs_expert": -0.1507
+    },
+    {
+      "episode": 133332,
+      "return_vs_expert": -0.0183
+    },
+    {
+      "episode": 166665,
+      "return_vs_expert": -0.2448
+    },
+    {
+      "episode": 199998,
+      "return_vs_expert": -0.1325
+    },
+    {
+      "episode": 233331,
+      "return_vs_expert": -0.0583
+    },
+    {
+      "episode": 266664,
+      "return_vs_expert": -0.2035
+    },
+    {
+      "episode": 299997,
+      "return_vs_expert": -0.0052
+    },
+    {
+      "episode": 333330,
+      "return_vs_expert": -0.0648
+    },
+    {
+      "episode": 366663,
+      "return_vs_expert": -0.125
+    },
+    {
+      "episode": 399996,
+      "return_vs_expert": -0.1067
+    },
+    {
+      "episode": 433329,
+      "return_vs_expert": -0.1095
+    },
+    {
+      "episode": 466662,
+      "return_vs_expert": -0.0472
+    },
+    {
+      "episode": 499995,
+      "return_vs_expert": -0.1797
+    },
+    {
+      "episode": 500000,
+      "return_vs_expert": -0.169
+    }
+  ]
+}

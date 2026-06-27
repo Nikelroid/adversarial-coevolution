@@ -1,0 +1,14 @@
+{
+  "name": "ismcts_vs_gold_r10",
+  "agent": "ismcts_pimc",
+  "opponent": "gold",
+  "rollouts": 10,
+  "eval_seconds": 2094.003525495529,
+  "vs_gold": {
+    "win_rate": 0.4066666666666667,
+    "gin_rate": 0.09333333333333334,
+    "loss_rate": 0.5933333333333334,
+    "mean_len": 47.82333333333333,
+    "n": 300
+  }
+}

@@ -16,6 +16,21 @@
       "secs": 18615
     },
     {
+      "name": "arch_mlp_default_s2",
+      "cell": "arch_mlp_default",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 2,
+      "vs_gold": 0.296,
+      "gin_vs_gold": 0.009,
+      "len_vs_gold": 34.74,
+      "vs_champion": 0.425,
+      "vs_random": 0.991,
+      "best_step": 10000000,
+      "secs": 15847
+    },
+    {
       "name": "arch_mlp_asym_s0",
       "cell": "arch_mlp_asym",
       "arch": "mlp",
@@ -217,65 +232,65 @@
       "n": 1,
       "mean_vs_gold": 0.288,
       "std": 0.0,
-      "delta_vs_anchor": 0.0235
+      "delta_vs_anchor": 0.013
     },
     {
       "cell": "arch_mlp_deep",
       "n": 1,
       "mean_vs_gold": 0.28,
       "std": 0.0,
-      "delta_vs_anchor": 0.0155
+      "delta_vs_anchor": 0.005
     },
     {
       "cell": "arch_act_relu",
       "n": 1,
       "mean_vs_gold": 0.279,
       "std": 0.0,
-      "delta_vs_anchor": 0.0145
+      "delta_vs_anchor": 0.004
     },
     {
       "cell": "arch_mlp_wide",
       "n": 2,
       "mean_vs_gold": 0.2755,
       "std": 0.0235,
-      "delta_vs_anchor": 0.011
+      "delta_vs_anchor": 0.0005
     },
     {
       "cell": "arch_mlp_asym",
       "n": 4,
       "mean_vs_gold": 0.2752,
       "std": 0.0172,
-      "delta_vs_anchor": 0.0107
+      "delta_vs_anchor": 0.0002
+    },
+    {
+      "cell": "arch_mlp_default",
+      "n": 3,
+      "mean_vs_gold": 0.275,
+      "std": 0.0149,
+      "delta_vs_anchor": 0.0
     },
     {
       "cell": "arch_act_gelu",
       "n": 1,
       "mean_vs_gold": 0.268,
       "std": 0.0,
-      "delta_vs_anchor": 0.0035
-    },
-    {
-      "cell": "arch_mlp_default",
-      "n": 2,
-      "mean_vs_gold": 0.2645,
-      "std": 0.0005,
-      "delta_vs_anchor": 0.0
+      "delta_vs_anchor": -0.007
     },
     {
       "cell": "arch_wd_lo",
       "n": 1,
       "mean_vs_gold": 0.264,
       "std": 0.0,
-      "delta_vs_anchor": -0.0005
+      "delta_vs_anchor": -0.011
     },
     {
       "cell": "arch_wd_hi",
       "n": 1,
       "mean_vs_gold": 0.258,
       "std": 0.0,
-      "delta_vs_anchor": -0.0065
+      "delta_vs_anchor": -0.017
     }
   ],
   "anchor": "arch_mlp_default",
-  "anchor_mean": 0.2645
+  "anchor_mean": 0.275
 }
