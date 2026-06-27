@@ -1,6 +1,21 @@
 {
   "per_run": [
     {
+      "name": "arch_mlp_asym_s0",
+      "cell": "arch_mlp_asym",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[128, 64]",
+      "seed": 0,
+      "vs_gold": 0.295,
+      "gin_vs_gold": 0.01,
+      "len_vs_gold": 34.18,
+      "vs_champion": 0.436,
+      "vs_random": 0.992,
+      "best_step": 9000000,
+      "secs": 8211
+    },
+    {
       "name": "arch_mlp_narrow_s0",
       "cell": "arch_mlp_narrow",
       "arch": "mlp",
@@ -47,6 +62,13 @@
     }
   ],
   "per_arch": [
+    {
+      "cell": "arch_mlp_asym",
+      "n": 1,
+      "mean_vs_gold": 0.295,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0305
+    },
     {
       "cell": "arch_mlp_narrow",
       "n": 1,
