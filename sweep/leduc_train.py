@@ -21,6 +21,8 @@ import pyspiel
 from open_spiel.python import rl_environment
 from open_spiel.python.algorithms import cfr, tabular_qlearner, exploitability
 
+from sweep.wandb_util import wandb_init, wandb_log, wandb_finish
+
 
 def cfr_expert(game, iters):
     solver = cfr.CFRSolver(game)
@@ -53,14 +55,21 @@ def main():
     episodes = int(os.environ.get("EPISODES", 300_000))
     cfr_iters = int(os.environ.get("CFR_ITERS", 400))
     grade_games = int(os.environ.get("GRADE_GAMES", 1000))
+    seed = int(os.environ.get("SEED", 0))
+    np.random.seed(seed)
     game = pyspiel.load_game("leduc_poker")
     env = rl_environment.Environment("leduc_poker")
+    env.seed(seed)
     nA = env.action_spec()["num_actions"]
-    rng = np.random.default_rng(0)
+    rng = np.random.default_rng(seed)
 
-    print(f"=== Leduc: solving CFR expert ({cfr_iters} iters) ===", flush=True)
+    print(f"=== Leduc (seed={seed}): solving CFR expert ({cfr_iters} iters) ===", flush=True)
     expert, expl = cfr_expert(game, cfr_iters)
     print(f"CFR expert exploitability = {expl:.4f}", flush=True)
+    wandb_init(name=f"leduc_rl_vs_cfr_s{seed}", group="phase8-leduc",
+               config=dict(game="leduc_poker", agent="tabular_qlearning_selfplay", expert="cfr",
+                           episodes=episodes, seed=seed, cfr_iters=cfr_iters),
+               tags=["leduc", "tabular_q", "rl"])
 
     agents = [tabular_qlearner.QLearner(player_id=i, num_actions=nA) for i in range(2)]
     print(f"=== self-play tabular Q-learning, {episodes:,} episodes ===", flush=True)
@@ -78,18 +87,21 @@ def main():
             r1 = grade(env, agents[1], 1, expert, grade_games, rng)
             r = 0.5 * (r0 + r1)
             curve.append(dict(episode=ep + 1, return_vs_expert=round(r, 4)))
+            wandb_log(dict(episode=ep + 1, return_vs_expert=r, return_seat0=r0, return_seat1=r1))
             print(f"ep {ep + 1:>8,}: return vs CFR expert = {r:+.3f} "
                   f"(seat0 {r0:+.3f}, seat1 {r1:+.3f})", flush=True)
 
-    out = os.path.join(PROJECT_ROOT, "sweep", "curriculum", "leduc_rl_vs_cfr.json")
-    result = dict(name="leduc_rl_vs_cfr", game="leduc_poker", agent="tabular_qlearning_selfplay",
-                  expert="cfr", cfr_iters=cfr_iters, cfr_exploitability=round(expl, 4),
+    out = os.path.join(PROJECT_ROOT, "sweep", "curriculum", f"leduc_rl_vs_cfr_s{seed}.json")
+    result = dict(name=f"leduc_rl_vs_cfr_s{seed}", game="leduc_poker", agent="tabular_qlearning_selfplay",
+                  expert="cfr", seed=seed, cfr_iters=cfr_iters, cfr_exploitability=round(expl, 4),
                   episodes=episodes, final_return_vs_expert=curve[-1]["return_vs_expert"],
                   curve=curve)
     tmp = out + ".tmp"
     with open(tmp, "w") as f:
         json.dump(result, f, indent=2)
     os.replace(tmp, out)
+    wandb_finish(summary=dict(final_return_vs_expert=curve[-1]["return_vs_expert"],
+                              cfr_exploitability=round(expl, 4)))
     print(f"[done] Leduc RL final return vs CFR expert = {curve[-1]['return_vs_expert']:+.3f} "
           f"(random baseline was about -0.78) -> {out}", flush=True)
 
