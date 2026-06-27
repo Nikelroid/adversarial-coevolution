@@ -121,6 +121,21 @@
       "secs": 10615
     },
     {
+      "name": "arch_mlp_xwide_s1",
+      "cell": "arch_mlp_xwide",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[768, 384]",
+      "seed": 1,
+      "vs_gold": 0.271,
+      "gin_vs_gold": 0.005,
+      "len_vs_gold": 34.28,
+      "vs_champion": 0.427,
+      "vs_random": 0.997,
+      "best_step": 7000000,
+      "secs": 23659
+    },
+    {
       "name": "arch_mlp_default_s3",
       "cell": "arch_mlp_default",
       "arch": "mlp",
@@ -283,6 +298,13 @@
       "mean_vs_gold": 0.2735,
       "std": 0.0131,
       "delta_vs_anchor": 0.0
+    },
+    {
+      "cell": "arch_mlp_xwide",
+      "n": 1,
+      "mean_vs_gold": 0.271,
+      "std": 0.0,
+      "delta_vs_anchor": -0.0025
     },
     {
       "cell": "arch_act_gelu",

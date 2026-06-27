@@ -9,6 +9,7 @@
       "arch_mlp_deep_s0": 0.28,
       "arch_act_relu_s0": 0.277,
       "arch_mlp_asym_s2": 0.272,
+      "arch_mlp_default_s3": 0.269,
       "arch_act_gelu_s0": 0.268,
       "arch_mlp_default_s1": 0.265,
       "arch_wd_lo_s0": 0.264,
@@ -51,19 +52,6 @@
           0.277
         ]
       },
-      "arch_mlp_default": {
-        "n": 3,
-        "iqm": 0.27499999999999997,
-        "ci": [
-          0.264,
-          0.296
-        ],
-        "seeds": [
-          0.296,
-          0.265,
-          0.264
-        ]
-      },
       "arch_mlp_wide": {
         "n": 2,
         "iqm": 0.274,
@@ -74,6 +62,20 @@
         "seeds": [
           0.296,
           0.252
+        ]
+      },
+      "arch_mlp_default": {
+        "n": 4,
+        "iqm": 0.267,
+        "ci": [
+          0.264,
+          0.296
+        ],
+        "seeds": [
+          0.296,
+          0.269,
+          0.265,
+          0.264
         ]
       },
       "arch_mlp_asym": {
@@ -125,6 +127,12 @@
       }
     }
   },
+  "stagec_vs_gold": {
+    "sc_ppo_asym_s0": 0.302,
+    "sc_ppo_mlpdef_s1": 0.28,
+    "sc_ppo_asym_s1": 0.278,
+    "sc_ppo_mlpdef_s0": 0.271
+  },
   "ismcts_vs_gold": [
     {
       "rollouts": 10,
@@ -135,6 +143,16 @@
       "rollouts": 20,
       "win_rate": 0.55,
       "cell": "ismcts_vs_gold"
+    },
+    {
+      "rollouts": 30,
+      "win_rate": 0.59,
+      "cell": "ismcts_vs_gold_r30"
+    },
+    {
+      "rollouts": 60,
+      "win_rate": 0.7533333333333333,
+      "cell": "ismcts_vs_gold_r60"
     }
   ],
   "leduc_vs_cfr": {
