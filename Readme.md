@@ -1,94 +1,117 @@
 <h1 align="center">Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
 
 <p align="center">
-  <i>A hybrid system where a lightweight action-masked <b>PPO</b> agent and a strong-but-slow
-  <b>LLM</b> opponent train against each other —<br/>without paying full LLM latency on every RL step.</i>
+  <i>How close can a small, fast reinforcement-learning agent get to <b>perfect</b> Gin Rummy &mdash;<br/>
+  and which training ideas actually make it stronger? We built the whole framework to find out.</i>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/RL-action--masked%20PPO-0b5b39"/>
+  <img src="https://img.shields.io/badge/RL-masked%20PPO%20%2F%20TRPO-0b5b39"/>
   <img src="https://img.shields.io/badge/env-PettingZoo%20%2F%20RLCard-0b5b39"/>
-  <img src="https://img.shields.io/badge/LLM-Qwen2.5--7B-0b5b39"/>
-  <img src="https://img.shields.io/badge/serving-master%2Fworker%2Fcache-0b5b39"/>
-  <img src="https://img.shields.io/badge/cluster-SLURM%20%C2%B7%20up%20to%2032%20V100-0b5b39"/>
+  <img src="https://img.shields.io/badge/benchmark-gold--standard%20expert-d9a521"/>
+  <img src="https://img.shields.io/badge/LLM-Qwen2.5--7B%20(distributed)-0b5b39"/>
+  <img src="https://img.shields.io/badge/experiments-100%2B-0b5b39"/>
 </p>
 
 <p align="center">
-  📊 <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
-  &nbsp;·&nbsp; 📄 <b><a href="paper/main.pdf">4-page PDF</a></b>
-  &nbsp;·&nbsp; 🎮 <b><a href="game/">Play the web game</a></b>
+  &#128202; <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
+  &nbsp;&middot;&nbsp; &#128196; <b><a href="paper/main.pdf">PDF paper</a></b>
+  &nbsp;&middot;&nbsp; &#127918; <b><a href="game/">Play the web game</a></b>
 </p>
 
 ---
-
-<h2 align="center">Highlights</h2>
 
 <div align="center">
 
 <table align="center">
 <tr>
-  <td align="center"><b>99.6%</b><br/><sub>best PPO vs random</sub></td>
-  <td align="center"><b>5 / 5</b><br/><sub>Qwen2.5-7B beats random</sub></td>
-  <td align="center"><b>62×</b><br/><sub>faster worker load (scratch)</sub></td>
-  <td align="center"><b>~32 q/s</b><br/><sub>LLM throughput, 14 workers</sub></td>
+  <td align="center"><b>34%</b><br/><sub>best agent vs the<br/>perfect player</sub></td>
+  <td align="center"><b>&lt;2%</b><br/><sub>how often the perfect<br/>player gins</sub></td>
+  <td align="center"><b>100+</b><br/><sub>controlled<br/>experiments</sub></td>
+  <td align="center"><b>62&times;</b><br/><sub>faster LLM serving<br/>(scratch vs NFS)</sub></td>
 </tr>
 </table>
 
 </div>
 
 <p align="center">
-  Gin Rummy needs both short-horizon arithmetic (deadwood counting) and long-horizon planning
-  (meld formation).<br/>Our three-phase roadmap:
-  <b>(1)</b> train a strong RL backbone vs weak opponents →
-  <b>(2)</b> train it vs an LLM opponent →
-  <b>(3)</b> let them co-evolve.<br/>This repo covers <b>Phases&nbsp;1–2</b>.
+  Gin Rummy needs both short-horizon arithmetic (counting <i>deadwood</i>) and long-horizon planning
+  (forming <i>melds</i>), and you never see the opponent's hand. Training an RL agent hits the
+  <b>opponent bottleneck</b>: it is only as good as who it practises against. So we built a fast RL
+  player, a <b>provably optimal</b> opponent to grade everyone honestly, and a distributed system to
+  put an LLM in the game &mdash; then ran 100+ experiments to see what truly helps.
 </p>
 
 <div align="center">
-  <img src="paper/figures/game_ui.png" width="640" alt="Human vs RL web game"/>
-  <br/><sub><b>The human-vs-RL web client</b> — 3-D card animations, four trained opponents (debug view shown).</sub>
+  <img src="paper/figures/journey.png" width="520" alt="Win-rate vs the perfect player across the project"/>
+  <br/><sub>Our best agent climbed from the old champion's ~30% to <b>34%</b> against perfect play &mdash; through a systematic search, not luck.</sub>
 </div>
 
 ---
 
-<h2 align="center">Phase 1 — the RL backbone saturates against random</h2>
+<h2 align="center">The gold standard &mdash; and the surprise it revealed</h2>
 
 <p align="center">
-  Action-masked PPO (illegal-action logits → −∞) on PettingZoo <code>gin_rummy_v4</code>. An eight-config
-  sweep (3×2 grid over learning rate × entropy, plus two ablations), 2M steps each, 96 parallel envs,
-  evaluated over 1000 deterministic games.<br/><b>Every config lands in the 98.3–99.6% band</b> —
-  statistically indistinguishable (95% CI ±0.6 pp). Mean reward sits at the <b>knock</b> value (0.5),
-  not <b>gin</b> (1.5) — a risk/reward call only a <i>thinking</i> opponent can teach. That motivates Phase&nbsp;2.
+  We built a <b>perfect</b> Gin Rummy player (exact meld solving, no learning) to use as an honest
+  yardstick. It beats every trained agent <b>70&ndash;99%</b> of the time. The surprise: it
+  <b>gins under 2%</b> of games &mdash; it wins by <i>knocking early with low deadwood</i>, not by
+  chasing gin. That single fact reframed every reward experiment we ran.
 </p>
 
 <div align="center">
-  <img src="paper/figures/win_rate.png" width="540" alt="Phase-1 win rates"/>
+  <img src="paper/figures/gold_bench.png" width="660" alt="Gold beats everyone but rarely gins"/>
+</div>
+
+---
+
+<h2 align="center">Everything we tried, ranked vs the perfect player</h2>
+
+<p align="center">
+  We benchmarked nearly every reasonable way to make the agent stronger on one metric &mdash; win-rate
+  against the perfect player &mdash; and, for each, found <i>why</i> it lands where it does.
+</p>
+
+<div align="center">
+  <img src="paper/figures/regimes.png" width="640" alt="Every regime ranked vs the perfect player"/>
 </div>
 
 <div align="center">
 
 <table align="center">
-<tr><th>Config</th><th>win%</th><th>loss%</th><th>note</th></tr>
-<tr><td>cfg5 · lr 5e-5, ent .03</td><td align="center"><b>99.6</b></td><td align="center">0.4</td><td>best of sweep</td></tr>
-<tr><td>cfg7 · lr 1e-4, 10 epochs</td><td align="center">99.5</td><td align="center">0.5</td><td>ablation</td></tr>
-<tr><td>cfg0 · lr 3e-4, ent .01</td><td align="center">99.4</td><td align="center">0.6</td><td>baseline</td></tr>
-<tr><td>cfg3 · lr 1e-4, ent .03</td><td align="center">99.4</td><td align="center">0.6</td><td>—</td></tr>
-<tr><td>cfg6 · lr 1e-4, n_steps 1024</td><td align="center">99.3</td><td align="center">0.7</td><td>ablation</td></tr>
-<tr><td>cfg4 · lr 5e-5, ent .01</td><td align="center">99.2</td><td align="center">0.8</td><td>—</td></tr>
-<tr><td>cfg1 · lr 3e-4, ent .03</td><td align="center">98.8</td><td align="center">1.2</td><td>—</td></tr>
-<tr><td>cfg2 · lr 1e-4, ent .01</td><td align="center">98.3</td><td align="center">1.7</td><td>worst of sweep</td></tr>
+<tr><th>Idea</th><th>Verdict</th><th>Why</th></tr>
+<tr><td>Keep the best checkpoint</td><td align="center">&#9989; helps</td><td>training drifts past its peak; saving the best recovers 2&ndash;3 pts for free</td></tr>
+<tr><td>Warm-start from the champion</td><td align="center">&#9989; helps</td><td>start strong, then specialise</td></tr>
+<tr><td>TRPO over PPO</td><td align="center">&#9989; helps</td><td>safer policy steps suit sparse, shifting self-play</td></tr>
+<tr><td>Reward knocking, not gin</td><td align="center">&#9989; helps</td><td>copies the optimal low-risk style</td></tr>
+<tr><td>Rising opponent curriculum</td><td align="center">&#9989; helps</td><td>always a fair-but-harder challenge</td></tr>
+<tr><td>Paying 3&times; more for gin</td><td align="center">&#10134;&#65039; no effect</td><td>the agent refuses the bad habit at any bribe</td></tr>
+<tr><td>Learned state embeddings</td><td align="center">&#10060; hurts</td><td>a frozen bottleneck discards useful detail</td></tr>
+<tr><td>Imitation learning (DAgger)</td><td align="center">&#10060; fails</td><td>copies moves, not the reasoning behind them</td></tr>
+<tr><td>Dense short-term rewards</td><td align="center">&#10060; fails</td><td>myopia &mdash; greedy for points, blind to winning</td></tr>
+<tr><td>Live LLM-in-the-loop</td><td align="center">&#10060; infeasible</td><td>strong (beat our agent 3&ndash;2) but ~9&ndash;27&nbsp;s/move &mdash; far too slow</td></tr>
 </table>
 
 </div>
 
+<p align="center">
+  &#128161; <b>The clean result:</b> we tried to <i>bribe</i> the agent into ginning by paying three
+  times more for a gin than a knock. Across 30 controlled runs it still gins under 1% of the time
+  &mdash; just like the perfect player, it discovers that chasing gin loses. You cannot pay a policy
+  into a bad habit.
+</p>
+
 ---
 
-<h2 align="center">Phase 2 — LLM-in-the-loop infrastructure</h2>
+<h2 align="center">The framework we built</h2>
+
+<div align="center">
+  <img src="paper/figures/architecture.png" width="640" alt="System overview"/>
+  <br/><sub>The gold standard is used for <b>scoring only</b> &mdash; it never trains the agent.</sub>
+</div>
 
 <p align="center">
-  A single PPO rollout fires up to ~50k opponent queries; at 0.5–3 s per 7B call a naïve loop takes hours.
-  We decouple inference from RL with a three-tier stack — workers self-register, the master load-balances
-  and caches, the RL client speaks the unchanged Ollama API.
+  A single RL run fires tens of thousands of opponent queries; at 0.5&ndash;3&nbsp;s per 7B call a
+  naive loop takes hours. We decouple inference from training with a master/worker stack:
 </p>
 
 <div align="center">
@@ -99,106 +122,64 @@
                               │ round-robin              ▼
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
-          HF worker       HF worker   …   HF worker      (1 GPU each, Qwen2.5-7B)
+          GPU worker      GPU worker  …   GPU worker      (1 GPU each, Qwen2.5-7B)
           self-registers in a shared-filesystem registry; master health-checks + balances
 ```
 
 </div>
 
-<div align="center">
-
-<table align="center">
-<tr>
-  <td align="center"><img src="paper/figures/selfplay.png" width="250"/><br/><sub><b>Self-play</b> beats its progenitor</sub></td>
-  <td align="center"><img src="paper/figures/pool.png" width="250"/><br/><sub><b>Pool</b> diverged after ~10M</sub></td>
-</tr>
-<tr>
-  <td align="center"><img src="paper/figures/llm_opponent.png" width="250"/><br/><sub><b>Qwen2.5-7B</b> is competent; OLMoE isn't</sub></td>
-  <td align="center"><img src="paper/figures/throughput.png" width="250"/><br/><sub><b>Throughput</b> ~32 q/s, scales with pool</sub></td>
-</tr>
-</table>
-
-</div>
-
-<div align="center">
-
-<table align="center">
-<tr><th>Agent / opponent</th><th>vs</th><th>win%</th><th>loss%</th><th>note</th></tr>
-<tr><td>Self-play (3M)</td><td>frozen run_5</td><td align="center"><b>61.1</b></td><td align="center">38.9</td><td>beats progenitor</td></tr>
-<tr><td>Self-play (3M)</td><td>random</td><td align="center">98.7</td><td align="center">1.3</td><td>stays dominant</td></tr>
-<tr><td>Pool champion (12M)</td><td>random</td><td align="center">85.8</td><td align="center">14.2</td><td>⚠️ diverged</td></tr>
-<tr><td>OLMoE-1B opponent</td><td>random</td><td align="center">≈50</td><td align="center">—</td><td>plays at chance</td></tr>
-<tr><td>Qwen2.5-7B opponent</td><td>random</td><td align="center"><b>100</b></td><td align="center">0</td><td>5/5 (small N)</td></tr>
-</table>
-
-</div>
-
 <p align="center">
-  💡 <b>Infra finding:</b> loading a 7B worker from home NFS runs at ~11 MB/s (~28 min — blows the
-  health-check timeout). Staging weights on <b>scratch/BeeGFS cuts this to 27 s (62×)</b> — mandatory at scale.
+  &#9888;&#65039; <b>Infra finding:</b> loading a 7B worker from home NFS runs at ~11&nbsp;MB/s
+  (~28&nbsp;min &mdash; blows the health-check timeout). Staging weights on <b>scratch/BeeGFS cuts it
+  to ~27&nbsp;s (62&times;)</b> &mdash; mandatory at scale (~32 queries/s with 14 workers).
 </p>
 
 ---
 
-<h2 align="center">First RL-vs-LLM run</h2>
+<h2 align="center">It is a universal pipeline, not just a Gin Rummy script</h2>
 
 <p align="center">
-  PPO <b>warm-started from the self-play champion</b>, 64 env subprocesses, playing through the master against
-  up to 32 Qwen2.5-7B workers (14 granted under the shared GPU quota — elastic).<br/>
-  Ran <b>40k steps (~5 rollouts) in 17.5 min</b> at 39 env-steps/s; the terse prompt + 64-token cap dropped
-  per-call latency from ~16 s to ~0.4 s.
+  The training pipeline is game-agnostic. Point it at <b>any</b> PettingZoo game, or your own
+  environment, and it trains a masked PPO/TRPO agent through an opponent curriculum, keeps the best
+  checkpoint, and grades it. The only thing that changes between games is the environment.
 </p>
 
-<div align="center">
+```python
+from pettingzoo.classic import connect_four_v3
+from coev import CoevConfig, train
 
-<table align="center">
-<tr><th>Fine-tuned agent (40k steps)</th><th>vs</th><th>win%</th><th>loss%</th></tr>
-<tr><td>LLM-finetuned PPO</td><td>random</td><td align="center"><b>98.2</b></td><td align="center">1.8</td></tr>
-<tr><td>LLM-finetuned PPO</td><td>self-play champion</td><td align="center">45.4</td><td align="center">54.6</td></tr>
-</table>
-
-</div>
+# same pipeline that trained the Gin Rummy agents, now on Connect Four
+train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
+                 algo="trpo", total_steps=2_000_000))
+```
 
 <p align="center">
-  <b>Honest read:</b> the agent <i>retains</i> 98.2% vs random but sits at 45.4% vs the champion it started
-  from — 40k steps (against 3M for self-play) is far too short to improve. This run validates the
-  <b>pipeline</b> and confirms competence is retained; showing the LLM teacher actually <i>helps</i> is the
-  <b>Phase-3</b> experiment (a much longer fine-tune to raise the gin rate, the headroom Phase 1 exposed).
+  Add <code>seed_models</code> to give it prior agents to practise against, a
+  <code>benchmark_agent</code> to grade against an expert, and a <code>reward_transform</code> to
+  shape the reward. See <a href="coev/"><code>coev/</code></a> and
+  <code>coev/examples/</code> (Connect Four and Gin Rummy).
 </p>
 
 ---
 
-<h2 align="center">Phase 3 — in progress 🔬</h2>
+<h2 align="center">Play the heroes &#127918;</h2>
 
 <p align="center">
-  Two experiments are <b>running on the cluster now</b> (launched Jun 2026). No results claimed yet —
-  this section updates as runs land.
+  A no-install browser game with a curated 5-rung ladder, easiest to perfect:
 </p>
 
 <div align="center">
 
 <table align="center">
-<tr><th>Experiment</th><th>Question</th><th>Design</th></tr>
-<tr>
-  <td><b>A · Close the gin gap</b></td>
-  <td>Can reward shaping make the agent <i>gin</i> instead of always knocking?</td>
-  <td>6 reward configs × 3 seeds, 8M self-play steps each; gin-rate eval every 1M steps (curve + best checkpoint)</td>
-</tr>
-<tr>
-  <td><b>B · Stronger teacher</b></td>
-  <td>Does <b>Qwen3-30B</b> beat the self-play champion (i.e. can it teach)?</td>
-  <td>30B-as-opponent eval vs champion + random; fine-tune against it if it wins</td>
-</tr>
+<tr><th>Opponent</th><th>Strength</th><th>What it is</th></tr>
+<tr><td>&#127922; Rookie</td><td align="center">easiest</td><td>random legal moves &mdash; a warm-up</td></tr>
+<tr><td>&#129302; Self-Play Champion</td><td align="center">strong</td><td>our earlier best (~30% vs gold)</td></tr>
+<tr><td>&#127183; Curriculum Ace</td><td align="center">strongest</td><td>the final agent &mdash; <b>34%</b> vs the perfect player</td></tr>
+<tr><td>&#128737;&#65039; League Tactician</td><td align="center">strongest</td><td>a close second (PFSP-trained)</td></tr>
+<tr><td>&#127942; Gold Standard</td><td align="center">perfect</td><td>the hand-coded expert &mdash; the wall everyone hits</td></tr>
 </table>
 
 </div>
-
-<p align="center">
-  <b>Why this design:</b> Phase 1 proved the agent always knocks and never gins — so <b>A</b> attacks that
-  headroom directly, and <b>B</b> gives the co-evolution thesis a teacher that might actually be stronger
-  than the student. Both honest: if shaping stays flat or a 30B still loses to the specialist, those are
-  findings, not failures.
-</p>
 
 ---
 
@@ -208,14 +189,13 @@
 
 <table align="center">
 <tr><th>Path</th><th>What</th></tr>
-<tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>masked-PPO policy + single-agent wrapper over <code>gin_rummy_v4</code></td></tr>
-<tr><td><code>sweep/</code></td><td>Phase-1 sweep, self-play, pool, <code>llmplay_one.py</code> (RL-vs-LLM), and the Phase-3 <code>ginshape.slurm</code> reward-shaping sweep</td></tr>
-<tr><td><code>llm/</code></td><td>master / worker / cache / discovery + <code>eval_opponent.py</code></td></tr>
-<tr><td><code>agents/</code></td><td><code>RandomAgent</code>, <code>PPOAgent</code>, <code>LLMAgent</code>, <code>FastLLMAgent</code></td></tr>
-<tr><td><code>slurm/</code></td><td>SLURM jobs: <code>master</code>, <code>worker</code> (array), <code>llm_train</code>, <code>llm_eval</code></td></tr>
-<tr><td><code>game/</code></td><td>zero-dependency human-vs-RL web client (server + HTML/JS)</td></tr>
-<tr><td><code>paper/</code></td><td>report (<code>main.tex</code> → <code>main.pdf</code>), figures, <code>make_figures.py</code>, <code>make_report_html.py</code></td></tr>
-<tr><td><code>docs/</code></td><td><code>index.html</code> (full report), <code>llm_architecture.md</code></td></tr>
+<tr><td><code>coev/</code></td><td><b>the universal pipeline</b>: masked policy, opponent curriculum, and trainer for any PettingZoo AEC game (+ examples)</td></tr>
+<tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>the original Gin-Rummy-specific masked PPO/TRPO policy + wrapper</td></tr>
+<tr><td><code>agents/</code></td><td><code>GoldStandardAgent</code> (optimal benchmark), <code>PPOAgent</code> (masked-argmax), Random, LLM agents</td></tr>
+<tr><td><code>sweep/</code></td><td>the experiment families: gold benchmark, algorithm (PPO vs TRPO), representation, the curriculum sweep + the keep-best/warm-start harness</td></tr>
+<tr><td><code>llm/</code>, <code>slurm/</code></td><td>distributed LLM master/worker/cache + the SLURM jobs (incl. the self-sustaining sweep watchdog)</td></tr>
+<tr><td><code>game/</code></td><td>zero-dependency human-vs-agent web client</td></tr>
+<tr><td><code>paper/</code>, <code>docs/</code></td><td>the paper (<code>main.tex</code>), figure + report generators, and the full HTML report</td></tr>
 </table>
 
 </div>
@@ -225,36 +205,37 @@
 <h2 align="center">Quickstart</h2>
 
 ```bash
-# 1) Play against the trained agent (web game)
+# 0) Train on any game with the universal pipeline
+python -m coev.examples.connect_four     # any PettingZoo game, no game-specific code
+python -m coev.examples.gin_rummy        # same pipeline + a gold benchmark and reward shaping
+
+# 1) Play the heroes (web game)
 python game/server.py --host 127.0.0.1 --port 8000      # open http://127.0.0.1:8000
 
-# 2) Phase-1 sweep (SLURM, 64-core CPU node)
-sbatch sweep/sweep.slurm
+# 2) The gold-standard benchmark
+python sweep/bench_gold.py
 
-# 3) LLM opponent stack (SLURM): master + GPU worker pool
-sbatch slurm/master.slurm
-sbatch --array=0-31 --export=ALL,WORKER_PRESET=qwen2.5-7b,WORKER_MAXTOK=64 slurm/worker.slurm
+# 3) The final sweeps (SLURM array + self-sustaining watchdog)
+python sweep/curriculum_configs.py && sbatch --array=0-29%10 slurm/curriculum.slurm
+python sweep/phase7_configs.py    && sbatch --array=0-8%6 --export=ALL,CFG_DIR=phase7_cfgs slurm/curriculum.slurm
 
-# 4) RL-vs-LLM fine-tune (finds the master via runtime/master.json)
-sbatch slurm/llm_train.slurm
-
-# regenerate the report figures + HTML
+# 4) Regenerate every figure + the HTML report from saved JSON
 python paper/make_figures.py && python paper/make_report_html.py
 ```
 
 <p align="center">
-  ⚠️ Load LLM worker weights from <b>scratch/BeeGFS</b> (<code>HF_HOME=/scratch.../hf_cache</code>), not home NFS.
+  &#9888;&#65039; Load LLM worker weights from <b>scratch/BeeGFS</b>, not home NFS.
+  Every figure regenerates from measured JSON results under <code>sweep/</code>.
 </p>
 
 ---
 
 <p align="center">
-  <b>Nima Kelidari · Mahdi Salmani · Mohammadsaeed Haghi</b><br/>
+  <b>Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi</b><br/>
   <sub>University of Southern California</sub>
 </p>
 
 <p align="center">
-  <sub>Built on PPO + action masking, PettingZoo/RLCard, Stable-Baselines3, and Qwen2.5.<br/>
-  Figures and reports regenerate from measured JSON results — see the
-  <a href="https://Nikelroid.github.io/adversarial-coevolution/">full report</a>.</sub>
+  <sub>Built on action-masked PPO/TRPO, PettingZoo/RLCard, Stable-Baselines3, and Qwen2.5.<br/>
+  See the <a href="https://Nikelroid.github.io/adversarial-coevolution/">full report</a> for the whole story.</sub>
 </p>
