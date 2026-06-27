@@ -1,7 +1,7 @@
 {
-  "n_cells": 75,
+  "n_cells": 79,
   "best": {
-    "name": "ismcts_vs_gold",
+    "name": "ismcts_vs_gold_r30",
     "algo": "?",
     "arch": "mlp",
     "activation": "tanh",
@@ -13,12 +13,30 @@
     "seed": null,
     "vs_random": NaN,
     "vs_champion": NaN,
-    "vs_gold": 0.55,
-    "gin_vs_gold": 0.125,
+    "vs_gold": 0.59,
+    "gin_vs_gold": 0.117,
     "steps": null,
     "secs": 0
   },
   "rows": [
+    {
+      "name": "ismcts_vs_gold_r30",
+      "algo": "?",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "?",
+      "knock": null,
+      "gin": null,
+      "loss_scale": null,
+      "seed": null,
+      "vs_random": NaN,
+      "vs_champion": NaN,
+      "vs_gold": 0.59,
+      "gin_vs_gold": 0.117,
+      "steps": null,
+      "secs": 0
+    },
     {
       "name": "ismcts_vs_gold",
       "algo": "?",
@@ -617,6 +635,24 @@
       "secs": 18615
     },
     {
+      "name": "sc_ppo_mlpdef_s0",
+      "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.986,
+      "vs_champion": 0.445,
+      "vs_gold": 0.298,
+      "gin_vs_gold": 0.015,
+      "steps": 10000000,
+      "secs": 5275
+    },
+    {
       "name": "arch_mlp_default_s2",
       "algo": "trpo",
       "arch": "mlp",
@@ -846,6 +882,24 @@
       "secs": 16511
     },
     {
+      "name": "sc_ppo_mlpdef_s1",
+      "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.991,
+      "vs_champion": 0.445,
+      "vs_gold": 0.28,
+      "gin_vs_gold": 0.001,
+      "steps": 10000000,
+      "secs": 5253
+    },
+    {
       "name": "08_trpo_gamma_high_s1",
       "algo": "trpo",
       "arch": "mlp",
@@ -901,6 +955,24 @@
       "gin_vs_gold": 0.005,
       "steps": 10000000,
       "secs": 10615
+    },
+    {
+      "name": "arch_mlp_default_s3",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 3,
+      "vs_random": 0.987,
+      "vs_champion": 0.405,
+      "vs_gold": 0.269,
+      "gin_vs_gold": 0.007,
+      "steps": 10000000,
+      "secs": 19044
     },
     {
       "name": "08_trpo_gamma_high_s0",

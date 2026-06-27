@@ -121,6 +121,21 @@
       "secs": 10615
     },
     {
+      "name": "arch_mlp_default_s3",
+      "cell": "arch_mlp_default",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 3,
+      "vs_gold": 0.269,
+      "gin_vs_gold": 0.007,
+      "len_vs_gold": 34.83,
+      "vs_champion": 0.405,
+      "vs_random": 0.987,
+      "best_step": 5000000,
+      "secs": 19044
+    },
+    {
       "name": "arch_act_gelu_s0",
       "cell": "arch_act_gelu",
       "arch": "mlp",
@@ -232,41 +247,41 @@
       "n": 1,
       "mean_vs_gold": 0.288,
       "std": 0.0,
-      "delta_vs_anchor": 0.013
+      "delta_vs_anchor": 0.0145
     },
     {
       "cell": "arch_mlp_deep",
       "n": 1,
       "mean_vs_gold": 0.28,
       "std": 0.0,
-      "delta_vs_anchor": 0.005
+      "delta_vs_anchor": 0.0065
     },
     {
       "cell": "arch_act_relu",
       "n": 1,
       "mean_vs_gold": 0.279,
       "std": 0.0,
-      "delta_vs_anchor": 0.004
+      "delta_vs_anchor": 0.0055
     },
     {
       "cell": "arch_mlp_wide",
       "n": 2,
       "mean_vs_gold": 0.2755,
       "std": 0.0235,
-      "delta_vs_anchor": 0.0005
+      "delta_vs_anchor": 0.002
     },
     {
       "cell": "arch_mlp_asym",
       "n": 4,
       "mean_vs_gold": 0.2752,
       "std": 0.0172,
-      "delta_vs_anchor": 0.0002
+      "delta_vs_anchor": 0.0017
     },
     {
       "cell": "arch_mlp_default",
-      "n": 3,
-      "mean_vs_gold": 0.275,
-      "std": 0.0149,
+      "n": 4,
+      "mean_vs_gold": 0.2735,
+      "std": 0.0131,
       "delta_vs_anchor": 0.0
     },
     {
@@ -274,23 +289,23 @@
       "n": 1,
       "mean_vs_gold": 0.268,
       "std": 0.0,
-      "delta_vs_anchor": -0.007
+      "delta_vs_anchor": -0.0055
     },
     {
       "cell": "arch_wd_lo",
       "n": 1,
       "mean_vs_gold": 0.264,
       "std": 0.0,
-      "delta_vs_anchor": -0.011
+      "delta_vs_anchor": -0.0095
     },
     {
       "cell": "arch_wd_hi",
       "n": 1,
       "mean_vs_gold": 0.258,
       "std": 0.0,
-      "delta_vs_anchor": -0.017
+      "delta_vs_anchor": -0.0155
     }
   ],
   "anchor": "arch_mlp_default",
-  "anchor_mean": 0.275
+  "anchor_mean": 0.2735
 }
