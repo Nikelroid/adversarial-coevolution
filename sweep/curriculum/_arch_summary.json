@@ -1,0 +1,30 @@
+{
+  "per_run": [
+    {
+      "name": "arch_mlp_default_s0",
+      "cell": "arch_mlp_default",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.264,
+      "gin_vs_gold": 0.006,
+      "len_vs_gold": 33.81,
+      "vs_champion": 0.437,
+      "vs_random": 0.985,
+      "best_step": 10000000,
+      "secs": 8189
+    }
+  ],
+  "per_arch": [
+    {
+      "cell": "arch_mlp_default",
+      "n": 1,
+      "mean_vs_gold": 0.264,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0
+    }
+  ],
+  "anchor": "arch_mlp_default",
+  "anchor_mean": 0.264
+}
