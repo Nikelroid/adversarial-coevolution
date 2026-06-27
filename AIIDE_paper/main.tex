@@ -85,10 +85,13 @@ gin. It wins by knocking early with a low score. Using this expert as a yardstic
 across more than a hundred controlled runs, we find which choices actually make a
 small agent stronger. Trust region updates, a reward that encourages knocking, a
 curriculum of gradually tougher opponents, warm starting from a good model, and
-keeping the best checkpoint all help. Learned state embeddings, dense per step
-rewards, imitation learning, and a live large language model opponent all fail,
-each for a clear reason. We also find that no amount of reward shaping makes the
-agent chase gin the way people do, because that habit simply loses. Combining the
+keeping the best checkpoint all help. We also tried many ideas that did not pay
+off, and we report each one and why. Short term and longer term reward shaping,
+learned state embeddings, learning from the expert by imitation and DAgger, and
+playing against a live large language model opponent were each either unhelpful,
+too slow, or too heavy to train at the scale we needed. No amount of reward
+shaping makes the agent chase gin the way people do, because that habit simply
+loses. Combining the
 choices that help lifts a self play champion from about 30 to 36 percent against
 the expert. We then ask whether the network itself is the missing piece,
 comparing plain networks of different sizes against convolutional, set based,
