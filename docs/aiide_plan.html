@@ -54,30 +54,46 @@
   <h2>Live status (Jun 27)</h2>
   <table>
     <tr><th>Component</th><th>State</th></tr>
-    <tr><td><b>Architecture sweep</b> — MLP depth/width/asym, ReLU/GELU, Conv1D, DeepSets, attention (now <b>34 cells</b> incl. extra seeds + variants)</td><td><span class="good">running</span> — ~20 in parallel, auto-collecting</td></tr>
-    <tr><td><b>Regularization</b> — weight-decay cells</td><td><span class="good">running</span></td></tr>
-    <tr><td><b>Recurrence</b> — masked PPO-LSTM + matched PPO-MLP control (×2 seeds)</td><td><span class="good">running</span> — isolated, group <code>phase8-recurrent</code></td></tr>
-    <tr><td><b>Statistical rigor</b> — rliable IQM + 95% bootstrap CIs</td><td><span class="good">live</span> in the figures + <code>_arch_summary</code></td></tr>
-    <tr><td><b>Leduc generality</b> — CFR-optimal expert</td><td><span class="good">delivered</span> ✓ (below)</td></tr>
-    <tr><td><b>ISMCTS baseline</b> — determinized search vs the expert</td><td><span class="mid">next</span></td></tr>
-    <tr><td><b>NFSP baseline</b></td><td><span class="mid">deferred</span> — OpenSpiel NFSP needs a missing dependency</td></tr>
+    <tr><td><b>Architecture sweep</b> — MLP depth/width/asym, ReLU/GELU, Conv1D, DeepSets, attention (<b>34 cells</b> incl. extra seeds + variants)</td><td><span class="good">running</span> — <b>20/34 done</b>, DeepSets leads; Conv1D/attention still training</td></tr>
+    <tr><td><b>Regularization</b> — weight-decay cells</td><td><span class="good">delivered</span> ✓ (helps little; see below)</td></tr>
+    <tr><td><b>Recurrence</b> — masked PPO-LSTM + matched PPO-MLP control (×2 seeds)</td><td><span class="good">delivered</span> ✓ (below)</td></tr>
+    <tr><td><b>Statistical rigor</b> — rliable IQM + 95% bootstrap CIs</td><td><span class="good">live</span> in the figures + <code>_phase8_summary</code></td></tr>
+    <tr><td><b>Leduc generality</b> — CFR-optimal expert (now <b>8 seeds</b>)</td><td><span class="good">delivered</span> ✓ (below)</td></tr>
+    <tr><td><b>ISMCTS baseline</b> — determinized search vs the expert (rollout-budget sweep)</td><td><span class="good">delivered</span> ✓ (below)</td></tr>
+    <tr><td><b>NFSP baseline</b> — neural fictitious self-play on Leduc vs CFR</td><td><span class="good">unblocked &amp; running</span> — <code>dm-tree</code> installed; re-running longer for convergence</td></tr>
+    <tr><td><b>Stage-C</b> — cross-recipe robustness of the arch finding (PPO/PFSP × archs)</td><td><span class="good">running</span> — 11/12 done (below)</td></tr>
   </table>
-  <p class="small mut">Live curves: <b>wandb.ai/VLAvengers/Adversarial-CoEvolution</b> (groups <code>phase8-arch</code>, <code>phase8-recurrent</code>). Organized eval: <code>sweep/curriculum/_arch_summary.md</code>. All hands-free on SLURM; the watchdog auto-publishes results, figures, and docs.</p>
+  <p class="small mut">Live curves: <b>wandb.ai/VLAvengers/Adversarial-CoEvolution</b> (groups <code>phase8-arch</code>, <code>phase8-recurrent</code>, <code>phase8-stagec</code>, <code>phase8-leduc</code>, <code>phase8-ismcts</code>). Organized eval: <code>sweep/curriculum/_phase8_summary.md</code> (run <code>python sweep/collect_phase8.py</code>). All hands-free on SLURM; two watchdogs auto-resubmit + publish results, figures, and docs.</p>
 
-  <h2>Results so far</h2>
-  <div class="card"><h3>Architecture vs the expert (early; from scratch — a relative comparison)</h3>
+  <h2>Results so far <span class="small mut">(updated Jun 27, ~20:45 UTC; auto-refreshed as cells land)</span></h2>
+  <div class="card"><h3>Architecture vs the expert — from scratch, a <i>relative</i> comparison (20/34 cells in)</h3>
   <table>
-    <tr><th>architecture</th><th>win% vs expert</th><th>Δ vs MLP anchor</th></tr>
-    <tr><td>mlp_asym (narrow policy + wide value)</td><td><b>0.295</b></td><td>+0.030</td></tr>
-    <tr><td>mlp_narrow</td><td>0.281</td><td>+0.017</td></tr>
-    <tr><td>act_relu</td><td>0.279</td><td>+0.015</td></tr>
-    <tr><td>act_gelu</td><td>0.268</td><td>+0.004</td></tr>
+    <tr><th>architecture</th><th>win% vs expert (best)</th><th>Δ vs MLP anchor</th></tr>
+    <tr><td><b>DeepSets</b> (permutation-invariant set encoder)</td><td><b>0.307</b></td><td>+0.042</td></tr>
+    <tr><td>mlp_wide [512,256]</td><td>0.296</td><td>+0.031</td></tr>
+    <tr><td>mlp_asym (narrow policy + wide value)</td><td>0.295</td><td>+0.030</td></tr>
+    <tr><td>mlp_xwide [768,384]</td><td>0.289</td><td>+0.024</td></tr>
+    <tr><td>mlp_deep / mlp_narrow / act_relu</td><td>0.277–0.281</td><td>+0.012–0.017</td></tr>
     <tr><td>mlp_default (anchor)</td><td>0.265</td><td>—</td></tr>
+    <tr><td>weight-decay (regularization)</td><td>0.241–0.264</td><td>−0.024–0.000</td></tr>
   </table>
-  <p class="small mut">From-scratch runs (so below the 36% warm-started winner; the comparison here is <i>relative</i>, all from the same scratch budget). MLP variants cluster at 26–30% — an early signal that capacity isn't the bottleneck (consistent with the information-bound-ceiling thesis). Structured encoders (Conv1D / DeepSets / attention) + extra seeds are still training; numbers firm up with the rliable CIs.</p></div>
+  <p class="small mut">From-scratch runs (so below the 36% warm-started winner; the comparison is <i>relative</i>, all from one scratch budget). The big story: everything clusters in <b>24–31%</b>. A permutation-invariant <b>DeepSets</b> encoder (a better-matched inductive bias for an unordered hand, <i>not</i> more capacity) is the small new top at 0.307; making the MLP wider/deeper barely moves it and extra-wide does not help — strong support for an <b>information-bound, not capacity-bound, ceiling</b>. Conv1D / attention / bigger-DeepSets cells are still training; numbers firm up with the rliable CIs.</p></div>
 
-  <div class="card"><h3>Leduc Hold'em — generality validated ✓</h3>
-  <p class="small">CFR expert is near-optimal: <b>exploitability 2.37 → 0.026</b> over 400 iterations. The yardstick is monotone — mean return vs the expert: <b>random −0.78 → CFR-10-iter −0.14 → CFR-50-iter −0.12</b> (weaker agents lose badly; stronger agents approach parity). So "return vs a fixed near-optimal expert" is a meaningful yardstick on a second imperfect-information game where the optimum is <i>computable</i> — the methodology transfers.</p></div>
+  <div class="card"><h3>ISMCTS search baseline vs the expert — strength scales with compute ✓</h3>
+  <table>
+    <tr><th>rollouts / move</th><th>10</th><th>20</th><th>30</th><th>60</th><th>120</th></tr>
+    <tr><td><b>win% vs expert</b></td><td>41%</td><td>55%</td><td>59%</td><td>75%</td><td><b>85%</b></td></tr>
+  </table>
+  <p class="small mut">A determinized information-set Monte Carlo (PIMC) search, no training. Win-rate vs the gold expert rises monotonically with the per-move rollout budget and at 120 rollouts beats the expert <b>85%</b> of the time — a strong, non-learned reference point that frames the learned agents and the expert (search with enough compute outplays both). Directly blunts the #1 reject reason (weak baselines).</p></div>
+
+  <div class="card"><h3>Stage-C — the architecture finding is recipe-robust ✓</h3>
+  <p class="small">Re-running the best archs under <b>different recipes</b> (PPO instead of TRPO; PFSP sampling) from scratch: <b>ppo_asym 0.302</b> tops it, and asym/wide stay at or above the MLP anchor under PPO. The architecture ranking is not an artifact of the one winning recipe — it carries across algorithm and opponent-sampling changes (answers "is this just one lucky config?"). 11/12 cells in.</p></div>
+
+  <div class="card"><h3>Recurrence (LSTM) — helps vs its control, but not the ceiling</h3>
+  <p class="small">Masked PPO-<b>LSTM</b> (0.243 / 0.202) beats its matched PPO-MLP control (0.152 / 0.192), so memory does add something — but both sit <i>below</i> the TRPO-MLP anchor (~0.27). Honest read: recurrence is a real but second-order lever here, not the thing that breaks the ceiling. Reported in its own table.</p></div>
+
+  <div class="card"><h3>Leduc Hold'em — generality validated ✓ (now multi-seed)</h3>
+  <p class="small">CFR expert is near-optimal: <b>exploitability 2.37 → 0.026</b>. Tabular-Q self-play graded vs it over <b>8 seeds</b> reaches <b>near-parity: mean return −0.08</b> (best seed +0.005; random baseline −0.78) — the expert-yardstick method reproduces on a second imperfect-information game where the optimum is <i>computable</i>. <b>NFSP</b> (the canonical neural baseline, now unblocked) was far more sample-hungry: at 600k episodes it was near random (−0.75), so it is <b>re-running at 3M episodes</b> for a fair comparison.</p></div>
 
   <h2>What we're adding (the new work)</h2>
   <div class="grid">
