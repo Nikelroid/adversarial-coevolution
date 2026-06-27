@@ -1,4 +1,5 @@
 name,algo,arch,activation,net_arch,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin_vs_gold,steps,secs
+ismcts_vs_gold_r120,?,mlp,tanh,-,?,,,,,nan,nan,0.853,0.21,,0
 ismcts_vs_gold_r60,?,mlp,tanh,-,?,,,,,nan,nan,0.753,0.143,,0
 ismcts_vs_gold_r30,?,mlp,tanh,-,?,,,,,nan,nan,0.59,0.117,,0
 ismcts_vs_gold,?,mlp,tanh,-,?,,,,,nan,nan,0.55,0.125,,0
@@ -30,9 +31,11 @@ p7_05_scratch_deadwood_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.989,0.469,0.3
 11_trpo_gae_batch_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.98,0.497,0.307,0.007,12000000,13148
 12_ppo_ent_hi_s1,ppo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.988,0.531,0.307,0.005,12000000,11998
 p7_05_scratch_deadwood_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.989,0.448,0.307,0.003,14000000,21888
+arch_deepsets_s1,trpo,deepsets,tanh,-,designed,0.5,0.5,1.0,1,0.991,0.432,0.306,0.005,10000000,50129
 sc_ppo_asym_s0,ppo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.995,0.443,0.306,0.005,10000000,5680
 09_trpo_kl_small_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.993,0.477,0.305,0.006,12000000,22967
 10_trpo_kl_large_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.981,0.454,0.304,0.004,12000000,13113
+sc_ppo_wide_s1,ppo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,1,0.993,0.442,0.302,0.013,10000000,12883
 03_rew_R0_highgin_s1,trpo,mlp,tanh,-,designed,0.5,1.5,1.0,1,0.989,0.451,0.299,0.003,12000000,13016
 arch_mlp_wide_s1,trpo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,1,0.995,0.432,0.299,0.008,10000000,18615
 sc_ppo_mlpdef_s0,ppo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.986,0.445,0.298,0.015,10000000,5275
@@ -42,16 +45,19 @@ arch_mlp_asym_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.99,0.436,0.2
 09_trpo_kl_small_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.99,0.459,0.294,0.003,12000000,22876
 10_trpo_kl_large_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.988,0.459,0.292,0.004,12000000,12996
 04_rew_R2_knockfwd_s1,trpo,mlp,tanh,-,designed,0.75,0.75,1.0,1,0.989,0.448,0.289,0.006,12000000,22242
+arch_mlp_xwide_s0,trpo,mlp,tanh,"[768, 384]",designed,0.5,0.5,1.0,0,0.99,0.48,0.289,0.006,10000000,35739
 arch_mlp_narrow_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.988,0.466,0.288,0.002,10000000,12234
 arch_mlp_asym_s3,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,3,0.987,0.428,0.285,0.003,10000000,10766
 07_cur_pfsp_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.983,0.446,0.284,0.005,12000000,22886
 08_trpo_gamma_high_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.971,0.492,0.284,0.001,12000000,22828
+sc_ppo_wide_s0,ppo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,0,0.991,0.458,0.284,0.005,10000000,9167
 sc_ppo_asym_s1,ppo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,1,0.992,0.465,0.282,0.002,10000000,5590
 01_base_trpo_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.983,0.454,0.281,0.003,12000000,22469
 arch_mlp_deep_s0,trpo,mlp,tanh,"[256, 256, 128]",designed,0.5,0.5,1.0,0,0.991,0.458,0.28,0.004,10000000,16511
 sc_ppo_mlpdef_s1,ppo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.991,0.445,0.28,0.001,10000000,5253
 08_trpo_gamma_high_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.981,0.422,0.279,0.006,12000000,18387
 arch_act_relu_s0,trpo,mlp,relu,-,designed,0.5,0.5,1.0,0,0.989,0.417,0.279,0.007,10000000,13633
+sc_pfsp_mlpdef_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.99,0.42,0.273,0.001,10000000,11513
 arch_mlp_asym_s2,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,2,0.99,0.396,0.272,0.005,10000000,10615
 arch_mlp_xwide_s1,trpo,mlp,tanh,"[768, 384]",designed,0.5,0.5,1.0,1,0.997,0.427,0.271,0.005,10000000,23659
 arch_mlp_default_s3,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,3,0.987,0.405,0.269,0.007,10000000,19044
@@ -60,7 +66,10 @@ arch_act_gelu_s0,trpo,mlp,gelu,-,designed,0.5,0.5,1.0,0,0.988,0.451,0.268,0.002,
 arch_mlp_default_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.986,0.392,0.265,0.004,10000000,8668
 arch_mlp_default_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.985,0.437,0.264,0.006,10000000,8189
 arch_wd_lo_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.992,0.399,0.264,0.006,10000000,8355
+sc_pfsp_mlpdef_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.992,0.401,0.261,0.003,10000000,11615
+sc_pfsp_asym_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.987,0.39,0.26,0.007,10000000,10946
 arch_wd_hi_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.993,0.407,0.258,0.004,10000000,9670
+sc_pfsp_asym_s1,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,1,0.993,0.41,0.258,0.006,10000000,11205
 arch_mlp_wide_s0,trpo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,0,0.996,0.395,0.252,0.007,10000000,14482
 arch_mlp_asym_s1,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,1,0.991,0.407,0.249,0.002,10000000,10696
 rec_lstm_s0,recurrent_ppo,lstm,tanh,[128],?,,,,0,0.955,0.417,0.243,0.003,4000000,7002

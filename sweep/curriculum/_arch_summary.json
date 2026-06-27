@@ -1,6 +1,21 @@
 {
   "per_run": [
     {
+      "name": "arch_deepsets_s1",
+      "cell": "arch_deepsets",
+      "arch": "deepsets",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 1,
+      "vs_gold": 0.306,
+      "gin_vs_gold": 0.005,
+      "len_vs_gold": 34.16,
+      "vs_champion": 0.432,
+      "vs_random": 0.991,
+      "best_step": 4000000,
+      "secs": 50129
+    },
+    {
       "name": "arch_mlp_wide_s1",
       "cell": "arch_mlp_wide",
       "arch": "mlp",
@@ -44,6 +59,21 @@
       "vs_random": 0.99,
       "best_step": 8000000,
       "secs": 10805
+    },
+    {
+      "name": "arch_mlp_xwide_s0",
+      "cell": "arch_mlp_xwide",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[768, 384]",
+      "seed": 0,
+      "vs_gold": 0.289,
+      "gin_vs_gold": 0.006,
+      "len_vs_gold": 34.42,
+      "vs_champion": 0.48,
+      "vs_random": 0.99,
+      "best_step": 8000000,
+      "secs": 35739
     },
     {
       "name": "arch_mlp_narrow_s0",
@@ -258,11 +288,25 @@
   ],
   "per_arch": [
     {
+      "cell": "arch_deepsets",
+      "n": 1,
+      "mean_vs_gold": 0.306,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0325
+    },
+    {
       "cell": "arch_mlp_narrow",
       "n": 1,
       "mean_vs_gold": 0.288,
       "std": 0.0,
       "delta_vs_anchor": 0.0145
+    },
+    {
+      "cell": "arch_mlp_xwide",
+      "n": 2,
+      "mean_vs_gold": 0.28,
+      "std": 0.009,
+      "delta_vs_anchor": 0.0065
     },
     {
       "cell": "arch_mlp_deep",
@@ -298,13 +342,6 @@
       "mean_vs_gold": 0.2735,
       "std": 0.0131,
       "delta_vs_anchor": 0.0
-    },
-    {
-      "cell": "arch_mlp_xwide",
-      "n": 1,
-      "mean_vs_gold": 0.271,
-      "std": 0.0,
-      "delta_vs_anchor": -0.0025
     },
     {
       "cell": "arch_act_gelu",

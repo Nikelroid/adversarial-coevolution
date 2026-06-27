@@ -1,18 +1,19 @@
 # Phase-8 architecture sweep — evaluation vs the fixed expert
 
-_17 runs finished across 10 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
+_19 runs finished across 11 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
 
 ## Per architecture (mean over seeds)
 
 | architecture | n | win% vs expert | std | Δ vs MLP anchor |
 |---|---|---|---|---|
+| arch_deepsets | 1 | 0.306 | 0.000 | +0.033 |
 | arch_mlp_narrow | 1 | 0.288 | 0.000 | +0.015 |
+| arch_mlp_xwide | 2 | 0.280 | 0.009 | +0.006 |
 | arch_mlp_deep | 1 | 0.280 | 0.000 | +0.006 |
 | arch_act_relu | 1 | 0.279 | 0.000 | +0.005 |
 | arch_mlp_wide | 2 | 0.276 | 0.024 | +0.002 |
 | arch_mlp_asym | 4 | 0.275 | 0.017 | +0.002 |
 | arch_mlp_default | 4 | 0.274 | 0.013 | +0.000 |
-| arch_mlp_xwide | 1 | 0.271 | 0.000 | -0.003 |
 | arch_act_gelu | 1 | 0.268 | 0.000 | -0.005 |
 | arch_wd_lo | 1 | 0.264 | 0.000 | -0.009 |
 | arch_wd_hi | 1 | 0.258 | 0.000 | -0.015 |
@@ -21,9 +22,11 @@ _17 runs finished across 10 architectures. Win-rate is vs the fixed deterministi
 
 | run | arch | act | net | seed | win% vs expert | gin% | mean len | vs champ | vs random | secs |
 |---|---|---|---|---|---|---|---|---|---|---|
+| arch_deepsets_s1 | deepsets | tanh | [256,128] | 1 | 0.306 | 0.005 | 34.16 | 0.432 | 0.991 | 50129 |
 | arch_mlp_wide_s1 | mlp | tanh | [512, 256] | 1 | 0.299 | 0.008 | 34.28 | 0.432 | 0.995 | 18615 |
 | arch_mlp_default_s2 | mlp | tanh | [256,128] | 2 | 0.296 | 0.009 | 34.74 | 0.425 | 0.991 | 15847 |
 | arch_mlp_asym_s0 | mlp | tanh | [128, 64] | 0 | 0.295 | 0.010 | 34.18 | 0.436 | 0.990 | 10805 |
+| arch_mlp_xwide_s0 | mlp | tanh | [768, 384] | 0 | 0.289 | 0.006 | 34.42 | 0.480 | 0.990 | 35739 |
 | arch_mlp_narrow_s0 | mlp | tanh | [128, 64] | 0 | 0.288 | 0.002 | 33.73 | 0.466 | 0.988 | 12234 |
 | arch_mlp_asym_s3 | mlp | tanh | [128, 64] | 3 | 0.285 | 0.003 | 34.4 | 0.428 | 0.987 | 10766 |
 | arch_mlp_deep_s0 | mlp | tanh | [256, 256, 128] | 0 | 0.280 | 0.004 | 34.26 | 0.458 | 0.991 | 16511 |
