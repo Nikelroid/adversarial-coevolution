@@ -28,6 +28,7 @@ except Exception:
 import torch as th
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.torch_layers import CombinedExtractor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from gym_wrapper import GinRummySB3Wrapper
@@ -73,7 +74,8 @@ def build(arch, env, seed, n_steps):
         return RecurrentPPO(MaskedRecurrentPolicy, env, n_steps=n_steps, batch_size=256, n_epochs=4,
                             learning_rate=3e-4, gamma=0.99, gae_lambda=0.95, ent_coef=0.01,
                             clip_range=0.2, device="cpu", verbose=0, seed=seed, policy_kwargs=pkw)
-    pkw = dict(net_arch=dict(pi=[256, 128], vf=[256, 128]), activation_fn=th.nn.Tanh, ortho_init=True)
+    pkw = dict(features_extractor_class=CombinedExtractor,  # dict obs needs CombinedExtractor
+               net_arch=dict(pi=[256, 128], vf=[256, 128]), activation_fn=th.nn.Tanh, ortho_init=True)
     return PPO(FiniteMaskedPolicy, env, n_steps=n_steps, batch_size=256, n_epochs=4,
                learning_rate=3e-4, gamma=0.99, gae_lambda=0.95, ent_coef=0.01, clip_range=0.2,
                device="cpu", verbose=0, seed=seed, policy_kwargs=pkw)
