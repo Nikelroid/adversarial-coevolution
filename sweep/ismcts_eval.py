@@ -74,16 +74,19 @@ def main():
         cp = os.environ.get("CHAMP_MODEL", "game/model/gin_curriculum_champion.zip")
         champ = PPO.load(cp[:-4] if cp.endswith(".zip") else cp, device="cpu")
     rollouts = int(os.environ.get("ISMCTS_ROLLOUTS", 20))
-    print(f"=== ISMCTS eval vs {opp}: {n} games, rollouts={rollouts} ===", flush=True)
+    determinize = bool(int(os.environ.get("ISMCTS_DETERMINIZE", 1)))
+    mode = "determinized (fair imperfect-info)" if determinize else "oracle (perfect-info UPPER BOUND)"
+    print(f"=== ISMCTS eval vs {opp}: {n} games, rollouts={rollouts}, {mode} ===", flush=True)
     wandb_init(name=name, group="phase8-ismcts",
-               config=dict(agent="ismcts_pimc", opponent=opp, rollouts=rollouts, n=n),
-               tags=["ismcts", "baseline", f"vs_{opp}"])
+               config=dict(agent="ismcts_pimc", opponent=opp, rollouts=rollouts, n=n,
+                           determinize=determinize),
+               tags=["ismcts", "baseline", f"vs_{opp}", "det" if determinize else "oracle"])
     t0 = time.time()
     res = play(opp, n, 10_000, champ)
     secs = time.time() - t0
     out = os.path.join(PROJECT_ROOT, "sweep", "curriculum", f"{name}.json")
     result = dict(name=name, agent="ismcts_pimc", opponent=opp, rollouts=rollouts,
-                  eval_seconds=secs, **{f"vs_{opp}": res})
+                  determinize=determinize, eval_seconds=secs, **{f"vs_{opp}": res})
     tmp = out + ".tmp"
     with open(tmp, "w") as f:
         json.dump(result, f, indent=2)
