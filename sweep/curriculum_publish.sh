@@ -11,6 +11,7 @@ export PYTHONNOUSERSITE=1 PYTHONUNBUFFERED=1
 
 echo "[publish] aggregating cells..."
 "$PY" sweep/collect_curriculum.py || true
+"$PY" sweep/arch_collect.py        || true   # Phase-8: organized eval-vs-expert summary
 echo "[publish] regenerating figures + report..."
 "$PY" paper/make_figures.py        || echo "[publish] make_figures failed (continuing)"
 "$PY" paper/make_report_html.py    || echo "[publish] make_report_html failed (continuing)"
