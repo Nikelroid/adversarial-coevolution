@@ -3,6 +3,9 @@
   "best": {
     "name": "p7_03_warm_deadwood_hi_s0",
     "algo": "trpo",
+    "arch": "mlp",
+    "activation": "tanh",
+    "net_arch": "-",
     "curriculum": "warm",
     "knock": 0.5,
     "gin": 0.5,
@@ -19,6 +22,9 @@
     {
       "name": "p7_03_warm_deadwood_hi_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -34,6 +40,9 @@
     {
       "name": "p7_04_warm_pfsp_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -49,6 +58,9 @@
     {
       "name": "p7_01_warm_long_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -64,6 +76,9 @@
     {
       "name": "p7_04_warm_pfsp_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -79,6 +94,9 @@
     {
       "name": "p7_01_warm_long_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -94,6 +112,9 @@
     {
       "name": "p7_02_warm_deadwood_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -109,6 +130,9 @@
     {
       "name": "03_rew_R0_highgin_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 1.5,
@@ -124,6 +148,9 @@
     {
       "name": "05_rew_R4_earlyknk_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -139,6 +166,9 @@
     {
       "name": "06_cur_noRandTail_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "no_random_tail",
       "knock": 0.5,
       "gin": 0.5,
@@ -154,6 +184,9 @@
     {
       "name": "p7_02_warm_deadwood_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "warm",
       "knock": 0.5,
       "gin": 0.5,
@@ -169,6 +202,9 @@
     {
       "name": "09_trpo_kl_small_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -184,6 +220,9 @@
     {
       "name": "04_rew_R2_knockfwd_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.75,
       "gin": 0.75,
@@ -199,6 +238,9 @@
     {
       "name": "07_cur_pfsp_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -214,6 +256,9 @@
     {
       "name": "11_trpo_gae_batch_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -229,6 +274,9 @@
     {
       "name": "02_base_ppo_s0",
       "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -244,6 +292,9 @@
     {
       "name": "p7_05_scratch_deadwood_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -259,6 +310,9 @@
     {
       "name": "01_base_trpo_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -274,6 +328,9 @@
     {
       "name": "06_cur_noRandTail_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "no_random_tail",
       "knock": 0.5,
       "gin": 0.5,
@@ -289,6 +346,9 @@
     {
       "name": "12_ppo_ent_hi_s0",
       "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -304,6 +364,9 @@
     {
       "name": "06_cur_noRandTail_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "no_random_tail",
       "knock": 0.5,
       "gin": 0.5,
@@ -319,6 +382,9 @@
     {
       "name": "05_rew_R4_earlyknk_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -334,6 +400,9 @@
     {
       "name": "02_base_ppo_s1",
       "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -349,6 +418,9 @@
     {
       "name": "10_trpo_kl_large_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -364,6 +436,9 @@
     {
       "name": "05_rew_R4_earlyknk_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -379,6 +454,9 @@
     {
       "name": "11_trpo_gae_batch_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -394,6 +472,9 @@
     {
       "name": "12_ppo_ent_hi_s1",
       "algo": "ppo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -409,6 +490,9 @@
     {
       "name": "p7_05_scratch_deadwood_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -424,6 +508,9 @@
     {
       "name": "09_trpo_kl_small_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -439,6 +526,9 @@
     {
       "name": "10_trpo_kl_large_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -454,6 +544,9 @@
     {
       "name": "03_rew_R0_highgin_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 1.5,
@@ -469,6 +562,9 @@
     {
       "name": "07_cur_pfsp_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -484,6 +580,9 @@
     {
       "name": "09_trpo_kl_small_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -499,6 +598,9 @@
     {
       "name": "10_trpo_kl_large_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -514,6 +616,9 @@
     {
       "name": "04_rew_R2_knockfwd_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.75,
       "gin": 0.75,
@@ -529,6 +634,9 @@
     {
       "name": "07_cur_pfsp_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -544,6 +652,9 @@
     {
       "name": "08_trpo_gamma_high_s2",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -559,6 +670,9 @@
     {
       "name": "01_base_trpo_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -574,6 +688,9 @@
     {
       "name": "08_trpo_gamma_high_s1",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
@@ -589,6 +706,9 @@
     {
       "name": "08_trpo_gamma_high_s0",
       "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
       "curriculum": "designed",
       "knock": 0.5,
       "gin": 0.5,
