@@ -74,26 +74,26 @@
 
 \begin{abstract}
 \noindent
-Reinforcement learning agents for imperfect-information card games are only as
-strong as the opponents they train against, yet judging how good an agent is
-needs a cheap, fixed reference. We built one for Gin Rummy, a strong, fixed,
-rule-based expert that groups cards optimally and plays sensible endgame moves,
-used only to grade agents, never to train them. The expert beats every agent we
-trained 70 to 99 percent of the time, rarely gins, and wins by knocking early
-with a low score. Across more than a hundred controlled runs, we find which
-choices make a small agent stronger. Trust region updates, a reward that
-encourages knocking, a curriculum of tougher opponents, warm starting, and
-keeping the best checkpoint all help. Several ideas did not pay off. Short-term
-and longer-term reward shaping, learned state embeddings, imitation and DAgger,
-and a live large language model opponent were each unhelpful, too slow, or too
-heavy to train at scale. Reward shaping cannot make the agent chase gin the way
-people do, because that habit loses. Combining the choices that help lifts a
-self-play champion from about 30 to 36 percent against the expert. We then test
-whether the network is the missing piece across MLP, convolutional, set-based,
-attention, and recurrent encoders. We add baselines (neural fictitious self-play
-and information set Monte Carlo search) and show the method carries over to Leduc
-Hold'em, where the optimal player is computable. We report robust statistics and
-release the pipeline as a reusable, game-agnostic package.
+An agent for an imperfect-information card game is only as strong as the
+opponents it trains against, and without a cheap, fixed reference its true skill
+is hard to judge. We study Gin Rummy because it has the features that make these
+games hard, namely hidden information, delayed long-horizon rewards, and no
+optimal strategy one can write by hand. These features recur in many other games,
+so a method that works here should transfer. We build a strong, fixed, rule-based
+expert, used only to grade agents and never to train them. It beats every agent
+we trained 70 to 99 percent of the time. Across more than a hundred runs, we find
+which choices make a small agent stronger. Trust region updates, a well-aimed
+reward, a curriculum of tougher opponents, warm starting, and keeping the best
+checkpoint all help. Several ideas did not pay off. Short-term and longer-term
+reward shaping, learned state embeddings, imitation and DAgger, and a live large
+language model opponent were each unhelpful, too slow, or too heavy to train at
+scale. We compare network architectures from MLP to convolutional, set-based,
+attention, and recurrent encoders, add baselines (neural fictitious self-play and
+information set Monte Carlo search), and confirm the approach carries over to
+Leduc Hold'em, where the optimal player is computable. The result is a
+lightweight, game-agnostic recipe that trains competitive agents without ever
+training on the expert, for any game a small model can handle, reported with
+robust statistics and released as a reusable package.
 \end{abstract}
 
 %% ===========================================================================
