@@ -500,7 +500,8 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
     <tr><td>&#129302; Self-Play Champion</td><td>strong</td><td>our earlier best, trained against copies of itself</td></tr>
     <tr><td>&#127183; Curriculum Ace</td><td>strongest learned</td><td>our best agent, about {BEST:.0f}% vs the perfect player, built by stacking every idea that helped</td></tr>
     <tr><td>&#128737;&#65039; League Tactician</td><td>strongest learned</td><td>a close second, trained to practise most against whoever beats it (PFSP)</td></tr>
-    <tr><td>&#127942; Gold Standard</td><td>perfect</td><td>the hand-coded expert, the wall everyone hits</td></tr>
+    <tr><td>&#127942; Gold Standard</td><td>expert</td><td>the hand-coded expert, the wall every learned agent hits</td></tr>
+    <tr><td>&#129504; Search Mastermind</td><td>hardest</td><td>a Monte-Carlo search (no training): it imagines how your hidden cards could fall and plays the move that wins most. Beats even the expert (~75%, up to ~85% deeper)</td></tr>
   </table>
   <figure class="fig">{img("game_ui.png","web game")}<figcaption>The browser game (debug view, opponent hand shown). Run <code>python game/server.py</code> and open the URL.</figcaption></figure>
 </section>
