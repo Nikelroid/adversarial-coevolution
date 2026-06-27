@@ -1,6 +1,36 @@
 {
   "per_run": [
     {
+      "name": "arch_mlp_narrow_s0",
+      "cell": "arch_mlp_narrow",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[128, 64]",
+      "seed": 0,
+      "vs_gold": 0.281,
+      "gin_vs_gold": 0.002,
+      "len_vs_gold": 34.18,
+      "vs_champion": 0.426,
+      "vs_random": 0.988,
+      "best_step": 8000000,
+      "secs": 8623
+    },
+    {
+      "name": "arch_mlp_default_s1",
+      "cell": "arch_mlp_default",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 1,
+      "vs_gold": 0.265,
+      "gin_vs_gold": 0.004,
+      "len_vs_gold": 35.07,
+      "vs_champion": 0.392,
+      "vs_random": 0.986,
+      "best_step": 7000000,
+      "secs": 8668
+    },
+    {
       "name": "arch_mlp_default_s0",
       "cell": "arch_mlp_default",
       "arch": "mlp",
@@ -18,13 +48,20 @@
   ],
   "per_arch": [
     {
-      "cell": "arch_mlp_default",
+      "cell": "arch_mlp_narrow",
       "n": 1,
-      "mean_vs_gold": 0.264,
+      "mean_vs_gold": 0.281,
       "std": 0.0,
+      "delta_vs_anchor": 0.0165
+    },
+    {
+      "cell": "arch_mlp_default",
+      "n": 2,
+      "mean_vs_gold": 0.2645,
+      "std": 0.0005,
       "delta_vs_anchor": 0.0
     }
   ],
   "anchor": "arch_mlp_default",
-  "anchor_mean": 0.264
+  "anchor_mean": 0.2645
 }
