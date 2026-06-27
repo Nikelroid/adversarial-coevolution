@@ -59,6 +59,8 @@ from agents.ppo_agent import PPOAgent
 from agents.random_agent import RandomAgent
 import ppo_train  # noqa: F401  registers MaskedGinRummyPolicy (needed to unpickle checkpoints)
 from sweep.algo_compare import FiniteMaskedPolicy          # masked policy that survives TRPO
+from sweep.arch_extractors import (Conv1DCardExtractor, DeepSetsCardExtractor,  # Phase-8 arch sweep
+                                   SetAttentionExtractor)
 from sweep.llm_dagger_one import evaluate, KNOCK, GIN, ENVK  # seat-swapped eval vs random/champ/gold
 
 try:
@@ -362,12 +364,42 @@ def seed_pool(pool_dir, fresh=True):
 
 
 # ----------------------------------------------------------------- model builder
+# Phase-8 architecture sweep: the policy network is config-driven. The defaults below reproduce
+# the Phase-6/7 winner policy (CombinedExtractor, [256,128] pi/vf, Tanh, ortho-init) BYTE-FOR-BYTE,
+# so every existing cell is unaffected; arch/net_arch/activation/extractor_kwargs in a config JSON
+# select a different network. Masking is preserved for ALL of them: FiniteMaskedPolicy reads the
+# action mask from the raw dict obs and applies -1e8 to logits, independent of the features
+# extractor (which only ever produces the policy/value features).
+ACTIVATIONS = {"tanh": th.nn.Tanh, "relu": th.nn.ReLU, "gelu": th.nn.GELU}
+EXTRACTORS = {"mlp": CombinedExtractor, "conv1d": Conv1DCardExtractor,
+              "deepsets": DeepSetsCardExtractor, "attn": SetAttentionExtractor}
+
+
+def _make_policy_kwargs(arch="mlp", net_arch=None, activation="tanh",
+                        extractor_kwargs=None, weight_decay=0.0):
+    if net_arch is None:
+        na = dict(pi=[256, 128], vf=[256, 128])
+    elif isinstance(net_arch, dict):
+        na = dict(pi=list(net_arch["pi"]), vf=list(net_arch["vf"]))
+    else:                                                  # bare list/tuple -> shared pi/vf
+        na = dict(pi=list(net_arch), vf=list(net_arch))
+    pkw = dict(features_extractor_class=EXTRACTORS[str(arch)],
+               net_arch=na, activation_fn=ACTIVATIONS[str(activation).lower()],
+               ortho_init=True)
+    if str(arch) != "mlp":
+        pkw["features_extractor_kwargs"] = dict(extractor_kwargs or {})
+    if weight_decay and float(weight_decay) > 0:           # safe regularization lever
+        pkw["optimizer_kwargs"] = dict(weight_decay=float(weight_decay))
+    return pkw
+
+
 def build_model(algo, env, hp):
-    """PPO or TRPO on the masked policy with the algo-study's proven net so the comparison is
-    not confounded by capacity. Reuses FiniteMaskedPolicy (works for BOTH algorithms)."""
-    pkw = dict(features_extractor_class=CombinedExtractor,
-               net_arch=dict(pi=[256, 128], vf=[256, 128]),
-               activation_fn=th.nn.Tanh, ortho_init=True)
+    """PPO or TRPO on the masked policy. The network comes from _make_policy_kwargs (config-driven;
+    defaults = the proven winner net so comparisons stay unconfounded). Reuses FiniteMaskedPolicy
+    (works for BOTH algorithms)."""
+    pkw = _make_policy_kwargs(hp.get("arch", "mlp"), hp.get("net_arch"),
+                              hp.get("activation", "tanh"), hp.get("extractor_kwargs"),
+                              hp.get("weight_decay", 0.0))
     common = dict(env=env, n_steps=hp["n_steps"], device="cpu", verbose=0,
                   policy_kwargs=pkw, seed=hp["seed"], gamma=hp["gamma"],
                   gae_lambda=hp["gae_lambda"], learning_rate=hp["lr"],
@@ -603,6 +635,13 @@ def _load_config():
         eval_every=int(g("eval_every", "EVAL_EVERY", 3_000_000)),
         ckpt_eval_games=int(g("ckpt_eval_games", "CKPT_EVAL_GAMES", 150)),
         final_eval_games=int(g("final_eval_games", "FINAL_EVAL_GAMES", 800)),
+        # Phase-8 architecture knobs (default = the winner net). net_arch/extractor_kwargs are
+        # structured, so they are JSON-only via cfg.get (not env-castable).
+        arch=g("arch", "ARCH", "mlp"),
+        net_arch=cfg.get("net_arch", None),
+        activation=g("activation", "ACTIVATION", "tanh"),
+        extractor_kwargs=cfg.get("extractor_kwargs", {}),
+        weight_decay=float(g("weight_decay", "WEIGHT_DECAY", 0.0)),
     )
     # OPERATIONAL knobs: an explicit env value always wins (so a smoke run can shrink a real
     # config's steps/envs/eval without editing its JSON). Scientific knobs stay JSON-driven.
@@ -615,16 +654,22 @@ def _load_config():
 
 
 # ----------------------------------------------------------------- startup self-test
-def _selftest(algo):
-    """<10s fast-fail: build the trainee policy, save it, reload it via the generic loader
-    (catches the TRPO-reload + missing-policy-import traps), and load one curated seed. Abort
-    the whole run immediately if any of these fail -- before burning the env setup or training."""
+def _selftest(c):
+    """<10s fast-fail: build the trainee policy WITH THE CONFIGURED ARCHITECTURE, save it, reload
+    it via the generic loader (catches the TRPO-reload + missing-policy-import traps and any broken
+    custom extractor), and load one curated seed. Abort the whole run immediately if any of these
+    fail -- before burning the env setup or training."""
+    algo = c["algo"]
     tmp = tempfile.mkdtemp(prefix="curr_selftest_")
     try:
         dummy = GinRummySB3Wrapper(opponent_policy=RandomAgent, randomize_position=True,
                                    turns_limit=200, curriculum_manager=None)
         hp = dict(n_steps=16, batch_size=16, n_epochs=1, lr=3e-4, ent_coef=0.01,
-                  clip_range=0.2, target_kl=0.01, gamma=0.99, gae_lambda=0.95, seed=0)
+                  clip_range=0.2, target_kl=0.01, gamma=0.99, gae_lambda=0.95, seed=0,
+                  arch=c.get("arch", "mlp"), net_arch=c.get("net_arch"),
+                  activation=c.get("activation", "tanh"),
+                  extractor_kwargs=c.get("extractor_kwargs"),
+                  weight_decay=c.get("weight_decay", 0.0))
         m = build_model(algo, dummy, hp)
         p = os.path.join(tmp, "probe")
         m.save(p)
@@ -646,7 +691,7 @@ def _selftest(algo):
 def main():
     c = _load_config()
     th.manual_seed(c["seed"]); np.random.seed(c["seed"]); random.seed(c["seed"])
-    _selftest(c["algo"])                                    # abort in <10s on a load trap
+    _selftest(c)                                            # abort in <10s on a load/arch trap
 
     pool_dir = os.path.join(SCRATCH, "sweep_curriculum", c["name"], "pool")
     out_dir = os.path.join(PROJECT_ROOT, "sweep", "curriculum")
@@ -662,8 +707,8 @@ def main():
             wandb.init(project=os.environ.get("WANDB_PROJECT", "Adversarial-CoEvolution"),
                        entity=os.environ.get("WANDB_ENTITY", "VLAvengers"),
                        name=c["name"], group=os.environ.get("WANDB_GROUP", "phase6-curriculum"),
-                       tags=[c["algo"], f"cur:{c['curriculum']}", f"samp:{c['sampling']}",
-                             f"knock{c['knock']}", f"gin{c['gin']}",
+                       tags=[c["algo"], f"arch:{c['arch']}", f"cur:{c['curriculum']}",
+                             f"samp:{c['sampling']}", f"knock{c['knock']}", f"gin{c['gin']}",
                              "steppen" if c["step_penalty"] else "nopen",
                              "deadwood" if c.get("deadwood_coef") else "nodw",
                              "warmstart" if c.get("init_model") else "scratch", f"seed{c['seed']}"],
@@ -699,7 +744,9 @@ def main():
     hp = dict(n_steps=c["n_steps"], batch_size=c["batch_size"], n_epochs=c["n_epochs"],
               lr=c["lr"], ent_coef=c["ent_coef"], clip_range=c["clip_range"],
               target_kl=c["target_kl"], gamma=c["gamma"], gae_lambda=c["gae_lambda"],
-              seed=c["seed"])
+              seed=c["seed"], arch=c["arch"], net_arch=c["net_arch"],
+              activation=c["activation"], extractor_kwargs=c["extractor_kwargs"],
+              weight_decay=c["weight_decay"])
     init = c.get("init_model", "").strip()
     if init:                                               # warm-start from a prior best model
         ipath = init[:-4] if init.endswith(".zip") else init
@@ -735,6 +782,7 @@ def main():
     headline = best_eval if best_eval["gold"]["win_rate"] >= final["gold"]["win_rate"] else final
     result = dict(name=c["name"], algo=c["algo"], curriculum=c["curriculum"],
                   sampling=c["sampling"], init_model=c.get("init_model", ""),
+                  arch=c["arch"], net_arch=c["net_arch"], activation=c["activation"],
                   reward=dict(knock=c["knock"], gin=c["gin"], win_scale=c["win_scale"],
                               loss_scale=c["loss_scale"], step_penalty=c["step_penalty"],
                               deadwood_coef=c.get("deadwood_coef", 0.0)),

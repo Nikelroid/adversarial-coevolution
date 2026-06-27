@@ -27,8 +27,11 @@ def load_cells():
 
 
 def row(c):
+    na = c.get("net_arch")
     return dict(
         name=c.get("name", "?"), algo=c.get("algo", "?"),
+        arch=c.get("arch", "mlp"), activation=c.get("activation", "tanh"),
+        net_arch=("-" if na is None else (na.get("pi") if isinstance(na, dict) else na)),
         curriculum=c.get("curriculum", "?"),
         knock=c.get("reward", {}).get("knock"), gin=c.get("reward", {}).get("gin"),
         loss_scale=c.get("reward", {}).get("loss_scale"),
@@ -49,7 +52,7 @@ def main():
     rows = [row(c) for c in cells]
     rows.sort(key=lambda r: (r["vs_gold"] if r["vs_gold"] == r["vs_gold"] else -1), reverse=True)
 
-    hdr = ["name", "algo", "curriculum", "knock", "gin", "loss_scale", "seed",
+    hdr = ["name", "algo", "arch", "activation", "curriculum", "knock", "gin", "seed",
            "vs_random", "vs_champion", "vs_gold", "gin_vs_gold"]
     w = {h: max(len(h), *(len(str(r[h])) for r in rows)) for h in hdr}
     print("  ".join(h.ljust(w[h]) for h in hdr))
