@@ -33,6 +33,7 @@ export WANDB_PROJECT="${WANDB_PROJECT:-Adversarial-CoEvolution}" WANDB_ENTITY="$
 export WANDB_GROUP="${WANDB_GROUP:-phase8-ismcts}"
 
 export OPP="${OPP:-gold}" N="${N:-300}" ISMCTS_ROLLOUTS="${ISMCTS_ROLLOUTS:-20}"
+export ISMCTS_DETERMINIZE="${ISMCTS_DETERMINIZE:-1}"
 export NAME="${NAME:-ismcts_vs_${OPP}_r${ISMCTS_ROLLOUTS}}"
-echo "host=$(hostname) opp=$OPP N=$N rollouts=$ISMCTS_ROLLOUTS name=$NAME"
+echo "host=$(hostname) opp=$OPP N=$N rollouts=$ISMCTS_ROLLOUTS det=$ISMCTS_DETERMINIZE name=$NAME"
 "$PY" sweep/ismcts_eval.py
