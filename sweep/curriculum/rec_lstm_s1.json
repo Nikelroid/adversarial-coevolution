@@ -1,0 +1,35 @@
+{
+  "name": "rec_lstm_s1",
+  "algo": "recurrent_ppo",
+  "arch": "lstm",
+  "activation": "tanh",
+  "net_arch": [
+    128
+  ],
+  "seed": 1,
+  "steps": 4000000,
+  "train_seconds": 6916.272589206696,
+  "model_path": "/scratch1/kelidari/advcoev_store/sweep_recurrent/rec_lstm_s1.zip",
+  "best_step": 4000000,
+  "vs_gold": {
+    "win_rate": 0.20166666666666666,
+    "gin_rate": 0.0033333333333333335,
+    "loss_rate": 0.7983333333333333,
+    "mean_len": 17.148333333333333,
+    "n": 600
+  },
+  "vs_champion": {
+    "win_rate": 0.4116666666666667,
+    "gin_rate": 0.0033333333333333335,
+    "loss_rate": 0.5883333333333334,
+    "mean_len": 24.72,
+    "n": 600
+  },
+  "vs_random": {
+    "win_rate": 0.8216666666666667,
+    "gin_rate": 0.005,
+    "loss_rate": 0.17833333333333334,
+    "mean_len": 29.236666666666668,
+    "n": 600
+  }
+}

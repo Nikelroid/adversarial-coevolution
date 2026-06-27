@@ -7,4 +7,5 @@ arch_act_relu_s0,arch_act_relu,mlp,relu,"[256,128]",0,0.279,0.007,34.86,0.417,0.
 arch_act_gelu_s0,arch_act_gelu,mlp,gelu,"[256,128]",0,0.268,0.002,34.91,0.451,0.988,7000000,11644
 arch_mlp_default_s1,arch_mlp_default,mlp,tanh,"[256,128]",1,0.265,0.004,35.07,0.392,0.986,7000000,8668
 arch_mlp_default_s0,arch_mlp_default,mlp,tanh,"[256,128]",0,0.264,0.006,33.81,0.437,0.985,10000000,8189
+arch_wd_lo_s0,arch_wd_lo,mlp,tanh,"[256,128]",0,0.264,0.006,35.05,0.399,0.992,10000000,8355
 arch_mlp_wide_s0,arch_mlp_wide,mlp,tanh,"[512, 256]",0,0.252,0.007,35.65,0.395,0.996,8000000,14482
