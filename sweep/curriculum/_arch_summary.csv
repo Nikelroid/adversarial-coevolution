@@ -1,4 +1,5 @@
 name,cell,arch,activation,net_arch,seed,vs_gold,gin_vs_gold,len_vs_gold,vs_champion,vs_random,best_step,secs
+arch_mlp_wide_s1,arch_mlp_wide,mlp,tanh,"[512, 256]",1,0.299,0.008,34.28,0.432,0.995,10000000,18615
 arch_mlp_asym_s0,arch_mlp_asym,mlp,tanh,"[128, 64]",0,0.295,0.01,34.18,0.436,0.99,8000000,10805
 arch_mlp_narrow_s0,arch_mlp_narrow,mlp,tanh,"[128, 64]",0,0.288,0.002,33.73,0.466,0.988,4000000,12234
 arch_mlp_deep_s0,arch_mlp_deep,mlp,tanh,"[256, 256, 128]",0,0.28,0.004,34.26,0.458,0.991,10000000,16511

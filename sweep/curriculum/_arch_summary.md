@@ -1,6 +1,6 @@
 # Phase-8 architecture sweep — evaluation vs the fixed expert
 
-_8 runs finished across 7 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
+_9 runs finished across 7 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
 
 ## Per architecture (mean over seeds)
 
@@ -10,14 +10,15 @@ _8 runs finished across 7 architectures. Win-rate is vs the fixed deterministic 
 | arch_mlp_narrow | 1 | 0.288 | 0.000 | +0.024 |
 | arch_mlp_deep | 1 | 0.280 | 0.000 | +0.015 |
 | arch_act_relu | 1 | 0.279 | 0.000 | +0.015 |
+| arch_mlp_wide | 2 | 0.276 | 0.024 | +0.011 |
 | arch_act_gelu | 1 | 0.268 | 0.000 | +0.004 |
 | arch_mlp_default | 2 | 0.265 | 0.001 | +0.000 |
-| arch_mlp_wide | 1 | 0.252 | 0.000 | -0.013 |
 
 ## Per run
 
 | run | arch | act | net | seed | win% vs expert | gin% | mean len | vs champ | vs random | secs |
 |---|---|---|---|---|---|---|---|---|---|---|
+| arch_mlp_wide_s1 | mlp | tanh | [512, 256] | 1 | 0.299 | 0.008 | 34.28 | 0.432 | 0.995 | 18615 |
 | arch_mlp_asym_s0 | mlp | tanh | [128, 64] | 0 | 0.295 | 0.010 | 34.18 | 0.436 | 0.990 | 10805 |
 | arch_mlp_narrow_s0 | mlp | tanh | [128, 64] | 0 | 0.288 | 0.002 | 33.73 | 0.466 | 0.988 | 12234 |
 | arch_mlp_deep_s0 | mlp | tanh | [256, 256, 128] | 0 | 0.280 | 0.004 | 34.26 | 0.458 | 0.991 | 16511 |
