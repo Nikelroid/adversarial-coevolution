@@ -1,4 +1,5 @@
 name,algo,arch,activation,net_arch,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin_vs_gold,steps,secs
+ismcts_vs_gold,?,mlp,tanh,-,?,,,,,nan,nan,0.55,0.125,,0
 p7_03_warm_deadwood_hi_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.992,0.48,0.357,0.007,16000000,19117
 p7_04_warm_pfsp_s1,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,1,0.995,0.506,0.352,0.005,16000000,19578
 p7_01_warm_long_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.996,0.487,0.345,0.005,16000000,26288
@@ -47,8 +48,12 @@ arch_act_gelu_s0,trpo,mlp,gelu,-,designed,0.5,0.5,1.0,0,0.988,0.451,0.268,0.002,
 arch_mlp_default_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.986,0.392,0.265,0.004,10000000,8668
 arch_mlp_default_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.985,0.437,0.264,0.006,10000000,8189
 arch_wd_lo_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.992,0.399,0.264,0.006,10000000,8355
+arch_wd_hi_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.993,0.407,0.258,0.004,10000000,9670
 arch_mlp_wide_s0,trpo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,0,0.996,0.395,0.252,0.007,10000000,14482
+rec_lstm_s0,recurrent_ppo,lstm,tanh,[128],?,,,,0,0.955,0.417,0.243,0.003,4000000,7002
 rec_lstm_s1,recurrent_ppo,lstm,tanh,[128],?,,,,1,0.822,0.412,0.202,0.003,4000000,6916
 rec_mlp_ctrl_s1,ppo,mlp_ctrl,tanh,"[256, 128]",?,,,,1,0.91,0.41,0.192,0.002,4000000,2389
 rec_mlp_ctrl_s0,ppo,mlp_ctrl,tanh,"[256, 128]",?,,,,0,0.948,0.353,0.152,0.003,4000000,1948
+ismcts_vs_champion,?,mlp,tanh,-,?,,,,,nan,0.7,nan,nan,,0
+ismcts_vs_random,?,mlp,tanh,-,?,,,,,0.917,nan,nan,nan,,0
 leduc_rl_vs_cfr,?,mlp,tanh,-,?,,,,,nan,nan,nan,nan,,0

@@ -1,6 +1,6 @@
 # Phase-8 architecture sweep — evaluation vs the fixed expert
 
-_10 runs finished across 8 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
+_11 runs finished across 9 architectures. Win-rate is vs the fixed deterministic expert (benchmark-only)._
 
 ## Per architecture (mean over seeds)
 
@@ -14,6 +14,7 @@ _10 runs finished across 8 architectures. Win-rate is vs the fixed deterministic
 | arch_act_gelu | 1 | 0.268 | 0.000 | +0.004 |
 | arch_mlp_default | 2 | 0.265 | 0.001 | +0.000 |
 | arch_wd_lo | 1 | 0.264 | 0.000 | -0.001 |
+| arch_wd_hi | 1 | 0.258 | 0.000 | -0.006 |
 
 ## Per run
 
@@ -28,4 +29,5 @@ _10 runs finished across 8 architectures. Win-rate is vs the fixed deterministic
 | arch_mlp_default_s1 | mlp | tanh | [256,128] | 1 | 0.265 | 0.004 | 35.07 | 0.392 | 0.986 | 8668 |
 | arch_mlp_default_s0 | mlp | tanh | [256,128] | 0 | 0.264 | 0.006 | 33.81 | 0.437 | 0.985 | 8189 |
 | arch_wd_lo_s0 | mlp | tanh | [256,128] | 0 | 0.264 | 0.006 | 35.05 | 0.399 | 0.992 | 8355 |
+| arch_wd_hi_s0 | mlp | tanh | [256,128] | 0 | 0.258 | 0.004 | 35.17 | 0.407 | 0.993 | 9670 |
 | arch_mlp_wide_s0 | mlp | tanh | [512, 256] | 0 | 0.252 | 0.007 | 35.65 | 0.395 | 0.996 | 14482 |
