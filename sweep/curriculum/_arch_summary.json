@@ -22,13 +22,13 @@
       "activation": "tanh",
       "net_arch": "[128, 64]",
       "seed": 0,
-      "vs_gold": 0.281,
+      "vs_gold": 0.288,
       "gin_vs_gold": 0.002,
-      "len_vs_gold": 34.18,
-      "vs_champion": 0.426,
+      "len_vs_gold": 33.73,
+      "vs_champion": 0.466,
       "vs_random": 0.988,
-      "best_step": 8000000,
-      "secs": 8623
+      "best_step": 4000000,
+      "secs": 12234
     },
     {
       "name": "arch_act_relu_s0",
@@ -89,6 +89,21 @@
       "vs_random": 0.985,
       "best_step": 10000000,
       "secs": 8189
+    },
+    {
+      "name": "arch_mlp_wide_s0",
+      "cell": "arch_mlp_wide",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[512, 256]",
+      "seed": 0,
+      "vs_gold": 0.252,
+      "gin_vs_gold": 0.007,
+      "len_vs_gold": 35.65,
+      "vs_champion": 0.395,
+      "vs_random": 0.996,
+      "best_step": 8000000,
+      "secs": 14482
     }
   ],
   "per_arch": [
@@ -102,9 +117,9 @@
     {
       "cell": "arch_mlp_narrow",
       "n": 1,
-      "mean_vs_gold": 0.281,
+      "mean_vs_gold": 0.288,
       "std": 0.0,
-      "delta_vs_anchor": 0.0165
+      "delta_vs_anchor": 0.0235
     },
     {
       "cell": "arch_act_relu",
@@ -126,6 +141,13 @@
       "mean_vs_gold": 0.2645,
       "std": 0.0005,
       "delta_vs_anchor": 0.0
+    },
+    {
+      "cell": "arch_mlp_wide",
+      "n": 1,
+      "mean_vs_gold": 0.252,
+      "std": 0.0,
+      "delta_vs_anchor": -0.0125
     }
   ],
   "anchor": "arch_mlp_default",
