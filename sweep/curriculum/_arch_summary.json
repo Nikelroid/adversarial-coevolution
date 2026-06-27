@@ -1,6 +1,21 @@
 {
   "per_run": [
     {
+      "name": "arch_deepsets_s0",
+      "cell": "arch_deepsets",
+      "arch": "deepsets",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.307,
+      "gin_vs_gold": 0.006,
+      "len_vs_gold": 33.97,
+      "vs_champion": 0.446,
+      "vs_random": 0.997,
+      "best_step": 9000000,
+      "secs": 60294
+    },
+    {
       "name": "arch_deepsets_s1",
       "cell": "arch_deepsets",
       "arch": "deepsets",
@@ -289,10 +304,10 @@
   "per_arch": [
     {
       "cell": "arch_deepsets",
-      "n": 1,
-      "mean_vs_gold": 0.306,
-      "std": 0.0,
-      "delta_vs_anchor": 0.0325
+      "n": 2,
+      "mean_vs_gold": 0.3065,
+      "std": 0.0005,
+      "delta_vs_anchor": 0.033
     },
     {
       "cell": "arch_mlp_narrow",

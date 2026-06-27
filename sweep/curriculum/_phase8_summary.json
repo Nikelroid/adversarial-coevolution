@@ -1,9 +1,11 @@
 {
   "arch_vs_gold": {
     "cells": {
+      "arch_deepsets_s1": 0.306,
       "arch_mlp_wide_s1": 0.296,
       "arch_mlp_default_s2": 0.296,
       "arch_mlp_asym_s0": 0.295,
+      "arch_mlp_xwide_s0": 0.289,
       "arch_mlp_asym_s3": 0.285,
       "arch_mlp_narrow_s0": 0.281,
       "arch_mlp_deep_s0": 0.28,
@@ -20,6 +22,17 @@
       "arch_mlp_asym_s1": 0.221
     },
     "families": {
+      "arch_deepsets": {
+        "n": 1,
+        "iqm": 0.306,
+        "ci": [
+          0.306,
+          0.306
+        ],
+        "seeds": [
+          0.306
+        ]
+      },
       "arch_mlp_narrow": {
         "n": 1,
         "iqm": 0.281,
@@ -29,6 +42,18 @@
         ],
         "seeds": [
           0.281
+        ]
+      },
+      "arch_mlp_xwide": {
+        "n": 2,
+        "iqm": 0.28,
+        "ci": [
+          0.271,
+          0.289
+        ],
+        "seeds": [
+          0.289,
+          0.271
         ]
       },
       "arch_mlp_deep": {
@@ -77,17 +102,6 @@
           0.269,
           0.265,
           0.264
-        ]
-      },
-      "arch_mlp_xwide": {
-        "n": 1,
-        "iqm": 0.271,
-        "ci": [
-          0.271,
-          0.271
-        ],
-        "seeds": [
-          0.271
         ]
       },
       "arch_mlp_asym": {
@@ -141,6 +155,7 @@
   },
   "stagec_vs_gold": {
     "sc_ppo_asym_s0": 0.302,
+    "sc_pfsp_wide_s0": 0.287,
     "sc_ppo_mlpdef_s1": 0.28,
     "sc_ppo_wide_s0": 0.278,
     "sc_ppo_asym_s1": 0.278,

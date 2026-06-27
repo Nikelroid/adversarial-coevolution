@@ -1,5 +1,5 @@
 {
-  "n_cells": 92,
+  "n_cells": 94,
   "best": {
     "name": "ismcts_vs_gold_r120",
     "algo": "?",
@@ -578,6 +578,24 @@
       "secs": 11998
     },
     {
+      "name": "arch_deepsets_s0",
+      "algo": "trpo",
+      "arch": "deepsets",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.997,
+      "vs_champion": 0.446,
+      "vs_gold": 0.307,
+      "gin_vs_gold": 0.006,
+      "steps": 10000000,
+      "secs": 60294
+    },
+    {
       "name": "p7_05_scratch_deadwood_s1",
       "algo": "trpo",
       "arch": "mlp",
@@ -729,6 +747,27 @@
       "gin_vs_gold": 0.008,
       "steps": 10000000,
       "secs": 18615
+    },
+    {
+      "name": "sc_pfsp_wide_s0",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        512,
+        256
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.985,
+      "vs_champion": 0.427,
+      "vs_gold": 0.298,
+      "gin_vs_gold": 0.007,
+      "steps": 10000000,
+      "secs": 19043
     },
     {
       "name": "sc_ppo_mlpdef_s0",
