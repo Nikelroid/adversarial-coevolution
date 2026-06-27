@@ -1,5 +1,5 @@
 {
-  "n_cells": 43,
+  "n_cells": 44,
   "best": {
     "name": "p7_03_warm_deadwood_hi_s0",
     "algo": "trpo",
@@ -591,12 +591,12 @@
       "gin": 0.5,
       "loss_scale": 1.0,
       "seed": 0,
-      "vs_random": 0.992,
+      "vs_random": 0.99,
       "vs_champion": 0.436,
       "vs_gold": 0.295,
       "gin_vs_gold": 0.01,
       "steps": 10000000,
-      "secs": 8211
+      "secs": 10805
     },
     {
       "name": "09_trpo_kl_small_s0",
@@ -633,6 +633,24 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 12996
+    },
+    {
+      "name": "arch_act_relu_s0",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "relu",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.996,
+      "vs_champion": 0.445,
+      "vs_gold": 0.29,
+      "gin_vs_gold": 0.003,
+      "steps": 10000000,
+      "secs": 10285
     },
     {
       "name": "04_rew_R2_knockfwd_s1",

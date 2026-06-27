@@ -11,9 +11,24 @@
       "gin_vs_gold": 0.01,
       "len_vs_gold": 34.18,
       "vs_champion": 0.436,
-      "vs_random": 0.992,
-      "best_step": 9000000,
-      "secs": 8211
+      "vs_random": 0.99,
+      "best_step": 8000000,
+      "secs": 10805
+    },
+    {
+      "name": "arch_act_relu_s0",
+      "cell": "arch_act_relu",
+      "arch": "mlp",
+      "activation": "relu",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.29,
+      "gin_vs_gold": 0.003,
+      "len_vs_gold": 34.71,
+      "vs_champion": 0.445,
+      "vs_random": 0.996,
+      "best_step": 4000000,
+      "secs": 10285
     },
     {
       "name": "arch_mlp_narrow_s0",
@@ -68,6 +83,13 @@
       "mean_vs_gold": 0.295,
       "std": 0.0,
       "delta_vs_anchor": 0.0305
+    },
+    {
+      "cell": "arch_act_relu",
+      "n": 1,
+      "mean_vs_gold": 0.29,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0255
     },
     {
       "cell": "arch_mlp_narrow",
