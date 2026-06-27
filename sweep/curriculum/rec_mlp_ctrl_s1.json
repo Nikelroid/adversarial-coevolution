@@ -1,0 +1,36 @@
+{
+  "name": "rec_mlp_ctrl_s1",
+  "algo": "ppo",
+  "arch": "mlp_ctrl",
+  "activation": "tanh",
+  "net_arch": [
+    256,
+    128
+  ],
+  "seed": 1,
+  "steps": 4000000,
+  "train_seconds": 2389.0233721733093,
+  "model_path": "/scratch1/kelidari/advcoev_store/sweep_recurrent/rec_mlp_ctrl_s1.zip",
+  "best_step": 4000000,
+  "vs_gold": {
+    "win_rate": 0.19166666666666668,
+    "gin_rate": 0.0016666666666666668,
+    "loss_rate": 0.8083333333333333,
+    "mean_len": 16.1,
+    "n": 600
+  },
+  "vs_champion": {
+    "win_rate": 0.41,
+    "gin_rate": 0.01,
+    "loss_rate": 0.59,
+    "mean_len": 19.71,
+    "n": 600
+  },
+  "vs_random": {
+    "win_rate": 0.91,
+    "gin_rate": 0.013333333333333334,
+    "loss_rate": 0.09,
+    "mean_len": 30.15,
+    "n": 600
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "n_cells": 46,
+  "n_cells": 49,
   "best": {
     "name": "p7_03_warm_deadwood_hi_s0",
     "algo": "trpo",
@@ -728,6 +728,28 @@
       "secs": 22469
     },
     {
+      "name": "arch_mlp_deep_s0",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        256,
+        256,
+        128
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.991,
+      "vs_champion": 0.458,
+      "vs_gold": 0.28,
+      "gin_vs_gold": 0.004,
+      "steps": 10000000,
+      "secs": 16511
+    },
+    {
       "name": "08_trpo_gamma_high_s1",
       "algo": "trpo",
       "arch": "mlp",
@@ -855,6 +877,48 @@
       "gin_vs_gold": 0.007,
       "steps": 10000000,
       "secs": 14482
+    },
+    {
+      "name": "rec_mlp_ctrl_s1",
+      "algo": "ppo",
+      "arch": "mlp_ctrl",
+      "activation": "tanh",
+      "net_arch": [
+        256,
+        128
+      ],
+      "curriculum": "?",
+      "knock": null,
+      "gin": null,
+      "loss_scale": null,
+      "seed": 1,
+      "vs_random": 0.91,
+      "vs_champion": 0.41,
+      "vs_gold": 0.192,
+      "gin_vs_gold": 0.002,
+      "steps": 4000000,
+      "secs": 2389
+    },
+    {
+      "name": "rec_mlp_ctrl_s0",
+      "algo": "ppo",
+      "arch": "mlp_ctrl",
+      "activation": "tanh",
+      "net_arch": [
+        256,
+        128
+      ],
+      "curriculum": "?",
+      "knock": null,
+      "gin": null,
+      "loss_scale": null,
+      "seed": 0,
+      "vs_random": 0.948,
+      "vs_champion": 0.353,
+      "vs_gold": 0.152,
+      "gin_vs_gold": 0.003,
+      "steps": 4000000,
+      "secs": 1948
     }
   ]
 }

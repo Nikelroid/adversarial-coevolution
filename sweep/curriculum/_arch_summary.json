@@ -31,6 +31,21 @@
       "secs": 12234
     },
     {
+      "name": "arch_mlp_deep_s0",
+      "cell": "arch_mlp_deep",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "[256, 256, 128]",
+      "seed": 0,
+      "vs_gold": 0.28,
+      "gin_vs_gold": 0.004,
+      "len_vs_gold": 34.26,
+      "vs_champion": 0.458,
+      "vs_random": 0.991,
+      "best_step": 10000000,
+      "secs": 16511
+    },
+    {
       "name": "arch_act_relu_s0",
       "cell": "arch_act_relu",
       "arch": "mlp",
@@ -120,6 +135,13 @@
       "mean_vs_gold": 0.288,
       "std": 0.0,
       "delta_vs_anchor": 0.0235
+    },
+    {
+      "cell": "arch_mlp_deep",
+      "n": 1,
+      "mean_vs_gold": 0.28,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0155
     },
     {
       "cell": "arch_act_relu",
