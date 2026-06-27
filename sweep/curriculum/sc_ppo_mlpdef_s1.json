@@ -1,0 +1,263 @@
+{
+  "name": "sc_ppo_mlpdef_s1",
+  "algo": "ppo",
+  "curriculum": "designed",
+  "sampling": "recent",
+  "init_model": "",
+  "arch": "mlp",
+  "net_arch": null,
+  "activation": "tanh",
+  "reward": {
+    "knock": 0.5,
+    "gin": 0.5,
+    "win_scale": 1.0,
+    "loss_scale": 1.0,
+    "step_penalty": 0.0075,
+    "deadwood_coef": 0.05
+  },
+  "hp": {
+    "lr": 0.0003,
+    "ent_coef": 0.01,
+    "clip_range": 0.2,
+    "target_kl": 0.01,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "n_steps": 256
+  },
+  "steps": 10000000,
+  "seed": 1,
+  "train_seconds": 5253.43242764473,
+  "model_path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/sc_ppo_mlpdef_s1/final.zip",
+  "best_model_path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/sc_ppo_mlpdef_s1/best.zip",
+  "best_step": 6000000,
+  "pool_size": 17,
+  "curve": [
+    {
+      "step": 1000000,
+      "stage": 1,
+      "random": {
+        "win": 0.9975,
+        "gin": 0.0225,
+        "loss": 0.0025
+      },
+      "champion": {
+        "win": 0.355,
+        "gin": 0.0,
+        "loss": 0.645
+      },
+      "gold": {
+        "win": 0.2275,
+        "gin": 0.0,
+        "loss": 0.7725
+      }
+    },
+    {
+      "step": 2000000,
+      "stage": 1,
+      "random": {
+        "win": 0.99,
+        "gin": 0.025,
+        "loss": 0.01
+      },
+      "champion": {
+        "win": 0.3925,
+        "gin": 0.005,
+        "loss": 0.6075
+      },
+      "gold": {
+        "win": 0.215,
+        "gin": 0.0025,
+        "loss": 0.785
+      }
+    },
+    {
+      "step": 3000000,
+      "stage": 2,
+      "random": {
+        "win": 0.9925,
+        "gin": 0.0125,
+        "loss": 0.0075
+      },
+      "champion": {
+        "win": 0.42,
+        "gin": 0.005,
+        "loss": 0.58
+      },
+      "gold": {
+        "win": 0.2725,
+        "gin": 0.005,
+        "loss": 0.7275
+      }
+    },
+    {
+      "step": 4000000,
+      "stage": 2,
+      "random": {
+        "win": 0.99,
+        "gin": 0.0325,
+        "loss": 0.01
+      },
+      "champion": {
+        "win": 0.4225,
+        "gin": 0.0025,
+        "loss": 0.5775
+      },
+      "gold": {
+        "win": 0.2675,
+        "gin": 0.005,
+        "loss": 0.7325
+      }
+    },
+    {
+      "step": 5000000,
+      "stage": 3,
+      "random": {
+        "win": 0.99,
+        "gin": 0.0175,
+        "loss": 0.01
+      },
+      "champion": {
+        "win": 0.4375,
+        "gin": 0.01,
+        "loss": 0.5625
+      },
+      "gold": {
+        "win": 0.2675,
+        "gin": 0.0075,
+        "loss": 0.7325
+      }
+    },
+    {
+      "step": 6000000,
+      "stage": 3,
+      "random": {
+        "win": 0.99,
+        "gin": 0.01,
+        "loss": 0.01
+      },
+      "champion": {
+        "win": 0.4575,
+        "gin": 0.0075,
+        "loss": 0.5425
+      },
+      "gold": {
+        "win": 0.275,
+        "gin": 0.0025,
+        "loss": 0.725
+      }
+    },
+    {
+      "step": 7000000,
+      "stage": 4,
+      "random": {
+        "win": 0.99,
+        "gin": 0.0175,
+        "loss": 0.01
+      },
+      "champion": {
+        "win": 0.4425,
+        "gin": 0.005,
+        "loss": 0.5575
+      },
+      "gold": {
+        "win": 0.2675,
+        "gin": 0.005,
+        "loss": 0.7325
+      }
+    },
+    {
+      "step": 8000000,
+      "stage": 4,
+      "random": {
+        "win": 0.9925,
+        "gin": 0.015,
+        "loss": 0.0075
+      },
+      "champion": {
+        "win": 0.4225,
+        "gin": 0.005,
+        "loss": 0.5775
+      },
+      "gold": {
+        "win": 0.2475,
+        "gin": 0.01,
+        "loss": 0.7525
+      }
+    },
+    {
+      "step": 9000000,
+      "stage": 4,
+      "random": {
+        "win": 0.985,
+        "gin": 0.025,
+        "loss": 0.015
+      },
+      "champion": {
+        "win": 0.4525,
+        "gin": 0.0,
+        "loss": 0.5475
+      },
+      "gold": {
+        "win": 0.2625,
+        "gin": 0.005,
+        "loss": 0.7375
+      }
+    },
+    {
+      "step": 10000000,
+      "stage": 4,
+      "random": {
+        "win": 0.995,
+        "gin": 0.015,
+        "loss": 0.005
+      },
+      "champion": {
+        "win": 0.4525,
+        "gin": 0.005,
+        "loss": 0.5475
+      },
+      "gold": {
+        "win": 0.25,
+        "gin": 0.005,
+        "loss": 0.75
+      }
+    }
+  ],
+  "best_vs_gold": 0.28,
+  "best_vs_champion": 0.445,
+  "final_vs_gold": {
+    "win_rate": 0.272,
+    "gin_rate": 0.003,
+    "loss_rate": 0.728,
+    "mean_len": 34.587,
+    "n": 1000
+  },
+  "final_vs_champion": {
+    "win_rate": 0.458,
+    "gin_rate": 0.006,
+    "loss_rate": 0.542,
+    "mean_len": 47.49,
+    "n": 1000
+  },
+  "vs_random": {
+    "win_rate": 0.991,
+    "gin_rate": 0.023,
+    "loss_rate": 0.009,
+    "mean_len": 43.852,
+    "n": 1000
+  },
+  "vs_champion": {
+    "win_rate": 0.445,
+    "gin_rate": 0.003,
+    "loss_rate": 0.555,
+    "mean_len": 46.659,
+    "n": 1000
+  },
+  "vs_gold": {
+    "win_rate": 0.28,
+    "gin_rate": 0.001,
+    "loss_rate": 0.72,
+    "mean_len": 34.528,
+    "n": 1000
+  }
+}

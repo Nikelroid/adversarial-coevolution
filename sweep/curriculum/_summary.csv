@@ -1,4 +1,5 @@
 name,algo,arch,activation,net_arch,curriculum,knock,gin,loss_scale,seed,vs_random,vs_champion,vs_gold,gin_vs_gold,steps,secs
+ismcts_vs_gold_r30,?,mlp,tanh,-,?,,,,,nan,nan,0.59,0.117,,0
 ismcts_vs_gold,?,mlp,tanh,-,?,,,,,nan,nan,0.55,0.125,,0
 ismcts_vs_gold_r10,?,mlp,tanh,-,?,,,,,nan,nan,0.407,0.093,,0
 p7_03_warm_deadwood_hi_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.992,0.48,0.357,0.007,16000000,19117
@@ -32,6 +33,7 @@ p7_05_scratch_deadwood_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.989,0.448,0.3
 10_trpo_kl_large_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.981,0.454,0.304,0.004,12000000,13113
 03_rew_R0_highgin_s1,trpo,mlp,tanh,-,designed,0.5,1.5,1.0,1,0.989,0.451,0.299,0.003,12000000,13016
 arch_mlp_wide_s1,trpo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,1,0.995,0.432,0.299,0.008,10000000,18615
+sc_ppo_mlpdef_s0,ppo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.986,0.445,0.298,0.015,10000000,5275
 arch_mlp_default_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.991,0.425,0.296,0.009,10000000,15847
 07_cur_pfsp_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.988,0.445,0.295,0.003,12000000,14321
 arch_mlp_asym_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.99,0.436,0.295,0.01,10000000,10805
@@ -44,9 +46,11 @@ arch_mlp_asym_s3,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,3,0.987,0.428,0.
 08_trpo_gamma_high_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.971,0.492,0.284,0.001,12000000,22828
 01_base_trpo_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.983,0.454,0.281,0.003,12000000,22469
 arch_mlp_deep_s0,trpo,mlp,tanh,"[256, 256, 128]",designed,0.5,0.5,1.0,0,0.991,0.458,0.28,0.004,10000000,16511
+sc_ppo_mlpdef_s1,ppo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.991,0.445,0.28,0.001,10000000,5253
 08_trpo_gamma_high_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.981,0.422,0.279,0.006,12000000,18387
 arch_act_relu_s0,trpo,mlp,relu,-,designed,0.5,0.5,1.0,0,0.989,0.417,0.279,0.007,10000000,13633
 arch_mlp_asym_s2,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,2,0.99,0.396,0.272,0.005,10000000,10615
+arch_mlp_default_s3,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,3,0.987,0.405,0.269,0.007,10000000,19044
 08_trpo_gamma_high_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.97,0.507,0.268,0.005,12000000,18164
 arch_act_gelu_s0,trpo,mlp,gelu,-,designed,0.5,0.5,1.0,0,0.988,0.451,0.268,0.002,10000000,11644
 arch_mlp_default_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.986,0.392,0.265,0.004,10000000,8668
