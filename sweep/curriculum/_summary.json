@@ -1,5 +1,5 @@
 {
-  "n_cells": 58,
+  "n_cells": 61,
   "best": {
     "name": "ismcts_vs_gold",
     "algo": "?",
@@ -713,6 +713,27 @@
       "secs": 12234
     },
     {
+      "name": "arch_mlp_asym_s3",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        128,
+        64
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 3,
+      "vs_random": 0.987,
+      "vs_champion": 0.428,
+      "vs_gold": 0.285,
+      "gin_vs_gold": 0.003,
+      "steps": 10000000,
+      "secs": 10766
+    },
+    {
       "name": "07_cur_pfsp_s2",
       "algo": "trpo",
       "arch": "mlp",
@@ -823,6 +844,27 @@
       "gin_vs_gold": 0.007,
       "steps": 10000000,
       "secs": 13633
+    },
+    {
+      "name": "arch_mlp_asym_s2",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        128,
+        64
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 2,
+      "vs_random": 0.99,
+      "vs_champion": 0.396,
+      "vs_gold": 0.272,
+      "gin_vs_gold": 0.005,
+      "steps": 10000000,
+      "secs": 10615
     },
     {
       "name": "08_trpo_gamma_high_s0",
@@ -952,6 +994,27 @@
       "gin_vs_gold": 0.007,
       "steps": 10000000,
       "secs": 14482
+    },
+    {
+      "name": "arch_mlp_asym_s1",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        128,
+        64
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.991,
+      "vs_champion": 0.407,
+      "vs_gold": 0.249,
+      "gin_vs_gold": 0.002,
+      "steps": 10000000,
+      "secs": 10696
     },
     {
       "name": "rec_lstm_s0",

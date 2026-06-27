@@ -37,12 +37,14 @@ arch_mlp_asym_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.99,0.436,0.2
 10_trpo_kl_large_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.988,0.459,0.292,0.004,12000000,12996
 04_rew_R2_knockfwd_s1,trpo,mlp,tanh,-,designed,0.75,0.75,1.0,1,0.989,0.448,0.289,0.006,12000000,22242
 arch_mlp_narrow_s0,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,0,0.988,0.466,0.288,0.002,10000000,12234
+arch_mlp_asym_s3,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,3,0.987,0.428,0.285,0.003,10000000,10766
 07_cur_pfsp_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.983,0.446,0.284,0.005,12000000,22886
 08_trpo_gamma_high_s2,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,2,0.971,0.492,0.284,0.001,12000000,22828
 01_base_trpo_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.983,0.454,0.281,0.003,12000000,22469
 arch_mlp_deep_s0,trpo,mlp,tanh,"[256, 256, 128]",designed,0.5,0.5,1.0,0,0.991,0.458,0.28,0.004,10000000,16511
 08_trpo_gamma_high_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.981,0.422,0.279,0.006,12000000,18387
 arch_act_relu_s0,trpo,mlp,relu,-,designed,0.5,0.5,1.0,0,0.989,0.417,0.279,0.007,10000000,13633
+arch_mlp_asym_s2,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,2,0.99,0.396,0.272,0.005,10000000,10615
 08_trpo_gamma_high_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.97,0.507,0.268,0.005,12000000,18164
 arch_act_gelu_s0,trpo,mlp,gelu,-,designed,0.5,0.5,1.0,0,0.988,0.451,0.268,0.002,10000000,11644
 arch_mlp_default_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.986,0.392,0.265,0.004,10000000,8668
@@ -50,6 +52,7 @@ arch_mlp_default_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.985,0.437,0.264,0.0
 arch_wd_lo_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.992,0.399,0.264,0.006,10000000,8355
 arch_wd_hi_s0,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,0,0.993,0.407,0.258,0.004,10000000,9670
 arch_mlp_wide_s0,trpo,mlp,tanh,"[512, 256]",designed,0.5,0.5,1.0,0,0.996,0.395,0.252,0.007,10000000,14482
+arch_mlp_asym_s1,trpo,mlp,tanh,"[128, 64]",designed,0.5,0.5,1.0,1,0.991,0.407,0.249,0.002,10000000,10696
 rec_lstm_s0,recurrent_ppo,lstm,tanh,[128],?,,,,0,0.955,0.417,0.243,0.003,4000000,7002
 rec_lstm_s1,recurrent_ppo,lstm,tanh,[128],?,,,,1,0.822,0.412,0.202,0.003,4000000,6916
 rec_mlp_ctrl_s1,ppo,mlp_ctrl,tanh,"[256, 128]",?,,,,1,0.91,0.41,0.192,0.002,4000000,2389
