@@ -1,10 +1,11 @@
 # Phase-8 results summary
 
 ## Gin Rummy: architecture sweep vs GOLD expert (win-rate, best ckpt)
-_19 cells with results_
+_20 cells with results_
 
 | win% vs gold | cell | arch | act |
 |---:|---|---|---|
+| 0.307 | arch_deepsets_s0 | deepsets | tanh |
 | 0.306 | arch_deepsets_s1 | deepsets | tanh |
 | 0.296 | arch_mlp_wide_s1 | mlp | tanh |
 | 0.296 | arch_mlp_default_s2 | mlp | tanh |
@@ -29,7 +30,7 @@ _19 cells with results_
 
 | cell | n | IQM | CI low | CI high |
 |---|---:|---:|---:|---:|
-| arch_deepsets | 1 | 0.306 | 0.306 | 0.306 |
+| arch_deepsets | 2 | 0.306 | 0.306 | 0.307 |
 | arch_mlp_narrow | 1 | 0.281 | 0.281 | 0.281 |
 | arch_mlp_xwide | 2 | 0.280 | 0.271 | 0.289 |
 | arch_mlp_deep | 1 | 0.280 | 0.280 | 0.280 |
@@ -47,6 +48,7 @@ _19 cells with results_
 |---:|---|
 | 0.302 | sc_ppo_asym_s0 |
 | 0.287 | sc_pfsp_wide_s0 |
+| 0.283 | sc_pfsp_wide_s1 |
 | 0.280 | sc_ppo_mlpdef_s1 |
 | 0.278 | sc_ppo_wide_s0 |
 | 0.278 | sc_ppo_asym_s1 |
@@ -66,7 +68,7 @@ _19 cells with results_
 | 0.152 | rec_mlp_ctrl_s0 |
 | 0.192 | rec_mlp_ctrl_s1 |
 
-## ISMCTS search baseline vs GOLD, by rollout budget
+## ISMCTS vs GOLD by rollout budget &mdash; oracle = perfect-info UPPER BOUND (sees opponent cards)
 
 | rollouts | win% vs gold | gin% | mean len | cell |
 |---:|---:|---:|---:|---|
@@ -82,11 +84,10 @@ _(0 = parity with the game-theoretic optimum; random baseline ~ -0.78)_
 
 | agent | seed | return vs CFR |
 |---|---:|---:|
-| nfsp | 0 | -0.7017 |
-| nfsp | 1 | -0.7212 |
-| nfsp | 2 | -0.7252 |
-| nfsp | 3 | -0.8417 |
-| tabular_q | ? | -0.0772 |
+| nfsp | 0 | -0.7622 |
+| nfsp | 1 | -0.6803 |
+| nfsp | 2 | -0.619 |
+| nfsp | 3 | -0.7803 |
 | tabular_q | 0 | -0.169 |
 | tabular_q | 1 | -0.1517 |
 | tabular_q | 2 | 0.0053 |
@@ -98,5 +99,5 @@ _(0 = parity with the game-theoretic optimum; random baseline ~ -0.78)_
 
 | agent | n seeds | mean return vs CFR |
 |---|---:|---:|
-| tabular_q | 9 | -0.084 |
-| nfsp | 4 | -0.747 |
+| tabular_q | 8 | -0.085 |
+| nfsp | 4 | -0.710 |

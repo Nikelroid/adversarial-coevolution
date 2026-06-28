@@ -76,6 +76,21 @@
       "secs": 10805
     },
     {
+      "name": "arch_conv1d_s1",
+      "cell": "arch_conv1d",
+      "arch": "conv1d",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 1,
+      "vs_gold": 0.291,
+      "gin_vs_gold": 0.008,
+      "len_vs_gold": 35.35,
+      "vs_champion": 0.442,
+      "vs_random": 0.992,
+      "best_step": 9000000,
+      "secs": 73594
+    },
+    {
       "name": "arch_mlp_xwide_s0",
       "cell": "arch_mlp_xwide",
       "arch": "mlp",
@@ -308,6 +323,13 @@
       "mean_vs_gold": 0.3065,
       "std": 0.0005,
       "delta_vs_anchor": 0.033
+    },
+    {
+      "cell": "arch_conv1d",
+      "n": 1,
+      "mean_vs_gold": 0.291,
+      "std": 0.0,
+      "delta_vs_anchor": 0.0175
     },
     {
       "cell": "arch_mlp_narrow",

@@ -4,6 +4,7 @@ arch_deepsets_s1,arch_deepsets,deepsets,tanh,"[256,128]",1,0.306,0.005,34.16,0.4
 arch_mlp_wide_s1,arch_mlp_wide,mlp,tanh,"[512, 256]",1,0.299,0.008,34.28,0.432,0.995,10000000,18615
 arch_mlp_default_s2,arch_mlp_default,mlp,tanh,"[256,128]",2,0.296,0.009,34.74,0.425,0.991,10000000,15847
 arch_mlp_asym_s0,arch_mlp_asym,mlp,tanh,"[128, 64]",0,0.295,0.01,34.18,0.436,0.99,8000000,10805
+arch_conv1d_s1,arch_conv1d,conv1d,tanh,"[256,128]",1,0.291,0.008,35.35,0.442,0.992,9000000,73594
 arch_mlp_xwide_s0,arch_mlp_xwide,mlp,tanh,"[768, 384]",0,0.289,0.006,34.42,0.48,0.99,8000000,35739
 arch_mlp_narrow_s0,arch_mlp_narrow,mlp,tanh,"[128, 64]",0,0.288,0.002,33.73,0.466,0.988,4000000,12234
 arch_mlp_asym_s3,arch_mlp_asym,mlp,tanh,"[128, 64]",3,0.285,0.003,34.4,0.428,0.987,9000000,10766
