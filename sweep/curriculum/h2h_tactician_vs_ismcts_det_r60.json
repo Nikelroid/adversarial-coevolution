@@ -1,0 +1,16 @@
+{
+  "name": "h2h_tactician_vs_ismcts_det_r60",
+  "model": "tactician",
+  "model_path": "game/model/gin_tactician.zip",
+  "opponent": "ismcts",
+  "rollouts": 60,
+  "determinize": true,
+  "eval_seconds": 8703.804081201553,
+  "vs_ismcts": {
+    "win_rate": 0.6933333333333334,
+    "gin_rate": 0.01,
+    "loss_rate": 0.30666666666666664,
+    "mean_len": 37.97666666666667,
+    "n": 300
+  }
+}

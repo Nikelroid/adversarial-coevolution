@@ -1,0 +1,16 @@
+{
+  "name": "h2h_selfplay_vs_ismcts_det_r60",
+  "model": "selfplay",
+  "model_path": "game/model/ppo_gin_rummy_selfplay.zip",
+  "opponent": "ismcts",
+  "rollouts": 60,
+  "determinize": true,
+  "eval_seconds": 8732.730705738068,
+  "vs_ismcts": {
+    "win_rate": 0.6633333333333333,
+    "gin_rate": 0.006666666666666667,
+    "loss_rate": 0.33666666666666667,
+    "mean_len": 38.74333333333333,
+    "n": 300
+  }
+}

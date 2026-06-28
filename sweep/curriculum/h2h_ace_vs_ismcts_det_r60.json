@@ -1,0 +1,16 @@
+{
+  "name": "h2h_ace_vs_ismcts_det_r60",
+  "model": "ace",
+  "model_path": "game/model/gin_ace.zip",
+  "opponent": "ismcts",
+  "rollouts": 60,
+  "determinize": true,
+  "eval_seconds": 8665.02336025238,
+  "vs_ismcts": {
+    "win_rate": 0.6933333333333334,
+    "gin_rate": 0.016666666666666666,
+    "loss_rate": 0.30666666666666664,
+    "mean_len": 38.21666666666667,
+    "n": 300
+  }
+}
