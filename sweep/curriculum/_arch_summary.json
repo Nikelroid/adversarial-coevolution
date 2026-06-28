@@ -31,6 +31,21 @@
       "secs": 50129
     },
     {
+      "name": "arch_deepsets_s2",
+      "cell": "arch_deepsets",
+      "arch": "deepsets",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 2,
+      "vs_gold": 0.302,
+      "gin_vs_gold": 0.005,
+      "len_vs_gold": 34.27,
+      "vs_champion": 0.44,
+      "vs_random": 0.993,
+      "best_step": 8000000,
+      "secs": 65123
+    },
+    {
       "name": "arch_mlp_wide_s1",
       "cell": "arch_mlp_wide",
       "arch": "mlp",
@@ -89,6 +104,21 @@
       "vs_random": 0.992,
       "best_step": 9000000,
       "secs": 73594
+    },
+    {
+      "name": "arch_deepsets_s3",
+      "cell": "arch_deepsets",
+      "arch": "deepsets",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 3,
+      "vs_gold": 0.289,
+      "gin_vs_gold": 0.005,
+      "len_vs_gold": 34.51,
+      "vs_champion": 0.431,
+      "vs_random": 0.995,
+      "best_step": 7000000,
+      "secs": 64940
     },
     {
       "name": "arch_mlp_xwide_s0",
@@ -319,10 +349,10 @@
   "per_arch": [
     {
       "cell": "arch_deepsets",
-      "n": 2,
-      "mean_vs_gold": 0.3065,
-      "std": 0.0005,
-      "delta_vs_anchor": 0.033
+      "n": 4,
+      "mean_vs_gold": 0.301,
+      "std": 0.0072,
+      "delta_vs_anchor": 0.0275
     },
     {
       "cell": "arch_conv1d",

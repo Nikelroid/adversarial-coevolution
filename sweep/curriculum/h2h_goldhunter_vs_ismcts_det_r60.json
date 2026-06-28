@@ -1,0 +1,16 @@
+{
+  "name": "h2h_goldhunter_vs_ismcts_det_r60",
+  "model": "goldhunter",
+  "model_path": "game/model/gin_gold_hunter.zip",
+  "opponent": "ismcts",
+  "rollouts": 60,
+  "determinize": true,
+  "eval_seconds": 9268.945510149002,
+  "vs_ismcts": {
+    "win_rate": 0.68,
+    "gin_rate": 0.016666666666666666,
+    "loss_rate": 0.32,
+    "mean_len": 40.486666666666665,
+    "n": 300
+  }
+}
