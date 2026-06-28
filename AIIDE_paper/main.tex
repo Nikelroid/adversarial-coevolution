@@ -1,73 +1,47 @@
 %% ============================================================================
 %% AIIDE 2026 submission (anonymous, double-blind).
-%%
-%% FORMAT NOTE: AIIDE 2026 requires the official AAAI Press author kit
-%% (AAAI two-column, 9 pages of content + unlimited references, double-blind).
-%% This preamble is a faithful, self-contained approximation so the paper
-%% compiles anywhere. Before submitting, drop in the official aaai2026.sty and
-%% aaai2026.bst from the AAAI author kit and replace the preamble block marked
-%% below; the body and bibliography are written to transfer with no changes.
+%% Uses the OFFICIAL AAAI Press author kit (aaai24.sty/.bst from AuthorKit24-4),
+%% which AIIDE adopts: AAAI two-column, 9 pages of content + unlimited references.
+%% Anonymous via \usepackage[submission]{aaai24}. For the camera-ready, remove the
+%% [submission] option and fill in \author{}/\affiliations{}.
 %% Do NOT post this paper on CEUR: AIIDE 2026 treats CEUR as archival and will
 %% reject papers available there. arXiv is allowed.
 %% ============================================================================
-\documentclass[10pt,twocolumn,letterpaper]{article}
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai24}  % official AAAI Press style (AIIDE uses the AAAI kit); anonymous
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in} % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in} % DO NOT CHANGE THIS
 
-%% ---- begin AAAI-style approximation (swap for \usepackage{aaai2026}) -------
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{mathptmx}                 % Times for text and math (AAAI base font)
-\usepackage{helvet}                   % Helvetica for headings
-\usepackage{courier}
-\usepackage[letterpaper,top=0.95in,bottom=1.0in,left=0.75in,right=0.75in]{geometry}
-\setlength{\columnsep}{0.27in}
-\usepackage{graphicx}
-\graphicspath{{figures/}}
 \usepackage{booktabs}
-\usepackage{amsmath,amssymb}
-\usepackage{caption}
-\usepackage{subcaption}
-\usepackage{xcolor}
-\usepackage{microtype}
-\usepackage{titlesec}
-\usepackage[hidelinks]{hyperref}
-\usepackage[round]{natbib}
-\bibpunct{(}{)}{;}{a}{}{,}            % AAAI author-year: (Author Year)
-\captionsetup{font=small,labelfont=bf}
-%% Let large (often full-width) figures place cleanly without bunching.
-\setcounter{topnumber}{2}\setcounter{totalnumber}{3}
-\setcounter{dbltopnumber}{2}
-\renewcommand{\topfraction}{0.92}\renewcommand{\dbltopfraction}{0.92}
-\renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.75}
-\renewcommand{\dblfloatpagefraction}{0.75}
-\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
-\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
-\titlespacing*{\section}{0pt}{1.4ex plus .2ex}{0.8ex}
-\titlespacing*{\subsection}{0pt}{1.1ex plus .2ex}{0.5ex}
-\pagestyle{empty}                     % AAAI camera style: no page numbers
-\setlength{\parindent}{1.2em}
-\definecolor{good}{RGB}{11,91,57}
-\definecolor{bad}{RGB}{150,40,40}
-\definecolor{mid}{RGB}{120,110,40}
-\newcommand{\helps}{\textcolor{good}{\textbf{helps}}}
-\newcommand{\nofx}{\textcolor{mid}{\textbf{no effect}}}
-\newcommand{\fails}{\textcolor{bad}{\textbf{fails}}}
-%% Author identity toggle. Names are SHOWN now. For the AIIDE double-blind
-%% submission, set this to \anonymoustrue (the only change needed to anonymize).
-\newif\ifanonymous
-\anonymoustrue
-%% ---- end AAAI-style approximation ------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\graphicspath{{figures/}}
 
-\title{\bf A Gold-Standard Study of What Makes\\ a Lightweight Game-Playing Agent Strong}
+\pdfinfo{
+/TemplateVersion (2024.1)
+}
+\setcounter{secnumdepth}{0}
 
-\ifanonymous
-  \author{Anonymous Submission}
-\else
-  \author{Nima Kelidari \quad Mohammadsaeed Haghi \quad Mahdi Salmani \\[2pt]
-    University of Southern California \\[2pt]
-    \texttt{kelidari@usc.edu} \quad \texttt{haghim@usc.edu} \quad \texttt{salmanis@usc.edu}}
-\fi
+% Verdict tags for the summary table (plain bold: AAAI discourages colored text).
+\newcommand{\helps}{\textbf{helps}}
+\newcommand{\nofx}{\textbf{no effect}}
+\newcommand{\fails}{\textbf{fails}}
 
-\date{}
+% Title in title case, as AAAI requires.
+\title{A Gold-Standard Study of What Makes\\
+a Lightweight Game-Playing Agent Strong}
+\author{Anonymous Submission}
+\affiliations{Anonymous Submission}
 
 \begin{document}
 \maketitle
@@ -812,7 +786,7 @@ distributed LLM serving stack, and the web client used for human play will be
 released as open source on acceptance.
 
 %% ===========================================================================
-\bibliographystyle{plainnat}
+\bibliographystyle{aaai24}
 \begin{thebibliography}{99}
 \setlength{\itemsep}{0.15em}
 
@@ -837,7 +811,7 @@ In \emph{Proceedings of the 26th International Conference on Machine Learning
 (ICML)}, 41--48.
 
 \bibitem[Berner et al.(2019)]{openaifive}
-Berner, C.; Brockman, G.; Chan, B.; Cheung, V.; D\k{e}biak, P.; Dennison, C.;
+Berner, C.; Brockman, G.; Chan, B.; Cheung, V.; Debiak, P.; Dennison, C.;
 Farhi, D.; Fischer, Q.; Hashme, S.; Hesse, C.; et al. 2019.
 Dota 2 with Large Scale Deep Reinforcement Learning.
 arXiv:1912.06680.

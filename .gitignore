@@ -19,4 +19,10 @@ sweep/llmplay/ckpts/
 
 # OS / editor
 .DS_Store
-*.swp
+*.swpAIIDE_paper/AuthorKit24-4.zip
+AIIDE_paper/anonymous-submission-latex-2024.tex
+AIIDE_paper/*.aux
+AIIDE_paper/*.bbl
+AIIDE_paper/*.blg
+AIIDE_paper/*.log
+AIIDE_paper/*.out
