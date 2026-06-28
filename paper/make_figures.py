@@ -31,9 +31,15 @@ C_GOLD = "#c9962b"
 C_GREY = "#9aa6a0"
 C_INK = "#16242d"
 OPP_COLORS = {"random": C_GREY, "champion": C_GREEN2, "gold": C_GOLD}
-plt.rcParams.update({"font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
-                     "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "legend.fontsize": 8.5,
-                     "axes.edgecolor": "#444", "axes.linewidth": 0.8})
+plt.rcParams.update({"font.size": 11, "axes.titlesize": 12.5, "axes.labelsize": 11,
+                     "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 9.5,
+                     "axes.edgecolor": "#444", "axes.linewidth": 0.9,
+                     "axes.spines.top": False, "axes.spines.right": False,
+                     "axes.titleweight": "bold", "axes.titlepad": 7,
+                     "legend.frameon": False, "figure.dpi": 200,
+                     "savefig.bbox": "tight", "savefig.pad_inches": 0.02,
+                     "lines.linewidth": 2.0, "lines.markersize": 6,
+                     "font.family": "serif", "mathtext.fontset": "dejavuserif"})
 
 
 def _save(fig, name):
@@ -798,6 +804,87 @@ def fig_ismcts():
     print(f"  fig_ismcts: ok (fair={len(fair)}, oracle={len(orac)})")
 
 
+def fig_archbase():
+    """Full-width Phase-8 headline: LEFT = win-rate vs the expert by architecture (IQM, 95% bootstrap
+    CI over seeds); RIGHT = ISMCTS vs the expert by rollout budget, fair (cards hidden) vs oracle
+    (peeks). One figure spanning both columns so the text stays legible. Reads arch_*.json and
+    ismcts_*vs_gold*.json; skips if neither is ready."""
+    # --- architecture data ---
+    by = {}
+    for p in sorted(glob.glob(os.path.join(ROOT, "sweep", "curriculum", "arch_*.json"))):
+        try:
+            c = json.load(open(p))
+        except Exception:  # noqa: BLE001
+            continue
+        wr = (c.get("vs_gold") or {}).get("win_rate")
+        if wr is not None:
+            by.setdefault(c.get("name", "?").rsplit("_s", 1)[0], []).append(100.0 * wr)
+    # --- ISMCTS data ---
+    fair, orac = {}, {}
+    for p in glob.glob(os.path.join(ROOT, "sweep", "curriculum", "ismcts_*vs_gold*.json")):
+        try:
+            c = json.load(open(p))
+        except Exception:  # noqa: BLE001
+            continue
+        wr = (c.get("vs_gold") or {}).get("win_rate")
+        if wr is None:
+            continue
+        (fair if c.get("determinize") else orac)[int(c.get("rollouts", 0))] = 100.0 * wr
+    if len(by) < 2 and not (fair or orac):
+        print("  [skip] fig_archbase: data not ready")
+        return
+
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(7.6, 4.0), gridspec_kw={"width_ratios": [1.18, 1]})
+
+    # LEFT: architecture IQM with CIs
+    NICE = {"mlp_default": "MLP (anchor)", "mlp_wide": "MLP wide", "mlp_narrow": "MLP narrow",
+            "mlp_deep": "MLP deep", "mlp_xwide": "MLP x-wide", "mlp_asym": "MLP asym",
+            "act_relu": "ReLU", "act_gelu": "GELU", "conv1d": "Conv1D", "deepsets": "DeepSets",
+            "attn": "Attention", "attn_deep": "Attention (deep)", "deepsets_big": "DeepSets (big)",
+            "wd_lo": "Weight decay (lo)", "wd_hi": "Weight decay (hi)"}
+    rows = []
+    for cell, vs in by.items():
+        lo, hi = _bootstrap_ci(vs)
+        rows.append((NICE.get(cell.replace("arch_", ""), cell.replace("arch_", "")),
+                     _iqm(vs), lo, hi, len(vs), cell.replace("arch_", "")))
+    rows.sort(key=lambda r: r[1])
+    ys = np.arange(len(rows))
+    err = [[r[1] - r[2] for r in rows], [r[3] - r[1] for r in rows]]
+    structured = {"conv1d", "deepsets", "attn", "attn_deep", "deepsets_big"}
+    cols = [C_GOLD if r[5] in structured else C_GREEN for r in rows]
+    for y, r, c in zip(ys, rows, cols):
+        axL.errorbar(r[1], y, xerr=[[r[1] - r[2]], [r[3] - r[1]]], fmt="o", color=c,
+                     ecolor=C_GREY, capsize=3, ms=6, lw=1.4, zorder=3)
+    anchor = next((r[1] for r in rows if r[5] == "mlp_default"), None)
+    if anchor is not None:
+        axL.axvline(anchor, ls="--", color=C_INK, lw=1, alpha=0.6)
+    axL.set_yticks(ys)
+    axL.set_yticklabels([f"{r[0]}" for r in rows])
+    axL.set_xlabel("win rate vs the expert (%)")
+    axL.set_title("(a) Architecture is not the lever")
+    axL.grid(ls=":", axis="x", alpha=0.45)
+    axL.margins(y=0.03)
+
+    # RIGHT: ISMCTS fair vs oracle
+    if orac:
+        xs = sorted(orac)
+        axR.plot(xs, [orac[x] for x in xs], "-o", color=C_GOLD, label="oracle (peeks)")
+    if fair:
+        xs = sorted(fair)
+        axR.plot(xs, [fair[x] for x in xs], "-o", color=C_GREEN, label="fair (hidden)")
+    axR.axhline(34.2, ls="--", lw=1.2, color=C_INK, alpha=0.7)
+    axR.text(0.98, 0.40, "best trained agent", transform=axR.transAxes, fontsize=8.5,
+             ha="right", color=C_INK)
+    axR.set_xlabel("search rollouts per move")
+    axR.set_ylabel("win rate vs the expert (%)")
+    axR.set_title("(b) A fair search is weak")
+    axR.grid(ls=":", alpha=0.45)
+    axR.legend(loc="center right")
+    fig.tight_layout(w_pad=2.0)
+    _save(fig, "archbase")
+    print(f"  fig_archbase: ok (arch={len(rows)}, fair={len(fair)}, oracle={len(orac)})")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
@@ -806,7 +893,7 @@ def main():
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
                fig_curriculum, fig_curriculum_reward, fig_reward_gin,
                fig_gold_bench, fig_regimes, fig_journey, fig_architecture, fig_learning_curves,
-               fig_arch_rliable, fig_ismcts):
+               fig_arch_rliable, fig_ismcts, fig_archbase):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

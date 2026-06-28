@@ -232,16 +232,16 @@ multi-agent interface \citep{pettingzoo}, Stable-Baselines3 for PPO and TRPO
 %% ===========================================================================
 \section{Problem Setup}
 %% ===========================================================================
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{architecture.pdf}
+\includegraphics[width=0.82\textwidth]{architecture.pdf}
 \caption{System overview. A masked PPO or TRPO learner trains against a rising
 curriculum of opponents (random play, a growing pool of past checkpoints, then
 self-play), with a distributed LLM available as an optional opponent. The fixed
 expert sits outside the training loop and is used only to grade agents, so no
 trained agent ever practices against the yardstick it is measured with.}
 \label{fig:arch}
-\end{figure}
+\end{figure*}
 We study two-player Gin Rummy as implemented in RLCard and exposed through
 PettingZoo as \texttt{gin\_rummy\_v4} \citep{rlcard,pettingzoo}.
 Figure~\ref{fig:arch} shows how the pieces fit together: a masked RL learner, a
@@ -514,14 +514,14 @@ steps and shipping the best checkpoint recovers two to three points for free
 about even with a simple schedule here, and a longer reward horizon (a higher
 discount) slightly hurt, adding noise rather than foresight.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{learning_curves.pdf}
+\includegraphics[width=0.78\textwidth]{learning_curves.pdf}
 \caption{Win-rate against the champion as training moves through curriculum
 stages. The climb is real, but the late dip is why keeping the best checkpoint,
 rather than the last one, is worth two to three points.}
 \label{fig:curves}
-\end{figure}
+\end{figure*}
 
 Stacking the ingredients that help (TRPO, a knock-first reward with a small
 deadwood-reduction bonus, a curriculum seeded with the strongest earlier agents,
@@ -624,15 +624,15 @@ same conclusion: the ceiling is set by the hidden information, not by the model.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.49\textwidth]{arch_rliable.pdf}\hfill
-\includegraphics[width=0.49\textwidth]{ismcts_fair_oracle.pdf}
-\caption{Left: win-rate against the fixed expert by network architecture (IQM with
-$95$ percent stratified bootstrap CIs over seeds, from scratch at a fixed budget).
-Every encoder lands in a narrow band around the MLP anchor; the intervals overlap.
-Right: a determinized information-set search graded \emph{fairly} (hidden cards
-re-dealt) tops out near $26$ percent, below the trained agents, while the same
-search given \emph{oracle} access to the hidden cards reaches $85$ percent. The
-gap between the two curves is the value of the hidden information.}
+\includegraphics[width=0.96\textwidth]{archbase.pdf}
+\caption{(a) Win-rate against the fixed expert by network architecture (IQM with
+$95$ percent stratified bootstrap CIs over seeds, from scratch at a fixed budget;
+structured encoders in gold, MLP variants in green, the anchor marked by the dashed
+line). Every encoder lands in a narrow band and the intervals overlap. (b) A
+determinized information-set search graded \emph{fairly} (hidden cards re-dealt)
+tops out near $26$ percent, below the trained agents (dashed line), while the same
+search given \emph{oracle} access to the hidden cards reaches $85$ percent. The gap
+between the two curves is the value of the hidden information.}
 \label{fig:archbase}
 \end{figure*}
 
@@ -643,7 +643,7 @@ Sets, self-attention, and recurrent encoders, the win-rate against the expert
 stays in a narrow band: the best IQMs are the structured encoders (convolutional
 $31.1$ percent, Deep Sets $30.4$ percent) and the plain MLP anchor is $26.7$
 percent, but the $95$ percent bootstrap intervals overlap throughout
-(Figure~\ref{fig:archbase}, left), so the architectures are statistically
+(Figure~\ref{fig:archbase}a), so the architectures are statistically
 indistinguishable. Making the MLP wider, deeper, or extra-wide does not help, and
 weight decay slightly hurts. The finding is robust to the training recipe: rerun
 under PPO instead of TRPO, or with PFSP sampling, the encoders keep the same
@@ -657,7 +657,7 @@ We then run a determinized ISMCTS, the classic non-learned reference for
 hidden-information card games. Graded \emph{fairly}, re-dealing the unseen cards
 before every rollout, it is surprisingly weak: win-rate against the expert rises
 with the per-move budget but only to $10$, $17$, $21$, and $26$ percent at $10$,
-$30$, $60$, and $120$ rollouts (Figure~\ref{fig:archbase}, right), \emph{below}
+$30$, $60$, and $120$ rollouts (Figure~\ref{fig:archbase}b), \emph{below}
 our trained agents. Gin Rummy hides a full hand plus the deck, so averaging over
 sampled deals is high-variance. Head to head against the fair search, every
 trained agent wins comfortably ($66$ to $69$ percent at $60$ rollouts;
