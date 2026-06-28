@@ -162,9 +162,19 @@ each for an identified reason.
 losing habit of chasing gin. Paying three times more for a gin than a knock
 leaves the gin rate under one percent, the same as not rewarding gin at all. We
 connect the parallel failure of imitation learning to causal confusion.
-\item A game-agnostic release of the pipeline that reproduces the study on any
-two-player game in a standard multi-agent interface, so the method is not tied
-to Gin Rummy.
+\item Evidence that the ceiling is \emph{information-bound, not capacity-bound}.
+Across MLP width and depth, convolutional, permutation-invariant set, attention,
+and recurrent encoders, win-rate against the expert stays in a narrow band with
+overlapping confidence intervals, and the ranking is robust across training
+recipes. A determinized information-set Monte-Carlo search, graded \emph{fairly}
+(hidden cards re-dealt), is in fact weaker than our trained agents and loses to
+them head-to-head; an \emph{oracle} variant that may see the hidden cards reaches
+far higher. The gap between the two quantifies the value of the hidden
+information, which is what sets the ceiling.
+\item A game-agnostic release of the pipeline, with the method reproduced on a
+second game, Leduc Hold'em, where a counterfactual-regret optimum is computable:
+a tabular learner graded against that optimum reaches near parity, showing the
+expert-yardstick study is not tied to Gin Rummy.
 \end{itemize}
 
 %% ===========================================================================
@@ -202,10 +212,23 @@ against a fixed expert rather than against the moving target of self-play.
 \paragraph{Search and equilibrium solving.}
 Counterfactual regret minimization \citep{cfr} and its deep variants
 \citep{deepcfr} underpin the superhuman poker agents Libratus and Pluribus
-\citep{libratus,pluribus}. These methods search or solve over the game tree and
-are complementary to ours: we do not use them as our method, but we use them to
-frame the performance ceiling we observe and to point at what a future agent
-would need in order to break it.
+\citep{libratus,pluribus}, and OpenSpiel collects many such algorithms and small
+benchmark games \citep{openspiel}. Determinized search, or perfect-information
+Monte-Carlo, samples the hidden state and searches the resulting
+perfect-information games; information-set Monte-Carlo tree search (ISMCTS) is the
+canonical form \citep{ismcts,pimc}. We use these as \emph{baselines} rather than
+as our method: we run a determinized ISMCTS for Gin Rummy, and NFSP and CFR on a
+second game, and we use the family to frame the ceiling we observe. A key point we
+make precise later is that a determinized search graded \emph{fairly} (without
+seeing the hidden cards) is far weaker than the same search given oracle access.
+
+\paragraph{Network architectures for card observations.}
+A hand is an unordered set of cards, which invites permutation-invariant encoders
+such as Deep Sets \citep{deepsets} and self-attention \citep{transformer};
+convolutional stacks and recurrent networks \citep{lstm} are the other standard
+choices for structured or sequential inputs. We hold our training recipe fixed
+and sweep these encoders to ask whether representation, rather than reward or
+curriculum, is the lever that breaks the ceiling.
 
 \paragraph{Reward shaping and imitation learning.}
 Potential-based reward shaping preserves the optimal policy while changing the
@@ -235,16 +258,16 @@ multi-agent interface \citep{pettingzoo}, Stable-Baselines3 for PPO and TRPO
 %% ===========================================================================
 \section{Problem Setup}
 %% ===========================================================================
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.84\textwidth]{architecture.pdf}
+\includegraphics[width=\columnwidth]{architecture.pdf}
 \caption{System overview. A masked PPO or TRPO learner trains against a rising
 curriculum of opponents (random play, a growing pool of past checkpoints, then
 self-play), with a distributed LLM available as an optional opponent. The fixed
 expert sits outside the training loop and is used only to grade agents, so no
 trained agent ever practices against the yardstick it is measured with.}
 \label{fig:arch}
-\end{figure*}
+\end{figure}
 We study two-player Gin Rummy as implemented in RLCard and exposed through
 PettingZoo as \texttt{gin\_rummy\_v4} \citep{rlcard,pettingzoo}.
 Figure~\ref{fig:arch} shows how the pieces fit together: a masked RL learner, a
@@ -370,7 +393,7 @@ reward that scores each move by agreement with an evaluator over the next $L$
 steps. Both are popular shortcuts for injecting expert knowledge.
 
 \paragraph{Live LLM opponent.}
-Finally, we test whether a modern LLM can serve as a strong in-the-loop opponent.
+We test whether a modern LLM can serve as a strong in-the-loop opponent.
 Because a single RL run issues tens of thousands of opponent queries and a 7B
 model answers in seconds, a naive loop would take far too long, so we built a
 distributed serving stack: a CPU master with a response cache that canonicalizes
@@ -379,6 +402,34 @@ self-register and are health-checked and load-balanced by the master
 \citep{vllm,qwen}. One engineering finding from this stack is reported with the
 results, because it matters for anyone trying the same thing: where the model
 weights are stored dominates worker start-up time.
+
+\paragraph{Network architecture.}
+Holding the best recipe fixed, we vary \emph{only} the policy network and retrain
+from scratch (a different-shaped network cannot warm-start from the MLP champion,
+so this is a clean relative ranking at a fixed budget). We sweep MLP width and
+depth, a convolutional stack over the card planes, a permutation-invariant Deep
+Sets encoder \citep{deepsets}, a self-attention encoder over card tokens
+\citep{transformer}, an LSTM \citep{lstm}, activation functions, and weight decay.
+To test whether any gain is recipe-specific, we also rerun the top encoders under
+two alternative recipes (PPO in place of TRPO, and PFSP sampling).
+
+\paragraph{Search and learning baselines.}
+We add two non-learned and learned references. The first is a determinized
+information-set Monte-Carlo search (ISMCTS/PIMC) \citep{ismcts,pimc} that, before
+each rollout, re-deals the cards it cannot see (the opponent's hand and the stock)
+uniformly from the unseen pool, so it never uses the true hidden cards; we vary
+the per-move rollout budget. For contrast we also run an \emph{oracle} variant
+that searches from the true state, as an upper bound. The second is Neural
+Fictitious Self-Play \citep{nfsp}, the canonical equilibrium-learning baseline,
+run through OpenSpiel \citep{openspiel}.
+
+\paragraph{A second game.}
+To check that the method is not tied to Gin Rummy, we repeat the expert-yardstick
+study on Leduc Hold'em, a small poker game whose game-theoretic optimum is
+computable. We solve a near-optimal expert with counterfactual regret
+minimization \citep{cfr,openspiel} and grade a tabular self-play learner and NFSP
+against it, the exact analogue of grading our Gin Rummy agents against the fixed
+expert.
 
 %% ===========================================================================
 \section{Experimental Setup}
@@ -392,7 +443,10 @@ report two supporting numbers where useful: win-rate against the prior self-play
 champion (a moving but familiar reference) and against random play (a floor that
 saturates). For the headline agents we run $2000$ games and report a $95$ percent
 confidence interval; for the broad sweeps we run $400$ to $600$ games per cell,
-which is enough to rank regimes.
+which is enough to rank regimes. For multi-seed comparisons such as the
+architecture sweep we follow current guidance on RL evaluation and report the
+interquartile mean (IQM) with stratified bootstrap confidence intervals rather
+than a single best run \citep{rliable,deeprlmatters}.
 
 \paragraph{Protocol.}
 Each study changes one factor and holds the rest fixed. Algorithm runs use two
@@ -466,21 +520,11 @@ but it cannot bribe the agent into a habit that loses.
 Compressing the sparse $4\times52$ observation into a small dense embedding hurt
 in every variant we tried. Against the expert, the raw sparse input reaches about
 $15$ percent, while learned and LLM-judged embeddings land between $6$ and $14$
-percent depending on size, and never above the sparse baseline
-(Figure~\ref{fig:regimes}). Larger embeddings and unfreezing the encoder did not
-close the gap. The reason is that a fixed low-dimensional bottleneck is good at
-saying whether two states are broadly similar, but it discards the fine detail
-(which exact cards are where) that the policy needs to act well.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.86\textwidth]{regimes.pdf}
-\caption{Every regime ranked by best win-rate against the fixed expert. Learned
-representations sit below the raw sparse input; trust-region self-play with the
-right reward, a rising curriculum, warm-starting, and keep-the-best sits at the
-top.}
-\label{fig:regimes}
-\end{figure*}
+percent depending on size, and never above the sparse baseline. Larger embeddings
+and unfreezing the encoder did not close the gap. The reason is that a fixed
+low-dimensional bottleneck is good at saying whether two states are broadly
+similar, but it discards the fine detail (which exact cards are where) that the
+policy needs to act well.
 
 \subsection{Curriculum, warm-start, and keep-the-best}
 Self-play makes difficulty free: a three-million-step self-play agent beats its
@@ -496,14 +540,14 @@ steps and shipping the best checkpoint recovers two to three points for free
 about even with a simple schedule here, and a longer reward horizon (a higher
 discount) slightly hurt, adding noise rather than foresight.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.82\textwidth]{learning_curves.pdf}
+\includegraphics[width=\columnwidth]{learning_curves.pdf}
 \caption{Win-rate against the champion as training moves through curriculum
 stages. The climb is real, but the late dip is why keeping the best checkpoint,
 rather than the last one, is worth two to three points.}
 \label{fig:curves}
-\end{figure*}
+\end{figure}
 
 Stacking the ingredients that help (TRPO, a knock-first reward with a small
 deadwood-reduction bonus, a curriculum seeded with the strongest earlier agents,
@@ -534,15 +578,6 @@ Stacked recipe (this work)      & \textbf{34.2 $\pm$ 2.1} & \textbf{51.4} \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.78\textwidth]{journey.pdf}
-\caption{Closing the gap to the fixed expert, milestone by milestone, from the
-self-play champion to the final stacked recipe. The gain is modest but real, and
-it comes from a controlled search rather than from luck.}
-\label{fig:journey}
-\end{figure*}
 
 \subsection{The honest negatives}
 Three popular shortcuts each failed, and the failures are as informative as the
@@ -606,40 +641,137 @@ Live LLM opponent               & \fails & competent but $9$ to $27$ seconds per
 \end{table*}
 
 %% ===========================================================================
+\section{Architecture, Baselines, and a Second Game}
+%% ===========================================================================
+Having tuned the algorithm, reward, curriculum, and checkpointing to the
+mid-thirties, we ask the natural follow-up: is the network the missing lever, and
+how do principled baselines compare? The answer, in both cases, points at the
+same conclusion: the ceiling is set by the hidden information, not by the model.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.49\textwidth]{arch_rliable.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{ismcts_fair_oracle.pdf}
+\caption{Left: win-rate against the fixed expert by network architecture (IQM with
+$95$ percent stratified bootstrap CIs over seeds, from scratch at a fixed budget).
+Every encoder lands in a narrow band around the MLP anchor; the intervals overlap.
+Right: a determinized information-set search graded \emph{fairly} (hidden cards
+re-dealt) tops out near $26$ percent, below the trained agents, while the same
+search given \emph{oracle} access to the hidden cards reaches $85$ percent. The
+gap between the two curves is the value of the hidden information.}
+\label{fig:archbase}
+\end{figure*}
+
+\subsection{Architecture does not break the ceiling}
+We hold the winning recipe fixed and vary only the network, retraining from
+scratch. Across MLP width and depth, convolutional, permutation-invariant Deep
+Sets, self-attention, and recurrent encoders, the win-rate against the expert
+stays in a narrow band: the best IQMs are the structured encoders (convolutional
+$31.1$ percent, Deep Sets $30.4$ percent) and the plain MLP anchor is $26.7$
+percent, but the $95$ percent bootstrap intervals overlap throughout
+(Figure~\ref{fig:archbase}, left), so the architectures are statistically
+indistinguishable. Making the MLP wider, deeper, or extra-wide does not help, and
+weight decay slightly hurts. The finding is robust to the training recipe: rerun
+under PPO instead of TRPO, or with PFSP sampling, the encoders keep the same
+ordering and the best cell reaches $30.2$ percent, in the same band. Recurrence
+(an LSTM) beats its matched feed-forward control ($24.3$ versus $19.2$ percent)
+but both trail the TRPO anchor, so memory helps relative to its own baseline
+without breaking the ceiling. Capacity and inductive bias are not the bottleneck.
+
+\subsection{A fair search is weak; only an oracle beats the expert}
+We then run a determinized ISMCTS, the classic non-learned reference for
+hidden-information card games. Graded \emph{fairly}, re-dealing the unseen cards
+before every rollout, it is surprisingly weak: win-rate against the expert rises
+with the per-move budget but only to $10$, $17$, $21$, and $26$ percent at $10$,
+$30$, $60$, and $120$ rollouts (Figure~\ref{fig:archbase}, right), \emph{below}
+our trained agents. Gin Rummy hides a full hand plus the deck, so averaging over
+sampled deals is high-variance. Head to head against the fair search, every
+trained agent wins comfortably ($66$ to $69$ percent at $60$ rollouts;
+Table~\ref{tab:baselines}). For contrast, an oracle search that may see the hidden
+cards reaches $41$ to $85$ percent over the same budgets. The $26$-versus-$85$
+gap is the crux: the information, not the search, is what wins, which is direct
+evidence that the ceiling is information-bound. Naive search is not a free way
+past it.
+
+\subsection{Generality: a second game with a computable optimum}
+Finally we repeat the study on Leduc Hold'em, where a counterfactual-regret
+solution is computable (our CFR expert reaches exploitability $0.026$). Graded
+against that near-optimal expert over eight seeds, a tabular self-play learner
+reaches near parity (mean return $-0.085$; random is about $-0.78$), reproducing
+the Gin Rummy story on a game where the true optimum is available. NFSP, the
+neural equilibrium baseline, was far more sample-hungry: even at three million
+episodes it averaged $-0.71$, near the random floor, an honest reminder that the
+neural baseline needs much more data than the tabular learner on this size of
+game. Table~\ref{tab:baselines} collects the baseline and second-game numbers.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Baselines and the second game. Top: trained agents vs.\ the \emph{fair}
+ISMCTS (model win-rate, $60$ rollouts). Bottom: Leduc Hold'em mean return vs.\ the
+CFR-optimal expert ($0$ is parity, random $\approx-0.78$).}
+\label{tab:baselines}
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Trained agent vs.\ fair ISMCTS} & \textbf{win\%} \\
+\midrule
+Curriculum Ace (best)            & 69 \\
+League Tactician (PFSP)          & 69 \\
+Self-play champion               & 66 \\
+\midrule
+\textbf{Leduc Hold'em vs.\ CFR optimum} & \textbf{return} \\
+\midrule
+Tabular Q self-play (8 seeds)    & $-0.085$ \\
+NFSP, 3M episodes (4 seeds)      & $-0.71$ \\
+Random baseline                  & $-0.78$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ===========================================================================
 \section{Discussion, Limitations, and Future Work}
 %% ===========================================================================
-\paragraph{A ceiling, and what it means.}
+\paragraph{An information-bound ceiling.}
 Stacking every choice that helps moves a lightweight agent from roughly $30$ to
-about $34$ percent against the expert (Figure~\ref{fig:journey}). The honest
-reading is that tuning the reward, the algorithm, and the opponents tops out in
-the mid-thirties. This is not a disappointment; it is a measurement. The expert
-exploits exactly the things our compact, reactive policy cannot: it never
-miscounts deadwood, and although it does not model the opponent, it plays a
-disciplined low-variance style that a reactive network struggles to match move
-for move. Reading the ceiling this way tells us what a stronger agent would need,
-rather than leaving us to guess.
+about $34$ percent against the expert (Table~\ref{tab:numbers}), and three
+independent lines of evidence say this ceiling is set by the hidden information,
+not by the method or the model. First, network architecture does not move it: MLP,
+convolutional, set-based, attention, and recurrent encoders are statistically
+indistinguishable, so capacity and inductive bias are not the bottleneck. Second,
+a determinized search graded fairly is \emph{weaker} than our agents ($26$ percent),
+yet the same search given oracle access to the hidden cards jumps to $85$ percent;
+the gap is the value of the information. Third, our reactive policy has no memory
+and does not estimate the opponent's hand, which is exactly the information the
+oracle exploits. The ceiling is therefore a measurement, not a disappointment: it
+says that with the available information a lightweight reactive agent is already
+near the practical frontier, and that going clearly past it requires \emph{more
+information} (opponent-hand inference) or much heavier search, not a bigger network
+or more reward tuning.
 
 \paragraph{Limitations.}
 We study one game, so the specific numbers are about Gin Rummy. Our expert is a
 strong heuristic, not a game-theoretic optimum, so ``win-rate against the
 expert'' is a fixed and meaningful yardstick rather than a distance from perfect
-play, and we have been careful to frame it that way. Our learner is a reactive
-feed-forward policy with no recurrence or explicit memory, which is part of why
-it cannot track hidden information. And we tested the LLM only as a live
-opponent; we did not use it to generate an offline dataset, which our serving
-stack was in fact built to support.
+play, and we have been careful to frame it that way. Our headline learner is a
+reactive feed-forward policy; we did test recurrence, but an LSTM helped only
+relative to its own control and did not break the ceiling, so a stronger form of
+memory or explicit opponent modeling is likely needed to track hidden
+information. And we tested the LLM only as a live opponent; we did not use it to
+generate an offline dataset, which our serving stack was in fact built to
+support.
 
 \paragraph{Future work.}
-The shape of the ceiling points at the methods most likely to break it. Search
-and regret-minimization approaches \citep{cfr,deepcfr} and equilibrium-finding
-self-play \citep{nfsp} buy strength in imperfect-information games precisely by
-reasoning about hidden information, which our reactive policy does not do. Giving
-the agent memory, or a small amount of search at decision time, is the natural
-next step. So is explicit opponent-hand estimation, a thread already present in
-the Gin Rummy literature. Finally, because our LLM serving stack can produce
-strong play offline even though it is too slow online, a promising direction is
-to distill a large batch of LLM-versus-LLM games into the policy with offline RL,
-sidestepping the latency that killed the live-opponent approach.
+The evidence points squarely at the hidden information. A naive determinized
+search did \emph{not} break the ceiling at the budgets we tried, so the lever is
+not search alone but reasoning about what the opponent holds: explicit
+opponent-hand estimation (a thread already present in the Gin Rummy literature),
+belief-state or information-set search that conditions on inferred cards, and
+regret-minimization or equilibrium-finding methods \citep{cfr,deepcfr,nfsp} that
+target hidden information directly. Stronger memory than the LSTM we tested is a
+second axis. Finally, because our LLM serving stack can produce strong play
+offline even though it is too slow online, distilling a large batch of
+LLM-versus-LLM games into the policy with offline RL is a promising way to use the
+LLM without the latency that killed the live-opponent approach.
 
 \paragraph{Beyond one game.}
 Nothing in the method is specific to Gin Rummy. The recipe is a pattern: build a
@@ -661,10 +793,14 @@ tried could pay the agent into the losing habit of chasing gin. Trust-region
 self-play with a knock-first reward, a rising curriculum, warm-starting, and
 keeping the best checkpoint is the recipe that works, reaching about $34$ percent
 against the expert; learned embeddings, imitation, dense rewards, and a live LLM
-opponent each fail for a reason we can name. The biggest lesson is methodological:
-a fixed, strong, reproducible reference turns a pile of training tricks into a
-study with answers. We release the pipeline so the same study can be run on other
-games.
+opponent each fail for a reason we can name. Neither a smarter network nor a fair
+search breaks the ceiling: encoders are statistically indistinguishable, and a
+determinized search trails our agents while an oracle that peeks at the hidden
+cards soars, pinning the ceiling on the hidden information rather than the model.
+The same expert-yardstick study reproduces on Leduc Hold'em, where the optimum is
+computable. The biggest lesson is methodological: a fixed, strong, reproducible
+reference turns a pile of training tricks into a study with answers. We release
+the pipeline so the same study can be run on other games.
 
 %% ===========================================================================
 %% Reproducibility (anonymized for review)
@@ -687,6 +823,12 @@ et al. 2022.
 Human-Level Play in the Game of \emph{Diplomacy} by Combining Language Models
 with Strategic Reasoning.
 \emph{Science} 378(6624): 1067--1074.
+
+\bibitem[Agarwal et al.(2021)]{rliable}
+Agarwal, R.; Schwarzer, M.; Castro, P.~S.; Courville, A.~C.; and Bellemare, M.~G.
+2021.
+Deep Reinforcement Learning at the Edge of the Statistical Precipice.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 34.
 
 \bibitem[Bengio et al.(2009)]{curriculum}
 Bengio, Y.; Louradour, J.; Collobert, R.; and Weston, J. 2009.
@@ -716,10 +858,28 @@ Deep Counterfactual Regret Minimization.
 In \emph{Proceedings of the 36th International Conference on Machine Learning
 (ICML)}, 793--802.
 
+\bibitem[Cowling et al.(2012)]{ismcts}
+Cowling, P.~I.; Powley, E.~J.; and Whitehouse, D. 2012.
+Information Set Monte Carlo Tree Search.
+\emph{IEEE Transactions on Computational Intelligence and AI in Games} 4(2):
+120--143.
+
 \bibitem[de Haan et al.(2019)]{causalconfusion}
 de Haan, P.; Jayaraman, D.; and Levine, S. 2019.
 Causal Confusion in Imitation Learning.
 In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 32.
+
+\bibitem[Henderson et al.(2018)]{deeprlmatters}
+Henderson, P.; Islam, R.; Bachman, P.; Pineau, J.; Precup, D.; and Meger, D.
+2018.
+Deep Reinforcement Learning That Matters.
+In \emph{Proceedings of the 32nd AAAI Conference on Artificial Intelligence
+(AAAI)}, 3207--3214.
+
+\bibitem[Hochreiter and Schmidhuber(1997)]{lstm}
+Hochreiter, S.; and Schmidhuber, J. 1997.
+Long Short-Term Memory.
+\emph{Neural Computation} 9(8): 1735--1780.
 
 \bibitem[Heinrich and Silver(2016)]{nfsp}
 Heinrich, J.; and Silver, D. 2016.
@@ -745,11 +905,25 @@ Efficient Memory Management for Large Language Model Serving with PagedAttention
 In \emph{Proceedings of the 29th ACM Symposium on Operating Systems Principles
 (SOSP)}.
 
+\bibitem[Lanctot et al.(2019)]{openspiel}
+Lanctot, M.; Lockhart, E.; Lespiau, J.-B.; Zambaldi, V.; Upadhyay, S.;
+P\'{e}rolat, J.; Srinivasan, S.; Timbers, F.; Tuyls, K.; Omidshafiei, S.; et al.
+2019.
+OpenSpiel: A Framework for Reinforcement Learning in Games.
+arXiv:1908.09453.
+
 \bibitem[Li et al.(2020)]{suphx}
 Li, J.; Koyamada, S.; Ye, Q.; Liu, G.; Wang, C.; Yang, R.; Zhao, L.; Qin, T.;
 Liu, T.-Y.; and Hon, H.-W. 2020.
 Suphx: Mastering Mahjong with Deep Reinforcement Learning.
 arXiv:2003.13590.
+
+\bibitem[Long et al.(2010)]{pimc}
+Long, J.~R.; Sturtevant, N.~R.; Buro, M.; and Furtak, T. 2010.
+Understanding the Success of Perfect Information Monte Carlo Sampling in Game Tree
+Search.
+In \emph{Proceedings of the 24th AAAI Conference on Artificial Intelligence
+(AAAI)}, 134--140.
 
 \bibitem[Nagai et al.(2021)]{ginensemble}
 Nagai, M.; Shrivastava, K.; Ta, K.; Bogaerts, S.; and Byers, C. 2021.
@@ -823,11 +997,23 @@ Santos, L.; Perez, R.; Horsch, C.; Dieffendahl, C.; et al. 2021.
 PettingZoo: Gym for Multi-Agent Reinforcement Learning.
 In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 34.
 
+\bibitem[Vaswani et al.(2017)]{transformer}
+Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A.~N.;
+Kaiser, \L.; and Polosukhin, I. 2017.
+Attention Is All You Need.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 30.
+
 \bibitem[Vinyals et al.(2019)]{alphastar}
 Vinyals, O.; Babuschkin, I.; Czarnecki, W.~M.; Mathieu, M.; Dudzik, A.; Chung, J.;
 Choi, D.~H.; Powell, R.; Ewalds, T.; Georgiev, P.; et al. 2019.
 Grandmaster Level in StarCraft II using Multi-Agent Reinforcement Learning.
 \emph{Nature} 575(7782): 350--354.
+
+\bibitem[Zaheer et al.(2017)]{deepsets}
+Zaheer, M.; Kottur, S.; Ravanbakhsh, S.; P\'{o}czos, B.; Salakhutdinov, R.; and
+Smola, A.~J. 2017.
+Deep Sets.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 30.
 
 \bibitem[Zha et al.(2020)]{rlcard}
 Zha, D.; Lai, K.-H.; Huang, S.; Cao, Y.; Reddy, K.; Vargas, J.; Nguyen, A.; Wei,
