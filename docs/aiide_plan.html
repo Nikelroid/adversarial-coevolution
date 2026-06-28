@@ -79,12 +79,13 @@
   </table>
   <p class="small mut">From-scratch runs (so below the 36% warm-started winner; the comparison is <i>relative</i>, all from one scratch budget). The big story: everything clusters in <b>24–31%</b>. A permutation-invariant <b>DeepSets</b> encoder (a better-matched inductive bias for an unordered hand, <i>not</i> more capacity) is the small new top at 0.307; making the MLP wider/deeper barely moves it and extra-wide does not help — strong support for an <b>information-bound, not capacity-bound, ceiling</b>. Conv1D / attention / bigger-DeepSets cells are still training; numbers firm up with the rliable CIs.</p></div>
 
-  <div class="card"><h3>ISMCTS search baseline vs the expert — strength scales with compute ✓</h3>
+  <div class="card"><h3>ISMCTS search baseline — the key result: a FAIR search is weak; the ceiling is information-bound ✓</h3>
   <table>
-    <tr><th>rollouts / move</th><th>10</th><th>20</th><th>30</th><th>60</th><th>120</th></tr>
-    <tr><td><b>win% vs expert</b></td><td>41%</td><td>55%</td><td>59%</td><td>75%</td><td><b>85%</b></td></tr>
+    <tr><th>rollouts / move</th><th>10</th><th>30</th><th>60</th><th>120</th></tr>
+    <tr><td><b>fair (no peek) win% vs expert</b></td><td>10%</td><td>17%</td><td>21%</td><td><b>26%</b></td></tr>
+    <tr><td>oracle (peeks) win% vs expert</td><td>41%</td><td>59%</td><td>75%</td><td>85%</td></tr>
   </table>
-  <p class="small mut">A determinized information-set Monte Carlo (PIMC) search, no training. Win-rate vs the gold expert rises monotonically with the per-move rollout budget and at 120 rollouts beats the expert <b>85%</b> of the time — a strong, non-learned reference point that frames the learned agents and the expert (search with enough compute outplays both). Directly blunts the #1 reject reason (weak baselines).</p></div>
+  <p class="small mut">Information-set Monte Carlo (PIMC) search, no training. Played <b>fairly</b> (it re-deals the hidden cards each rollout, never sees the opponent's hand) it tops out at only <b>26%</b> vs the expert — <i>below</i> our trained agents (34%); Gin Rummy's hidden space is large, so guessed-deal estimates are noisy. The <b>oracle</b> version that peeks reaches 85%. The 26%→85% gap is the <b>value of the hidden information</b>: the ceiling is information-bound, not method- or capacity-bound. Head-to-head, our trained agents <b>beat</b> the fair search (<b>ace/tactician 69%, goldhunter 68%, selfplay 66%</b> at r60). This is a stronger, honest framing — and still a real non-learned baseline (blunts the #1 reject reason).</p></div>
 
   <div class="card"><h3>Stage-C — the architecture finding is recipe-robust ✓</h3>
   <p class="small">Re-running the best archs under <b>different recipes</b> (PPO instead of TRPO; PFSP sampling) from scratch: <b>ppo_asym 0.302</b> tops it, and asym/wide stay at or above the MLP anchor under PPO. The architecture ranking is not an artifact of the one winning recipe — it carries across algorithm and opponent-sampling changes (answers "is this just one lucky config?"). 11/12 cells in.</p></div>

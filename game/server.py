@@ -43,9 +43,12 @@ from agents.random_agent import RandomAgent  # noqa: E402
 from agents.gold_standard_agent import GoldStandardAgent  # noqa: E402
 from agents.ismcts_agent import ISMCTSAgent  # noqa: E402
 
-# Per-move search budget for the ISMCTS opponent. 60 rollouts ~= 75% vs the gold expert at ~1.4s/move
-# (a responsive default); crank to 120 for ~85% at ~3s/move via GIN_ISMCTS_ROLLOUTS.
+# ISMCTS opponent ("Search Mastermind" boss). The in-game boss uses the ORACLE search (it may peek at
+# the hidden cards) so it is genuinely the hardest thing to play -- ~75% vs the expert at 60 rollouts,
+# ~85% at 120. Set GIN_ISMCTS_DETERMINIZE=1 for the FAIR, no-peek search instead (much weaker, ~21% at
+# r60 -- that is the honest baseline we report in the paper). Budget via GIN_ISMCTS_ROLLOUTS.
 ISMCTS_ROLLOUTS = int(os.environ.get("GIN_ISMCTS_ROLLOUTS", 60))
+ISMCTS_DETERMINIZE = int(os.environ.get("GIN_ISMCTS_DETERMINIZE", 0))  # 0 = oracle boss; 1 = fair
 
 GAME_DIR = os.path.join(REPO_ROOT, "game")
 WEB_DIR = os.path.join(GAME_DIR, "web")
@@ -86,13 +89,15 @@ OPPONENTS = {
              "desc": "A hand-coded expert: every turn it finds the mathematically best "
                      "melds and knocks the instant it should. The benchmark we measure against, "
                      "never a learned agent. Beats every trained agent 70-99% of the time."},
-    "ismcts": {"emoji": "🧠", "label": "Search Mastermind", "type": "ismcts",
-               "stat": "~75% vs the expert · the hardest opponent",
-               "desc": "Not a trained network at all: a determinized Monte-Carlo search (ISMCTS/PIMC). "
-                       "Every turn it imagines many ways your hidden cards could be dealt, plays each "
-                       "out, and picks the move that wins most. With enough thinking it outplays even "
-                       "the Gold Standard expert (about 75% at the default budget, up to ~85% deeper). "
-                       "It pauses a moment to think before each move."},
+    "ismcts": {"emoji": "🧠", "label": "Search Mastermind (oracle boss)", "type": "ismcts",
+               "stat": "~75-85% vs the expert · peeks at your hand",
+               "desc": "Not a trained network: a Monte-Carlo search that plans every turn by simulating "
+                       "many playouts and playing the move that wins most. This boss runs the ORACLE "
+                       "version, which is allowed to see your hidden cards -- that is what makes it "
+                       "brutally strong (~75% at the default budget, ~85% deeper), the only thing that "
+                       "reliably beats the Gold Standard expert. Played FAIRLY (cards hidden) the same "
+                       "search is much weaker than the expert (~21-26%); that honest number is what we "
+                       "report in the paper. It pauses to think before each move."},
 }
 DEFAULT_OPPONENT = os.environ.get("GIN_OPPONENT", "selfplay")
 
@@ -110,7 +115,8 @@ def opponent_factory(key: str, models: dict):
     if kind == "random":
         return RandomAgent
     if kind == "ismcts":
-        return functools.partial(ISMCTSAgent, rollouts=ISMCTS_ROLLOUTS)
+        return functools.partial(ISMCTSAgent, rollouts=ISMCTS_ROLLOUTS,
+                                 determinize=bool(ISMCTS_DETERMINIZE))
     return functools.partial(PPOAgent, model=models[key])
 
 # PettingZoo card index = suit*13 + rank, suits in this order, rank 0=Ace..12=King.

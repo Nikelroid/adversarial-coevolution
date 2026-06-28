@@ -218,10 +218,11 @@ def phase8_section():
         top = sorted(arch.items(), key=lambda kv: -kv[1])[:6]
         rows = "".join(f"<tr><td>{k}</td><td><b>{v*100:.1f}%</b></td></tr>" for k, v in top)
         anchor = arch.get("arch_mlp_default_s0") or arch.get("arch_mlp_default_s1")
-        note = ("Everything clusters in the mid-20s to low-30s: a permutation-invariant "
-                "<b>DeepSets</b> encoder (a better-matched input shape for an unordered hand, not more "
-                "capacity) is the small new top, while making the plain network wider or deeper barely "
-                "moves it. That is strong evidence the ceiling is <b>information-bound, not "
+        note = ("Everything clusters in a narrow band (mid-20s to low-30s). Structured encoders "
+                "(convolutional and permutation-invariant set / <b>DeepSets</b>) edge nominally above the "
+                "plain MLPs, but the per-cell confidence intervals overlap &mdash; the architectures are "
+                "<b>statistically indistinguishable</b>, and making the plain network wider or deeper "
+                "barely moves it. That is strong evidence the ceiling is <b>information-bound, not "
                 "capacity-bound</b>. These are from-scratch runs, so a relative comparison.")
         parts.append('<h3>Network architecture vs the perfect player (from scratch, relative)</h3>'
                      f'<table><tr><th>architecture (cell)</th><th>win% vs perfect</th></tr>{rows}</table>'
@@ -262,13 +263,15 @@ def phase8_section():
             f'<p class="muted">{mode_note}</p>'
             f'<table><tr><th>rollouts / move</th>{head}</tr>'
             f'<tr><td>win% vs the expert</td>{cells}</tr></table>'
-            '<p class="muted">Win-rate vs the gold expert rises smoothly with the thinking budget, and '
-            'with enough of it the search outplays even the expert. This is the strong, non-learned '
-            'reference point a reviewer expects, and it shows the headroom our small <i>learned</i> '
-            'agents still leave on the table: the way past the ceiling is a different <i>kind</i> of '
-            'method (search/planning), not a bigger network. (We also measure an <i>oracle</i> version '
-            'that is allowed to peek at the hidden cards, as an upper bound.) You can play the fair '
-            'version yourself as the &#129504; <b>Search Mastermind</b> in the game.</p>')
+            '<p class="muted">The surprise: played <b>fairly</b>, the search is <b>weak</b> &mdash; even '
+            'at 120 rollouts it wins only about 26% vs the gold expert, <i>below</i> our trained agents '
+            '(34%). Gin Rummy hides a lot (the opponent\'s whole hand plus the deck), so averaging over '
+            'guessed deals is very noisy. For contrast, an <i>oracle</i> version that is allowed to peek '
+            'at the hidden cards jumps to ~85%. That gap &mdash; 26% fair vs 85% oracle &mdash; is '
+            'essentially the <b>value of the hidden information</b>, which is strong evidence the ceiling '
+            'is <b>information-bound</b>: with the information you win easily; without it, even search '
+            'cannot. (The in-game &#129504; <b>Search Mastermind</b> boss uses the oracle version so it is '
+            'actually hard to play; the paper reports the fair number.)</p>')
 
     h2h = s.get("model_vs_ismcts") or []
     if h2h:
@@ -276,12 +279,13 @@ def phase8_section():
                         f"<td>{d['rollouts']}</td></tr>" for d in h2h)
         parts.append(
             '<h3>How do our trained agents do against the search, head-to-head?</h3>'
-            '<p>We also played each learned agent directly against the (fair) search. This is a '
+            '<p>We also played each learned agent directly against the <b>fair</b> search. This is a '
             'like-for-like fight between a fast trained network and a slow planner:</p>'
-            f'<table><tr><th>trained model</th><th>win% vs ISMCTS</th><th>search rollouts</th></tr>'
+            f'<table><tr><th>trained model</th><th>win% vs fair ISMCTS</th><th>search rollouts</th></tr>'
             f'{hrows}</table>'
-            '<p class="muted">A point near 50% means the trained agent roughly trades blows with the '
-            'search at that thinking budget; well below 50% means the search is clearly stronger.</p>')
+            '<p class="muted">Every trained agent is comfortably above 50% &mdash; they <b>beat</b> the '
+            'fair search head-to-head. So at these budgets the learned agents are the stronger players; '
+            'naive search is not a free win when the hidden information is large.</p>')
 
     sc = s.get("stagec_vs_gold") or {}
     if sc:
@@ -544,7 +548,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
     <tr><td>&#127183; Curriculum Ace</td><td>strongest learned</td><td>our best agent, about {BEST:.0f}% vs the perfect player, built by stacking every idea that helped</td></tr>
     <tr><td>&#128737;&#65039; League Tactician</td><td>strongest learned</td><td>a close second, trained to practise most against whoever beats it (PFSP)</td></tr>
     <tr><td>&#127942; Gold Standard</td><td>expert</td><td>the hand-coded expert, the wall every learned agent hits</td></tr>
-    <tr><td>&#129504; Search Mastermind</td><td>hardest</td><td>a Monte-Carlo search (no training): it imagines how your hidden cards could fall and plays the move that wins most. Beats even the expert (~75%, up to ~85% deeper)</td></tr>
+    <tr><td>&#129504; Search Mastermind (oracle boss)</td><td>hardest</td><td>a Monte-Carlo search (no training) that is allowed to <i>peek at your hand</i> &mdash; that is what makes it brutally strong (~75&ndash;85% vs the expert). Played fairly, with cards hidden, the same search is much weaker (~26%); we report that honest number in the paper</td></tr>
   </table>
   <figure class="fig">{img("game_ui.png","web game")}<figcaption>The browser game (debug view, opponent hand shown). Run <code>python game/server.py</code> and open the URL.</figcaption></figure>
 </section>
@@ -572,11 +576,13 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   code is shipped as a <b>universal pipeline</b> (the <code>coev/</code> package): point it at any
   PettingZoo game, or your own environment, and it trains a masked agent through the same opponent
   curriculum. Gin Rummy is the test case, not the point.</div>
-  <p><b>The ceiling, honestly.</b> Tuning the reward, the algorithm, and the opponents tops out
-  around the mid-30s percent against perfect play. Going clearly past that almost certainly needs a
-  <i>different kind</i> of method, such as search and planning (the kind that beat the best humans at
-  poker) or an agent that remembers the whole game so far. More reward tuning will not get there.
-  That is the clear next step the data points to.</p>
+  <p><b>The ceiling, honestly.</b> Tuning the reward, the algorithm, the opponents, and even the
+  network architecture all top out around the mid-30s percent against the expert. We tested whether
+  classic search breaks through, and it does not: a fair, no-peek Monte-Carlo search is actually
+  <i>weaker</i> (about 26%), while the very same search allowed to see the hidden cards jumps to
+  ~85%. That contrast is the key result &mdash; the ceiling is set by the <b>hidden information</b>,
+  not by the method or the network. To go clearly past it you would need more information (better
+  opponent-card inference, or vastly more search), not just more reward tuning.</p>
 </section>
 
 <section id="roadmap">
