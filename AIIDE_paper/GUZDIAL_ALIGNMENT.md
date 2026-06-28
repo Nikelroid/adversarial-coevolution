@@ -44,6 +44,14 @@ The submitted abstract is **unchanged**. It already promised: architecture compa
 
 ## Open items before camera-ready
 
-- Swap the preamble for the official `aaai2026.sty`/`.bst` (kept as a faithful approximation now).
-- De-anonymize (`\anonymousfalse`) only for the non-blind/camera version.
-- Content is exactly 9 pages; references (36) follow. Re-check page count after the official style file (its spacing differs slightly).
+- **Official AAAI style applied.** The paper now uses the real `aaai24.sty`/`.bst` from the AAAI
+  author kit (`AuthorKit24-4.zip`), anonymous via `\usepackage[submission]{aaai24}`. Under the
+  official style the content is **8 pages** (references follow, pages 8–10), comfortably within the
+  9-page limit. No forbidden packages; compiles clean with no undefined refs or overfull boxes.
+- **De-anonymize for camera-ready only:** remove the `[submission]` option and fill in
+  `\author{}`/`\affiliations{}` with the real names/affiliation.
+- Optional: the official bibliography style (`aaai24.bst`) is set; the reference list is currently a
+  manual `thebibliography` (renders correctly via natbib). For the camera-ready, converting the 36
+  entries to a `.bib` + `\bibliography{}` would let `aaai24.bst` format them exactly.
+- Content has ~1 page of slack, so a dropped visual (e.g., the milestone "journey" plot) can be
+  restored if desired.
