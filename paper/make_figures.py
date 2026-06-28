@@ -760,6 +760,44 @@ def fig_arch_rliable():
     print(f"  fig_arch_rliable: ok ({len(rows)} architectures)")
 
 
+def fig_ismcts():
+    """Phase-8: ISMCTS win-rate vs the fixed expert by per-move rollout budget, FAIR (determinized,
+    re-deals hidden cards) vs ORACLE (peeks at the true hand). Reads sweep/curriculum/ismcts_*vs_gold*.
+    The fair curve sitting below the trained agents while the oracle soars is the information-bound
+    evidence: the gap is the value of the hidden information."""
+    fair, orac = {}, {}
+    for p in glob.glob(os.path.join(ROOT, "sweep", "curriculum", "ismcts_*vs_gold*.json")):
+        try:
+            c = json.load(open(p))
+        except Exception:  # noqa: BLE001
+            continue
+        wr = (c.get("vs_gold") or {}).get("win_rate")
+        if wr is None:
+            continue
+        (fair if c.get("determinize") else orac)[int(c.get("rollouts", 0))] = 100.0 * wr
+    if not fair and not orac:
+        print("  [skip] fig_ismcts: no ismcts vs gold results")
+        return
+    fig, ax = plt.subplots(figsize=(4.6, 3.4))
+    if orac:
+        xs = sorted(orac)
+        ax.plot(xs, [orac[x] for x in xs], "-o", color=C_GOLD, lw=1.8, ms=5,
+                label="oracle search (peeks at hand)")
+    if fair:
+        xs = sorted(fair)
+        ax.plot(xs, [fair[x] for x in xs], "-o", color=C_GREEN, lw=1.8, ms=5,
+                label="fair search (cards hidden)")
+    ax.axhline(34.2, ls="--", lw=1.2, color=C_INK)
+    ax.text(ax.get_xlim()[1], 35.4, "best trained agent (34%)", fontsize=8, ha="right", color=C_INK)
+    ax.set_xlabel("search rollouts per move")
+    ax.set_ylabel("win rate vs the fixed expert (%)")
+    ax.set_title("A fair search is weak; only an oracle beats the expert")
+    ax.grid(ls=":", alpha=0.4)
+    ax.legend(loc="center right", fontsize=8)
+    fig.tight_layout(); _save(fig, "ismcts_fair_oracle")
+    print(f"  fig_ismcts: ok (fair={len(fair)}, oracle={len(orac)})")
+
+
 def main():
     rs = load_results()
     print(f"loaded {len(rs)} phase-1 results")
@@ -768,7 +806,7 @@ def main():
                fig_rlvsllm, fig_h2h, fig_ginshape, fig_gold, fig_algo, fig_phase5,
                fig_curriculum, fig_curriculum_reward, fig_reward_gin,
                fig_gold_bench, fig_regimes, fig_journey, fig_architecture, fig_learning_curves,
-               fig_arch_rliable):
+               fig_arch_rliable, fig_ismcts):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001
