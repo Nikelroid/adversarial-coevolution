@@ -6,68 +6,68 @@
   "seed": 0,
   "cfr_iters": 400,
   "cfr_exploitability": 0.0264,
-  "episodes": 600000,
-  "final_return_vs_expert": -0.7017,
+  "episodes": 3000000,
+  "final_return_vs_expert": -0.7622,
   "curve": [
     {
-      "episode": 40000,
-      "return_vs_expert": -0.7535
-    },
-    {
-      "episode": 80000,
-      "return_vs_expert": -0.8193
-    },
-    {
-      "episode": 120000,
-      "return_vs_expert": -0.7262
-    },
-    {
-      "episode": 160000,
-      "return_vs_expert": -0.7105
-    },
-    {
       "episode": 200000,
-      "return_vs_expert": -0.772
-    },
-    {
-      "episode": 240000,
-      "return_vs_expert": -0.8445
-    },
-    {
-      "episode": 280000,
-      "return_vs_expert": -0.6865
-    },
-    {
-      "episode": 320000,
-      "return_vs_expert": -0.7195
-    },
-    {
-      "episode": 360000,
-      "return_vs_expert": -0.8375
+      "return_vs_expert": -0.7107
     },
     {
       "episode": 400000,
-      "return_vs_expert": -0.7075
-    },
-    {
-      "episode": 440000,
-      "return_vs_expert": -0.734
-    },
-    {
-      "episode": 480000,
-      "return_vs_expert": -0.7392
-    },
-    {
-      "episode": 520000,
-      "return_vs_expert": -0.7072
-    },
-    {
-      "episode": 560000,
-      "return_vs_expert": -0.7167
+      "return_vs_expert": -0.7305
     },
     {
       "episode": 600000,
-      "return_vs_expert": -0.7017
+      "return_vs_expert": -0.7817
+    },
+    {
+      "episode": 800000,
+      "return_vs_expert": -0.7067
+    },
+    {
+      "episode": 1000000,
+      "return_vs_expert": -0.7935
+    },
+    {
+      "episode": 1200000,
+      "return_vs_expert": -0.7332
+    },
+    {
+      "episode": 1400000,
+      "return_vs_expert": -0.6798
+    },
+    {
+      "episode": 1600000,
+      "return_vs_expert": -0.7298
+    },
+    {
+      "episode": 1800000,
+      "return_vs_expert": -0.822
+    },
+    {
+      "episode": 2000000,
+      "return_vs_expert": -0.7863
+    },
+    {
+      "episode": 2200000,
+      "return_vs_expert": -0.903
+    },
+    {
+      "episode": 2400000,
+      "return_vs_expert": -0.8478
+    },
+    {
+      "episode": 2600000,
+      "return_vs_expert": -0.7445
+    },
+    {
+      "episode": 2800000,
+      "return_vs_expert": -0.758
+    },
+    {
+      "episode": 3000000,
+      "return_vs_expert": -0.7622
     }
   ]
 }

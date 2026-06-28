@@ -1,6 +1,7 @@
 {
   "arch_vs_gold": {
     "cells": {
+      "arch_deepsets_s0": 0.307,
       "arch_deepsets_s1": 0.306,
       "arch_mlp_wide_s1": 0.296,
       "arch_mlp_default_s2": 0.296,
@@ -23,13 +24,14 @@
     },
     "families": {
       "arch_deepsets": {
-        "n": 1,
-        "iqm": 0.306,
+        "n": 2,
+        "iqm": 0.3065,
         "ci": [
           0.306,
-          0.306
+          0.307
         ],
         "seeds": [
+          0.307,
           0.306
         ]
       },
@@ -156,6 +158,7 @@
   "stagec_vs_gold": {
     "sc_ppo_asym_s0": 0.302,
     "sc_pfsp_wide_s0": 0.287,
+    "sc_pfsp_wide_s1": 0.283,
     "sc_ppo_mlpdef_s1": 0.28,
     "sc_ppo_wide_s0": 0.278,
     "sc_ppo_asym_s1": 0.278,
@@ -170,37 +173,42 @@
     {
       "rollouts": 10,
       "win_rate": 0.4066666666666667,
+      "determinize": false,
       "cell": "ismcts_vs_gold_r10"
     },
     {
       "rollouts": 20,
       "win_rate": 0.55,
+      "determinize": false,
       "cell": "ismcts_vs_gold"
     },
     {
       "rollouts": 30,
       "win_rate": 0.59,
+      "determinize": false,
       "cell": "ismcts_vs_gold_r30"
     },
     {
       "rollouts": 60,
       "win_rate": 0.7533333333333333,
+      "determinize": false,
       "cell": "ismcts_vs_gold_r60"
     },
     {
       "rollouts": 120,
       "win_rate": 0.8533333333333334,
+      "determinize": false,
       "cell": "ismcts_vs_gold_r120"
     }
   ],
   "leduc_vs_cfr": {
     "tabular_q": {
-      "n": 9,
-      "mean": -0.08406666666666668
+      "n": 8,
+      "mean": -0.084925
     },
     "nfsp": {
       "n": 4,
-      "mean": -0.74745
+      "mean": -0.7104499999999999
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "n_cells": 94,
+  "n_cells": 96,
   "best": {
     "name": "ismcts_vs_gold_r120",
     "algo": "?",
@@ -845,6 +845,27 @@
       "secs": 10805
     },
     {
+      "name": "sc_pfsp_wide_s1",
+      "algo": "trpo",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": [
+        512,
+        256
+      ],
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.988,
+      "vs_champion": 0.445,
+      "vs_gold": 0.295,
+      "gin_vs_gold": 0.009,
+      "steps": 10000000,
+      "secs": 32000
+    },
+    {
       "name": "09_trpo_kl_small_s0",
       "algo": "trpo",
       "arch": "mlp",
@@ -879,6 +900,24 @@
       "gin_vs_gold": 0.004,
       "steps": 12000000,
       "secs": 12996
+    },
+    {
+      "name": "arch_conv1d_s1",
+      "algo": "trpo",
+      "arch": "conv1d",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 1,
+      "vs_random": 0.992,
+      "vs_champion": 0.442,
+      "vs_gold": 0.291,
+      "gin_vs_gold": 0.008,
+      "steps": 10000000,
+      "secs": 73594
     },
     {
       "name": "04_rew_R2_knockfwd_s1",
@@ -1504,6 +1543,24 @@
       "secs": 1948
     },
     {
+      "name": "ismcts_det_vs_gold_r10",
+      "algo": "?",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "?",
+      "knock": null,
+      "gin": null,
+      "loss_scale": null,
+      "seed": null,
+      "vs_random": NaN,
+      "vs_champion": NaN,
+      "vs_gold": 0.103,
+      "gin_vs_gold": 0.02,
+      "steps": null,
+      "secs": 0
+    },
+    {
       "name": "ismcts_vs_champion",
       "algo": "?",
       "arch": "mlp",
@@ -1604,24 +1661,6 @@
       "gin": null,
       "loss_scale": null,
       "seed": 3,
-      "vs_random": NaN,
-      "vs_champion": NaN,
-      "vs_gold": NaN,
-      "gin_vs_gold": NaN,
-      "steps": null,
-      "secs": 0
-    },
-    {
-      "name": "leduc_rl_vs_cfr",
-      "algo": "?",
-      "arch": "mlp",
-      "activation": "tanh",
-      "net_arch": "-",
-      "curriculum": "?",
-      "knock": null,
-      "gin": null,
-      "loss_scale": null,
-      "seed": null,
       "vs_random": NaN,
       "vs_champion": NaN,
       "vs_gold": NaN,
