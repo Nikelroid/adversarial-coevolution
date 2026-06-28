@@ -10,6 +10,7 @@ p7_01_warm_long_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.996,0.487,0.345,0.005,16
 p7_04_warm_pfsp_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.993,0.498,0.34,0.003,16000000,19425
 p7_01_warm_long_s1,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,1,0.986,0.514,0.339,0.006,16000000,26216
 p7_02_warm_deadwood_s0,trpo,mlp,tanh,-,warm,0.5,0.5,1.0,0,0.991,0.473,0.335,0.004,16000000,19223
+arch_conv1d_s0,trpo,conv1d,tanh,-,designed,0.5,0.5,1.0,0,0.996,0.471,0.331,0.002,10000000,80617
 03_rew_R0_highgin_s0,trpo,mlp,tanh,-,designed,0.5,1.5,1.0,0,0.99,0.427,0.33,0.005,12000000,13048
 05_rew_R4_earlyknk_s1,trpo,mlp,tanh,-,designed,0.5,0.5,1.0,1,0.988,0.494,0.328,0.003,12000000,18289
 06_cur_noRandTail_s2,trpo,mlp,tanh,-,no_random_tail,0.5,0.5,1.0,2,0.988,0.46,0.328,0.005,12000000,13878

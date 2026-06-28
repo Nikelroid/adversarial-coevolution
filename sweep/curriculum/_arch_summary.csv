@@ -1,4 +1,5 @@
 name,cell,arch,activation,net_arch,seed,vs_gold,gin_vs_gold,len_vs_gold,vs_champion,vs_random,best_step,secs
+arch_conv1d_s0,arch_conv1d,conv1d,tanh,"[256,128]",0,0.331,0.002,34.11,0.471,0.996,10000000,80617
 arch_deepsets_s0,arch_deepsets,deepsets,tanh,"[256,128]",0,0.307,0.006,33.97,0.446,0.997,9000000,60294
 arch_deepsets_s1,arch_deepsets,deepsets,tanh,"[256,128]",1,0.306,0.005,34.16,0.432,0.991,4000000,50129
 arch_deepsets_s2,arch_deepsets,deepsets,tanh,"[256,128]",2,0.302,0.005,34.27,0.44,0.993,8000000,65123

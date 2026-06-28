@@ -1,5 +1,5 @@
 {
-  "n_cells": 104,
+  "n_cells": 105,
   "best": {
     "name": "ismcts_vs_gold_r120",
     "algo": "?",
@@ -216,6 +216,24 @@
       "gin_vs_gold": 0.004,
       "steps": 16000000,
       "secs": 19223
+    },
+    {
+      "name": "arch_conv1d_s0",
+      "algo": "trpo",
+      "arch": "conv1d",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "designed",
+      "knock": 0.5,
+      "gin": 0.5,
+      "loss_scale": 1.0,
+      "seed": 0,
+      "vs_random": 0.996,
+      "vs_champion": 0.471,
+      "vs_gold": 0.331,
+      "gin_vs_gold": 0.002,
+      "steps": 10000000,
+      "secs": 80617
     },
     {
       "name": "03_rew_R0_highgin_s0",

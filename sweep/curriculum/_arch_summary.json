@@ -1,6 +1,21 @@
 {
   "per_run": [
     {
+      "name": "arch_conv1d_s0",
+      "cell": "arch_conv1d",
+      "arch": "conv1d",
+      "activation": "tanh",
+      "net_arch": "[256,128]",
+      "seed": 0,
+      "vs_gold": 0.331,
+      "gin_vs_gold": 0.002,
+      "len_vs_gold": 34.11,
+      "vs_champion": 0.471,
+      "vs_random": 0.996,
+      "best_step": 10000000,
+      "secs": 80617
+    },
+    {
       "name": "arch_deepsets_s0",
       "cell": "arch_deepsets",
       "arch": "deepsets",
@@ -348,18 +363,18 @@
   ],
   "per_arch": [
     {
+      "cell": "arch_conv1d",
+      "n": 2,
+      "mean_vs_gold": 0.311,
+      "std": 0.02,
+      "delta_vs_anchor": 0.0375
+    },
+    {
       "cell": "arch_deepsets",
       "n": 4,
       "mean_vs_gold": 0.301,
       "std": 0.0072,
       "delta_vs_anchor": 0.0275
-    },
-    {
-      "cell": "arch_conv1d",
-      "n": 1,
-      "mean_vs_gold": 0.291,
-      "std": 0.0,
-      "delta_vs_anchor": 0.0175
     },
     {
       "cell": "arch_mlp_narrow",
