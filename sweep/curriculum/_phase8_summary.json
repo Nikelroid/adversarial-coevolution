@@ -1,12 +1,16 @@
 {
   "arch_vs_gold": {
     "cells": {
+      "arch_conv1d_s0": 0.331,
       "arch_deepsets_s0": 0.307,
       "arch_deepsets_s1": 0.306,
+      "arch_deepsets_s2": 0.302,
       "arch_mlp_wide_s1": 0.296,
       "arch_mlp_default_s2": 0.296,
       "arch_mlp_asym_s0": 0.295,
+      "arch_conv1d_s1": 0.291,
       "arch_mlp_xwide_s0": 0.289,
+      "arch_deepsets_s3": 0.289,
       "arch_mlp_asym_s3": 0.285,
       "arch_mlp_narrow_s0": 0.281,
       "arch_mlp_deep_s0": 0.28,
@@ -23,16 +27,30 @@
       "arch_mlp_asym_s1": 0.221
     },
     "families": {
-      "arch_deepsets": {
+      "arch_conv1d": {
         "n": 2,
-        "iqm": 0.3065,
+        "iqm": 0.311,
         "ci": [
-          0.306,
+          0.291,
+          0.331
+        ],
+        "seeds": [
+          0.331,
+          0.291
+        ]
+      },
+      "arch_deepsets": {
+        "n": 4,
+        "iqm": 0.304,
+        "ci": [
+          0.289,
           0.307
         ],
         "seeds": [
           0.307,
-          0.306
+          0.306,
+          0.302,
+          0.289
         ]
       },
       "arch_mlp_narrow": {
@@ -199,6 +217,56 @@
       "win_rate": 0.8533333333333334,
       "determinize": false,
       "cell": "ismcts_vs_gold_r120"
+    },
+    {
+      "rollouts": 10,
+      "win_rate": 0.10333333333333333,
+      "determinize": true,
+      "cell": "ismcts_det_vs_gold_r10"
+    },
+    {
+      "rollouts": 30,
+      "win_rate": 0.17333333333333334,
+      "determinize": true,
+      "cell": "ismcts_det_vs_gold_r30"
+    },
+    {
+      "rollouts": 60,
+      "win_rate": 0.21,
+      "determinize": true,
+      "cell": "ismcts_det_vs_gold_r60"
+    },
+    {
+      "rollouts": 120,
+      "win_rate": 0.256,
+      "determinize": true,
+      "cell": "ismcts_det_vs_gold_r120"
+    }
+  ],
+  "model_vs_ismcts": [
+    {
+      "model": "tactician",
+      "win_rate": 0.6933333333333334,
+      "rollouts": 60,
+      "mode": "det"
+    },
+    {
+      "model": "ace",
+      "win_rate": 0.6933333333333334,
+      "rollouts": 60,
+      "mode": "det"
+    },
+    {
+      "model": "goldhunter",
+      "win_rate": 0.68,
+      "rollouts": 60,
+      "mode": "det"
+    },
+    {
+      "model": "selfplay",
+      "win_rate": 0.6633333333333333,
+      "rollouts": 60,
+      "mode": "det"
     }
   ],
   "leduc_vs_cfr": {
