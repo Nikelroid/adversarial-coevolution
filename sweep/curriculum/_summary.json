@@ -1,5 +1,5 @@
 {
-  "n_cells": 105,
+  "n_cells": 106,
   "best": {
     "name": "ismcts_vs_gold_r120",
     "algo": "?",
@@ -1471,6 +1471,24 @@
       "gin_vs_gold": 0.006,
       "steps": 10000000,
       "secs": 11205
+    },
+    {
+      "name": "ismcts_det_vs_gold_r120",
+      "algo": "?",
+      "arch": "mlp",
+      "activation": "tanh",
+      "net_arch": "-",
+      "curriculum": "?",
+      "knock": null,
+      "gin": null,
+      "loss_scale": null,
+      "seed": null,
+      "vs_random": NaN,
+      "vs_champion": NaN,
+      "vs_gold": 0.256,
+      "gin_vs_gold": 0.048,
+      "steps": null,
+      "secs": 0
     },
     {
       "name": "arch_mlp_wide_s0",

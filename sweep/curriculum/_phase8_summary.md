@@ -1,16 +1,20 @@
 # Phase-8 results summary
 
 ## Gin Rummy: architecture sweep vs GOLD expert (win-rate, best ckpt)
-_20 cells with results_
+_24 cells with results_
 
 | win% vs gold | cell | arch | act |
 |---:|---|---|---|
+| 0.331 | arch_conv1d_s0 | conv1d | tanh |
 | 0.307 | arch_deepsets_s0 | deepsets | tanh |
 | 0.306 | arch_deepsets_s1 | deepsets | tanh |
+| 0.302 | arch_deepsets_s2 | deepsets | tanh |
 | 0.296 | arch_mlp_wide_s1 | mlp | tanh |
 | 0.296 | arch_mlp_default_s2 | mlp | tanh |
 | 0.295 | arch_mlp_asym_s0 | mlp | tanh |
+| 0.291 | arch_conv1d_s1 | conv1d | tanh |
 | 0.289 | arch_mlp_xwide_s0 | mlp | tanh |
+| 0.289 | arch_deepsets_s3 | deepsets | tanh |
 | 0.285 | arch_mlp_asym_s3 | mlp | tanh |
 | 0.281 | arch_mlp_narrow_s0 | mlp | tanh |
 | 0.280 | arch_mlp_deep_s0 | mlp | tanh |
@@ -30,7 +34,8 @@ _20 cells with results_
 
 | cell | n | IQM | CI low | CI high |
 |---|---:|---:|---:|---:|
-| arch_deepsets | 2 | 0.306 | 0.306 | 0.307 |
+| arch_conv1d | 2 | 0.311 | 0.291 | 0.331 |
+| arch_deepsets | 4 | 0.304 | 0.289 | 0.307 |
 | arch_mlp_narrow | 1 | 0.281 | 0.281 | 0.281 |
 | arch_mlp_xwide | 2 | 0.280 | 0.271 | 0.289 |
 | arch_mlp_deep | 1 | 0.280 | 0.280 | 0.280 |
@@ -68,6 +73,15 @@ _20 cells with results_
 | 0.152 | rec_mlp_ctrl_s0 |
 | 0.192 | rec_mlp_ctrl_s1 |
 
+## ISMCTS vs GOLD by rollout budget &mdash; determinized = FAIR imperfect-info baseline
+
+| rollouts | win% vs gold | gin% | mean len | cell |
+|---:|---:|---:|---:|---|
+| 10 | 0.10333333333333333 | 0.02 | 33.013333333333335 | ismcts_det_vs_gold_r10 |
+| 30 | 0.17333333333333334 | 0.04666666666666667 | 31.553333333333335 | ismcts_det_vs_gold_r30 |
+| 60 | 0.21 | 0.03666666666666667 | 31.773333333333333 | ismcts_det_vs_gold_r60 |
+| 120 | 0.256 | 0.048 | 30.52 | ismcts_det_vs_gold_r120 |
+
 ## ISMCTS vs GOLD by rollout budget &mdash; oracle = perfect-info UPPER BOUND (sees opponent cards)
 
 | rollouts | win% vs gold | gin% | mean len | cell |
@@ -77,6 +91,15 @@ _20 cells with results_
 | 30 | 0.59 | 0.11666666666666667 | 48.49333333333333 | ismcts_vs_gold_r30 |
 | 60 | 0.7533333333333333 | 0.14333333333333334 | 43.53 | ismcts_vs_gold_r60 |
 | 120 | 0.8533333333333334 | 0.21 | 40.28333333333333 | ismcts_vs_gold_r120 |
+
+## Head-to-head: trained models vs ISMCTS (model win-rate)
+
+| model | win% vs ISMCTS | rollouts | mode | cell |
+|---|---:|---:|---|---|
+| tactician | 0.6933333333333334 | 60 | det | h2h_tactician_vs_ismcts_det_r60 |
+| ace | 0.6933333333333334 | 60 | det | h2h_ace_vs_ismcts_det_r60 |
+| goldhunter | 0.68 | 60 | det | h2h_goldhunter_vs_ismcts_det_r60 |
+| selfplay | 0.6633333333333333 | 60 | det | h2h_selfplay_vs_ismcts_det_r60 |
 
 ## Leduc Hold'em generality: return vs CFR-optimal expert
 
