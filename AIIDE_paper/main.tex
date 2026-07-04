@@ -508,7 +508,13 @@ percent depending on size, and never above the sparse baseline. Larger embedding
 and unfreezing the encoder did not close the gap. The reason is that a fixed
 low-dimensional bottleneck is good at saying whether two states are broadly
 similar, but it discards the fine detail (which exact cards are where) that the
-policy needs to act well.
+policy needs to act well. Dense embeddings earn their keep in NLP for two reasons
+that do not hold here: the vocabulary is enormous, so mapping one-hot tokens into a
+small dense space is a genuine compression, and word order carries meaning, so the
+embedding can capture sequence structure. Our $4\times52$ observation is already
+small and its cards carry no meaningful order, so there is little to compress and no
+sequence to encode---the raw sparse tensor is already close to the right
+representation.
 
 \subsection{Curriculum, warm-start, and keep-the-best}
 Self-play makes difficulty free: a three-million-step self-play agent beats its
@@ -562,35 +568,6 @@ Stacked recipe (this work)      & \textbf{34.2 $\pm$ 2.1} & \textbf{51.4} \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\subsection{The honest negatives}
-Three popular shortcuts each failed, and the failures are as informative as the
-successes.
-
-\emph{Imitation learning (DAgger).} Copying the expert's moves one at a time
-drove the training loss to near zero but produced an agent that wins almost no
-games. This is a textbook case of causal confusion \citep{causalconfusion}: the
-student learns to reproduce the expert's move in familiar positions without
-learning the reasoning behind it (tracking what the opponent is collecting), so
-it falls apart the moment the game leaves the demonstrated distribution. Copying
-a move is not the same as understanding why.
-
-\emph{Dense step rewards.} Scoring every move against an evaluator over a short
-horizon made the agent short-sighted. A horizon of two showed no real learning,
-and a horizon of five stopped improving after about five hundred thousand steps,
-at which point the agent farmed instant points instead of trying to win. Dense
-shaping pulled the policy away from the real, sparse goal, exactly the failure
-mode that the theory of reward shaping warns about when the bonus is not aligned
-with the true return \citep{shaping}.
-
-\emph{Live LLM opponent.} Modern instruction-tuned LLMs played Gin Rummy
-competently with a chain-of-thought prompt (up to $98.2$ percent legal moves,
-against $79.3$ with a terse prompt), and one even beat our self-play agent three
-games to two. But at $9$ to $27$ seconds per move they are far too slow to supply
-the millions of moves an RL run needs, and a vision-language variant fed the board
-as an image failed outright at roughly ten percent legal moves, confirming this is
-a text task. The LLM is strong enough to be interesting and far too slow to be
-useful as a live opponent.
 
 \begin{table*}[t]
 \centering
@@ -729,6 +706,27 @@ says that with the available information a lightweight reactive agent is already
 near the practical frontier, and that going clearly past it requires \emph{more
 information} (opponent-hand inference) or much heavier search, not a bigger network
 or more reward tuning.
+
+\paragraph{What did not work, and why.}
+Three popular shortcuts each failed, and the failures are as informative as the
+successes. \emph{Imitation learning (DAgger)} drove the training loss to near zero
+but produced an agent that wins almost no games: a textbook case of causal
+confusion \citep{causalconfusion}, where the student reproduces the expert's move
+in familiar positions without learning the reasoning behind it (tracking what the
+opponent is collecting), so it falls apart the moment the game leaves the
+demonstrated distribution. \emph{Dense step rewards} made the agent short-sighted;
+a horizon of two showed no real learning and a horizon of five stopped improving
+after about five hundred thousand steps, at which point the agent farmed instant
+points instead of trying to win---exactly the failure mode the theory of reward
+shaping warns about when the bonus is not aligned with the true return
+\citep{shaping}. A \emph{live LLM opponent} played competently with a
+chain-of-thought prompt (up to $98.2$ percent legal moves, against $79.3$ with a
+terse prompt) and one even beat our self-play agent three games to two, but at $9$
+to $27$ seconds per move it is far too slow to supply the millions of moves an RL
+run needs, and a vision-language variant fed the board as an image failed outright
+(about ten percent legal moves), confirming this is a text task. Each negative is
+consistent with the same ceiling: the shortcuts that fail try to substitute
+supervision, shaping, or a bigger opponent for information the agent does not have.
 
 \paragraph{Limitations.}
 We study one game, so the specific numbers are about Gin Rummy. Our expert is a
