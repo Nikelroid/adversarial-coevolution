@@ -137,7 +137,7 @@ losing habit of chasing gin. Paying three times more for a gin than a knock
 leaves the gin rate under one percent, the same as not rewarding gin at all. We
 connect the parallel failure of imitation learning to causal confusion.
 \item Evidence that the ceiling is \emph{information-bound, not capacity-bound}.
-Across MLP width and depth, convolutional, permutation-invariant set, attention,
+Across MLP width and depth, convolutional, permutation-invariant set,
 and recurrent encoders, win-rate against the expert stays in a narrow band with
 overlapping confidence intervals, and the ranking is robust across training
 recipes. A determinized information-set Monte-Carlo search, graded \emph{fairly}
@@ -639,7 +639,7 @@ between the two curves is the value of the hidden information.}
 \subsection{Architecture does not break the ceiling}
 We hold the winning recipe fixed and vary only the network, retraining from
 scratch. Across MLP width and depth, convolutional, permutation-invariant Deep
-Sets, self-attention, and recurrent encoders, the win-rate against the expert
+Sets, and recurrent encoders, the win-rate against the expert
 stays in a narrow band: the best IQMs are the structured encoders (convolutional
 $31.1$ percent, Deep Sets $30.4$ percent) and the plain MLP anchor is $26.7$
 percent, but the $95$ percent bootstrap intervals overlap throughout
@@ -650,7 +650,13 @@ under PPO instead of TRPO, or with PFSP sampling, the encoders keep the same
 ordering and the best cell reaches $30.2$ percent, in the same band. Recurrence
 (an LSTM) beats its matched feed-forward control ($24.3$ versus $19.2$ percent)
 but both trail the TRPO anchor, so memory helps relative to its own baseline
-without breaking the ceiling. Capacity and inductive bias are not the bottleneck.
+without breaking the ceiling. Self-attention is the one encoder our trust-region
+recipe cannot train: taking a second derivative through the transformer for the
+natural-gradient step is prohibitively slow on CPU and numerically unstable on GPU.
+Graded instead under PPO against a matched MLP at the same budget, it reaches about
+$17$ percent against the expert versus the MLP's $21$ percent, below the
+trust-region encoders and no better than the plain MLP, so a transformer does not
+break the ceiling either. Capacity and inductive bias are not the bottleneck.
 
 \subsection{A fair search is weak; only an oracle beats the expert}
 We then run a determinized ISMCTS, the classic non-learned reference for
@@ -710,7 +716,7 @@ Stacking every choice that helps moves a lightweight agent from roughly $30$ to
 about $34$ percent against the expert (Table~\ref{tab:numbers}), and three
 independent lines of evidence say this ceiling is set by the hidden information,
 not by the method or the model. First, network architecture does not move it: MLP,
-convolutional, set-based, attention, and recurrent encoders are statistically
+convolutional, set-based, and recurrent encoders are statistically
 indistinguishable, so capacity and inductive bias are not the bottleneck. Second,
 a determinized search graded fairly is \emph{weaker} than our agents ($26$ percent),
 yet the same search given oracle access to the hidden cards jumps to $85$ percent;

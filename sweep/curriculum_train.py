@@ -400,7 +400,8 @@ def build_model(algo, env, hp):
     pkw = _make_policy_kwargs(hp.get("arch", "mlp"), hp.get("net_arch"),
                               hp.get("activation", "tanh"), hp.get("extractor_kwargs"),
                               hp.get("weight_decay", 0.0))
-    common = dict(env=env, n_steps=hp["n_steps"], device="cpu", verbose=0,
+    common = dict(env=env, n_steps=hp["n_steps"],
+                  device=os.environ.get("DEVICE", "cpu"), verbose=0,
                   policy_kwargs=pkw, seed=hp["seed"], gamma=hp["gamma"],
                   gae_lambda=hp["gae_lambda"], learning_rate=hp["lr"],
                   batch_size=hp["batch_size"], normalize_advantage=True)
