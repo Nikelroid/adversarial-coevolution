@@ -605,7 +605,7 @@ same conclusion: the ceiling is set by the hidden information, not by the model.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.86\textwidth]{archbase.pdf}
+\includegraphics[width=0.80\textwidth]{archbase.pdf}
 \caption{(a) Win-rate against the fixed expert by network architecture (IQM with
 $95$ percent stratified bootstrap CIs over seeds, from scratch at a fixed budget;
 structured encoders in gold, MLP variants in green, the anchor marked by the dashed
@@ -765,29 +765,32 @@ building lightweight agents for interactive games.
 %% ===========================================================================
 \section{Conclusion}
 %% ===========================================================================
-We asked two questions for a small, fast Gin Rummy agent: how strong it can get,
-and which choices make it strong. Grading more than one hundred controlled runs
-against a fixed expert yardstick gave a clear answer. Strong play knocks early and almost never gins, and no reward we
-tried could pay the agent into the losing habit of chasing gin. Trust-region
-self-play with a knock-first reward, a rising curriculum, warm-starting, and
-keeping the best checkpoint is the recipe that works, reaching about $34$ percent
-against the expert; learned embeddings, imitation, dense rewards, and a live LLM
-opponent each fail for a reason we can name. Neither a smarter network nor a fair
-search breaks the ceiling: encoders are statistically indistinguishable, and a
-determinized search trails our agents while an oracle that peeks at the hidden
-cards soars, pinning the ceiling on the hidden information rather than the model.
-It reproduces on Leduc Hold'em, where the optimum is computable. The lesson is
-methodological: a fixed, strong, reproducible reference turns a pile of training
-tricks into a study with answers, and we release the pipeline so it runs on other
-games.
+We set out to answer two questions about a small, fast Gin Rummy agent: how strong
+it can get, and which choices make it strong. A fixed expert and more than a
+hundred controlled runs turned those questions into measurements. Strong play
+knocks early and almost never gins, and no reward could tempt the agent into
+chasing it. Trust-region self-play with a knock-first reward, a rising curriculum,
+warm-starting, and keeping the best checkpoint is the recipe that works, reaching
+about $34$ percent against the expert, while learned embeddings, imitation, dense
+rewards, and a live LLM opponent each fail for a reason we can name. The ceiling
+that remains is not an engineering failure: a bigger network does not move it and a
+fair search trails our agents, yet an oracle with the hidden cards pulls away, so
+the agent is capped by missing information, not missing capacity. The same story
+holds on Leduc Hold'em, where the optimum is computable.
+
+The lasting lesson is about method. Strength in these games is easy to overstate
+against random or self-referential opponents; a fixed, strong, reproducible
+reference turns a pile of plausible training tricks into a study that says which
+choices truly matter. Build that reference first, and the rest measures itself. We
+release the pipeline so the next game can be studied the same way.
 
 %% ===========================================================================
 %% Reproducibility (anonymized for review)
 %% ===========================================================================
 \paragraph{Reproducibility.}
-Every figure comes from saved evaluation logs, with training curves tracked online.
-The training pipeline, the fixed expert, the LLM serving stack, and the human-play
-web client will be released as open source on acceptance.
+Every figure comes from saved evaluation logs with curves tracked online; on
+acceptance we release the training pipeline, the fixed expert, the LLM serving
+stack, and the human-play web client as open source.
 
 %% ===========================================================================
 \bibliographystyle{aaai24}
