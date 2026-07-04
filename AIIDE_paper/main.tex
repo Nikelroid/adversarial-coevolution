@@ -246,11 +246,26 @@ We study two-player Gin Rummy as implemented in RLCard and exposed through
 PettingZoo as \texttt{gin\_rummy\_v4} \citep{rlcard,pettingzoo}.
 Figure~\ref{fig:arch} shows how the pieces fit together: a masked RL learner, a
 curriculum of opponents, and the fixed expert that grades agents without ever
-entering training. Each turn a
-player draws (from the stock or the discard pile), then discards, and may knock
-when the deadwood (the point value of cards left outside melds) is at most ten,
-or declare gin at zero deadwood. Knocking with low deadwood wins a small score;
-gin wins a larger bonus but requires a complete hand and so is riskier.
+entering training.
+
+\paragraph{The game.}
+Gin Rummy is a two-player draw-and-discard game played with a standard $52$-card
+deck; each player holds ten cards.
+\begin{itemize}
+\setlength\itemsep{0pt}
+\item \textbf{Melds and deadwood:} group cards into \emph{runs} (three or more
+consecutive cards of a suit) and \emph{sets} (three or four of a kind); the
+ungrouped cards are \emph{deadwood}, and a card cannot serve in two melds at once.
+\item \textbf{Turn:} draw the top of the stock or the discard pile, then discard
+one card face up.
+\item \textbf{Ending:} a player may \emph{knock} once its deadwood is at most ten,
+or declare \emph{gin} at zero deadwood, which ends the hand.
+\item \textbf{Score:} the knocker scores the opponent's deadwood minus its own;
+gin earns a fixed bonus, and a defender whose deadwood is no larger
+\emph{undercuts} and scores instead.
+\end{itemize}
+Winning therefore rewards knocking early with low deadwood far more than holding
+out for the rarer, riskier gin.
 
 \paragraph{Observation and actions.}
 The agent sees a $4\times52$ binary tensor: its own hand, the top of the discard
@@ -367,15 +382,10 @@ reward that scores each move by agreement with an evaluator over the next $L$
 steps. Both are popular shortcuts for injecting expert knowledge.
 
 \paragraph{Live LLM opponent.}
-We test whether a modern LLM can serve as a strong in-the-loop opponent.
-Because a single RL run issues tens of thousands of opponent queries and a 7B
-model answers in seconds, a naive loop would take far too long, so we built a
-distributed serving stack: a CPU master with a response cache that canonicalizes
-suit-equivalent positions into one cache key, and a pool of GPU workers that
-self-register and are health-checked and load-balanced by the master
-\citep{vllm,qwen}. One engineering finding from this stack is reported with the
-results, because it matters for anyone trying the same thing: where the model
-weights are stored dominates worker start-up time.
+We test whether a modern instruction-tuned LLM can serve as a strong in-the-loop
+opponent. Because a single RL run issues tens of thousands of opponent queries, we
+serve the model through a caching CPU master over a pool of GPU workers, so the
+queries stay affordable \citep{vllm,qwen}.
 
 \paragraph{Network architecture.}
 Holding the best recipe fixed, we vary \emph{only} the policy network and retrain
@@ -574,19 +584,13 @@ mode that the theory of reward shaping warns about when the bonus is not aligned
 with the true return \citep{shaping}.
 
 \emph{Live LLM opponent.} Modern instruction-tuned LLMs played Gin Rummy
-competently with a chain-of-thought prompt, reaching $98.2$ percent legal moves
-(against $79.3$ percent with a terse prompt), and one even beat our self-play
-agent three games to two in a short match. But at $9$ to $27$ seconds per move
-they are far too slow to supply the millions of moves an RL run needs; training
-this way would take weeks. A vision-language variant fed the board as an image failed
-outright at roughly ten percent legal moves, confirming that this is a text task,
-not an image task. The serving stack did expose one transferable engineering
-lesson: loading a 7B worker from networked home storage ran at about eleven
-megabytes per second and took roughly twenty-eight minutes, blowing the
-health-check timeout, while staging the same weights on fast scratch storage cut
-start-up to about twenty-seven seconds, a $62\times$ speedup, after which a
-fourteen-worker pool sustained about thirty-two queries per second. The LLM is
-strong enough to be interesting and too slow to be useful as a live opponent.
+competently with a chain-of-thought prompt (up to $98.2$ percent legal moves,
+against $79.3$ with a terse prompt), and one even beat our self-play agent three
+games to two. But at $9$ to $27$ seconds per move they are far too slow to supply
+the millions of moves an RL run needs, and a vision-language variant fed the board
+as an image failed outright at roughly ten percent legal moves, confirming this is
+a text task. The LLM is strong enough to be interesting and far too slow to be
+useful as a live opponent.
 
 \begin{table*}[t]
 \centering
