@@ -96,7 +96,7 @@ opponents, how to represent the state, which checkpoint to ship) are tuned
 against references that are either too weak or constantly moving. The field has
 many strong single agents but few clean, controlled accounts of which of these
 choices matter and why. If we had a fixed, strong, and cheap reference opponent,
-we could measure these choices honestly and turn them into a reusable recipe.
+we could measure these choices cleanly and turn them into a reusable recipe.
 
 Existing lines of work do not fill this gap directly. The famous self-play
 systems \citep{alphazero,alphastar,openaifive} answer what is possible with very
@@ -115,7 +115,7 @@ deterministic expert that solves the one subproblem with a clean optimum (meld
 decomposition, that is, the lowest-deadwood way to arrange a hand) and otherwise
 plays principled endgame moves. It is not a game-theoretic optimum for the full
 imperfect-information game, and we do not claim it is; what matters is that it is
-strong, reproducible, and cheap, so it makes an honest yardstick. We never train
+strong, reproducible, and cheap, so it makes a fair yardstick. We never train
 against it. We then run more than one hundred controlled experiments that change
 one factor at a time and grade every result against this fixed expert. This
 paper makes the following contributions.
@@ -321,7 +321,7 @@ expert is not a game-theoretic optimum.
 
 \paragraph{Why this is the right yardstick.}
 A game-theoretic optimum for imperfect-information Gin Rummy is not available at
-low cost, and we do not need one. What an honest study needs is a reference that
+low cost, and we do not need one. What a controlled study needs is a reference that
 is (i) strong enough to separate good agents from weak ones, (ii) identical in
 every comparison, and (iii) cheap enough to grade thousands of games. Our expert
 satisfies all three. As we show next, it beats every agent we trained by a wide
@@ -513,7 +513,7 @@ that do not hold here: the vocabulary is enormous, so mapping one-hot tokens int
 small dense space is a genuine compression, and word order carries meaning, so the
 embedding can capture sequence structure. Our $4\times52$ observation is already
 small and its cards carry no meaningful order, so there is little to compress and no
-sequence to encode---the raw sparse tensor is already close to the right
+sequence to encode. The raw sparse tensor is already close to the right
 representation.
 
 \subsection{Curriculum, warm-start, and keep-the-best}
@@ -659,7 +659,7 @@ against that near-optimal expert over eight seeds, a tabular self-play learner
 reaches near parity (mean return $-0.085$; random is about $-0.78$), reproducing
 the Gin Rummy story on a game where the true optimum is available. NFSP, the
 neural equilibrium baseline, was far more sample-hungry: even at three million
-episodes it averaged $-0.71$, near the random floor, an honest reminder that the
+episodes it averaged $-0.71$, near the random floor, a reminder that the
 neural baseline needs much more data than the tabular learner on this size of
 game. Table~\ref{tab:baselines} collects the baseline and second-game numbers.
 
@@ -717,7 +717,7 @@ opponent is collecting), so it falls apart the moment the game leaves the
 demonstrated distribution. \emph{Dense step rewards} made the agent short-sighted;
 a horizon of two showed no real learning and a horizon of five stopped improving
 after about five hundred thousand steps, at which point the agent farmed instant
-points instead of trying to win---exactly the failure mode the theory of reward
+points instead of trying to win, exactly the failure mode the theory of reward
 shaping warns about when the bonus is not aligned with the true return
 \citep{shaping}. A \emph{live LLM opponent} played competently with a
 chain-of-thought prompt (up to $98.2$ percent legal moves, against $79.3$ with a
@@ -800,7 +800,7 @@ Dinan, E.; Farina, G.; Flaherty, C.; Fried, D.; Goff, A.; Gray, J.; Hu, H.;
 et al. 2022.
 Human-Level Play in the Game of \emph{Diplomacy} by Combining Language Models
 with Strategic Reasoning.
-\emph{Science} 378(6624): 1067--1074.
+\emph{Science} 378(6624): 1067-1074.
 
 \bibitem[Agarwal et al.(2021)]{rliable}
 Agarwal, R.; Schwarzer, M.; Castro, P.~S.; Courville, A.~C.; and Bellemare, M.~G.
@@ -812,7 +812,7 @@ In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 34.
 Bengio, Y.; Louradour, J.; Collobert, R.; and Weston, J. 2009.
 Curriculum Learning.
 In \emph{Proceedings of the 26th International Conference on Machine Learning
-(ICML)}, 41--48.
+(ICML)}, 41-48.
 
 \bibitem[Berner et al.(2019)]{openaifive}
 Berner, C.; Brockman, G.; Chan, B.; Cheung, V.; Debiak, P.; Dennison, C.;
@@ -823,24 +823,24 @@ arXiv:1912.06680.
 \bibitem[Brown and Sandholm(2018)]{libratus}
 Brown, N.; and Sandholm, T. 2018.
 Superhuman AI for Heads-up No-Limit Poker: Libratus Beats Top Professionals.
-\emph{Science} 359(6374): 418--424.
+\emph{Science} 359(6374): 418-424.
 
 \bibitem[Brown and Sandholm(2019)]{pluribus}
 Brown, N.; and Sandholm, T. 2019.
 Superhuman AI for Multiplayer Poker.
-\emph{Science} 365(6456): 885--890.
+\emph{Science} 365(6456): 885-890.
 
 \bibitem[Brown et al.(2019)]{deepcfr}
 Brown, N.; Lerer, A.; Gross, S.; and Sandholm, T. 2019.
 Deep Counterfactual Regret Minimization.
 In \emph{Proceedings of the 36th International Conference on Machine Learning
-(ICML)}, 793--802.
+(ICML)}, 793-802.
 
 \bibitem[Cowling et al.(2012)]{ismcts}
 Cowling, P.~I.; Powley, E.~J.; and Whitehouse, D. 2012.
 Information Set Monte Carlo Tree Search.
 \emph{IEEE Transactions on Computational Intelligence and AI in Games} 4(2):
-120--143.
+120-143.
 
 \bibitem[de Haan et al.(2019)]{causalconfusion}
 de Haan, P.; Jayaraman, D.; and Levine, S. 2019.
@@ -852,12 +852,12 @@ Henderson, P.; Islam, R.; Bachman, P.; Pineau, J.; Precup, D.; and Meger, D.
 2018.
 Deep Reinforcement Learning That Matters.
 In \emph{Proceedings of the 32nd AAAI Conference on Artificial Intelligence
-(AAAI)}, 3207--3214.
+(AAAI)}, 3207-3214.
 
 \bibitem[Hochreiter and Schmidhuber(1997)]{lstm}
 Hochreiter, S.; and Schmidhuber, J. 1997.
 Long Short-Term Memory.
-\emph{Neural Computation} 9(8): 1735--1780.
+\emph{Neural Computation} 9(8): 1735-1780.
 
 \bibitem[Heinrich and Silver(2016)]{nfsp}
 Heinrich, J.; and Silver, D. 2016.
@@ -874,7 +874,7 @@ Kotnik, C.; and Kalita, J. 2003.
 The Significance of Temporal-Difference Learning in Self-Play Training:
 TD-rummy versus EVO-rummy.
 In \emph{Proceedings of the 20th International Conference on Machine Learning
-(ICML)}, 369--375.
+(ICML)}, 369-375.
 
 \bibitem[Kwon et al.(2023)]{vllm}
 Kwon, W.; Li, Z.; Zhuang, S.; Sheng, Y.; Zheng, L.; Yu, C.~H.; Gonzalez, J.~E.;
@@ -901,26 +901,26 @@ Long, J.~R.; Sturtevant, N.~R.; Buro, M.; and Furtak, T. 2010.
 Understanding the Success of Perfect Information Monte Carlo Sampling in Game Tree
 Search.
 In \emph{Proceedings of the 24th AAAI Conference on Artificial Intelligence
-(AAAI)}, 134--140.
+(AAAI)}, 134-140.
 
 \bibitem[Nagai et al.(2021)]{ginensemble}
 Nagai, M.; Shrivastava, K.; Ta, K.; Bogaerts, S.; and Byers, C. 2021.
 A Highly-Parameterized Ensemble to Play Gin Rummy.
 \emph{Proceedings of the AAAI Conference on Artificial Intelligence} 35(17):
-15614--15621 (EAAI Symposium).
+15614-15621 (EAAI Symposium).
 
 \bibitem[Narvekar et al.(2020)]{curriculumsurvey}
 Narvekar, S.; Peng, B.; Leonetti, M.; Sinapov, J.; Taylor, M.~E.; and Stone, P.
 2020.
 Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey.
-\emph{Journal of Machine Learning Research} 21(181): 1--50.
+\emph{Journal of Machine Learning Research} 21(181): 1-50.
 
 \bibitem[Ng et al.(1999)]{shaping}
 Ng, A.~Y.; Harada, D.; and Russell, S. 1999.
 Policy Invariance under Reward Transformations: Theory and Application to Reward
 Shaping.
 In \emph{Proceedings of the 16th International Conference on Machine Learning
-(ICML)}, 278--287.
+(ICML)}, 278-287.
 
 \bibitem[Qwen Team(2024)]{qwen}
 Qwen Team. 2024.
@@ -931,20 +931,20 @@ arXiv:2412.15115.
 Raffin, A.; Hill, A.; Gleave, A.; Kanervisto, A.; Ernestus, M.; and Dormann, N.
 2021.
 Stable-Baselines3: Reliable Reinforcement Learning Implementations.
-\emph{Journal of Machine Learning Research} 22(268): 1--8.
+\emph{Journal of Machine Learning Research} 22(268): 1-8.
 
 \bibitem[Ross et al.(2011)]{dagger}
 Ross, S.; Gordon, G.~J.; and Bagnell, J.~A. 2011.
 A Reduction of Imitation Learning and Structured Prediction to No-Regret Online
 Learning.
 In \emph{Proceedings of the 14th International Conference on Artificial
-Intelligence and Statistics (AISTATS)}, 627--635.
+Intelligence and Statistics (AISTATS)}, 627-635.
 
 \bibitem[Schulman et al.(2015)]{trpo}
 Schulman, J.; Levine, S.; Abbeel, P.; Jordan, M.; and Moritz, P. 2015.
 Trust Region Policy Optimization.
 In \emph{Proceedings of the 32nd International Conference on Machine Learning
-(ICML)}, 1889--1897.
+(ICML)}, 1889-1897.
 
 \bibitem[Schulman et al.(2016)]{gae}
 Schulman, J.; Moritz, P.; Levine, S.; Jordan, M.; and Abbeel, P. 2016.
@@ -960,14 +960,14 @@ arXiv:1707.06347.
 Silver, D.; Schrittwieser, J.; Simonyan, K.; Antonoglou, I.; Huang, A.; Guez, A.;
 Hubert, T.; Baker, L.; Lai, M.; Bolton, A.; et al. 2017.
 Mastering the Game of Go without Human Knowledge.
-\emph{Nature} 550(7676): 354--359.
+\emph{Nature} 550(7676): 354-359.
 
 \bibitem[Silver et al.(2018)]{alphazero}
 Silver, D.; Hubert, T.; Schrittwieser, J.; Antonoglou, I.; Lai, M.; Guez, A.;
 Lanctot, M.; Sifre, L.; Kumaran, D.; Graepel, T.; et al. 2018.
 A General Reinforcement Learning Algorithm that Masters Chess, Shogi, and Go
 through Self-Play.
-\emph{Science} 362(6419): 1140--1144.
+\emph{Science} 362(6419): 1140-1144.
 
 \bibitem[Terry et al.(2021)]{pettingzoo}
 Terry, J.~K.; Black, B.; Grammel, N.; Jayakumar, M.; Hari, A.; Sullivan, R.;
@@ -985,7 +985,7 @@ In \emph{Advances in Neural Information Processing Systems (NeurIPS)} 30.
 Vinyals, O.; Babuschkin, I.; Czarnecki, W.~M.; Mathieu, M.; Dudzik, A.; Chung, J.;
 Choi, D.~H.; Powell, R.; Ewalds, T.; Georgiev, P.; et al. 2019.
 Grandmaster Level in StarCraft II using Multi-Agent Reinforcement Learning.
-\emph{Nature} 575(7782): 350--354.
+\emph{Nature} 575(7782): 350-354.
 
 \bibitem[Zaheer et al.(2017)]{deepsets}
 Zaheer, M.; Kottur, S.; Ravanbakhsh, S.; P\'{o}czos, B.; Salakhutdinov, R.; and
@@ -1004,7 +1004,7 @@ Intelligence (IJCAI)}, Demo Track.
 Zha, D.; Xie, J.; Ma, W.; Zhang, S.; Lian, X.; Hu, X.; and Liu, J. 2021.
 DouZero: Mastering DouDizhu with Self-Play Deep Reinforcement Learning.
 In \emph{Proceedings of the 38th International Conference on Machine Learning
-(ICML)}, 12333--12344.
+(ICML)}, 12333-12344.
 
 \bibitem[Zinkevich et al.(2007)]{cfr}
 Zinkevich, M.; Johanson, M.; Bowling, M.; and Piccione, C. 2007.

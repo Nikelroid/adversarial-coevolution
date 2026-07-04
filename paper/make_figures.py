@@ -90,7 +90,7 @@ def fig_mean_reward(rs):
     ax.axhline(1.5, ls=":", color="red", lw=1.0, label="gin reward")
     ax.set_ylim(0, 1.6); ax.set_ylabel("mean episode reward")
     ax.set_xticks(xs); ax.set_xticklabels(labels, fontsize=7)
-    ax.set_title("Mean reward per config — clusters at the knock value")
+    ax.set_title("Mean reward per config, clustered at the knock value")
     ax.legend(loc="upper right", fontsize=8); ax.grid(axis="y", alpha=0.3)
     fig.tight_layout(); _save(fig, "mean_reward")
 
@@ -455,7 +455,7 @@ def fig_curriculum():
     fig, ax = plt.subplots(figsize=(7.4, 5.0))
     if not by:
         ax.text(0.5, 0.5, "Phase-6 curriculum / algorithm / reward sweep\n"
-                "30 runs queued -- results pending", ha="center", va="center", fontsize=11)
+                "30 runs queued, results pending", ha="center", va="center", fontsize=11)
         ax.axis("off"); fig.tight_layout(); _save(fig, "curriculum")
         print("  fig_curriculum: pending"); return
     cells = sorted(by, key=lambda c: st.mean(by[c]["gold"]))
@@ -487,7 +487,7 @@ def fig_curriculum_reward():
     order = [(c, lab) for c, lab in order if c in by]
     if not order:
         fig, ax = plt.subplots(figsize=(5.6, 3.2))
-        ax.text(0.5, 0.5, "reward study -- results pending", ha="center", va="center")
+        ax.text(0.5, 0.5, "reward study, results pending", ha="center", va="center")
         ax.axis("off"); fig.tight_layout(); _save(fig, "curriculum_reward"); return
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.2, 3.3))
     labs = [lab for _, lab in order]
@@ -538,7 +538,7 @@ def fig_architecture():
 
     SLATE = "#46606e"
     ax.text(50, 97, "Framework overview", ha="center", fontsize=12, fontweight="bold", color=C_INK)
-    box(50, 86, 33, 12, "Gold standard\n(perfect — benchmark only)", C_GOLD, tc="#3a2e00")
+    box(50, 86, 33, 12, "Gold standard\n(benchmark only)", C_GOLD, tc="#3a2e00")
     box(15, 60, 24, 14, "Gin Rummy\nenvironment", C_GREEN)
     box(50, 60, 27, 14, "RL learner\n(masked PPO / TRPO)", C_GREEN)
     box(85, 60, 24, 14, "Web game\n(human vs agent)", SLATE)
@@ -759,7 +759,7 @@ def fig_arch_rliable():
         ax.legend(loc="lower right")
     ax.set_yticks(ys)
     ax.set_yticklabels([f"{r[0]} (n={r[4]})" for r in rows])
-    ax.set_xlabel("win rate vs the fixed expert (%) — IQM, 95% bootstrap CI")
+    ax.set_xlabel("win rate vs the fixed expert (%), IQM with 95% bootstrap CI")
     ax.set_title("Does network architecture move the agent past the expert ceiling?")
     ax.grid(ls=":", axis="x", alpha=0.4)
     fig.tight_layout(); _save(fig, "arch_rliable")
