@@ -1,0 +1,45 @@
+{
+  "note": "PPO arch cells hung at ~2M (curriculum deadlock); best-ckpt gold, 400-game keep-best evals",
+  "cells": [
+    {
+      "cell": "ppoarch_attn_s0",
+      "arch": "attn",
+      "gold": 0.165
+    },
+    {
+      "cell": "ppoarch_attn_s1",
+      "arch": "attn",
+      "gold": 0.122
+    },
+    {
+      "cell": "ppoarch_attn_s2",
+      "arch": "attn",
+      "gold": 0.172
+    },
+    {
+      "cell": "ppoarch_attn_s3",
+      "arch": "attn",
+      "gold": 0.255
+    },
+    {
+      "cell": "ppoarch_mlp_s0",
+      "arch": "mlp",
+      "gold": 0.22
+    },
+    {
+      "cell": "ppoarch_mlp_s1",
+      "arch": "mlp",
+      "gold": 0.21
+    },
+    {
+      "cell": "ppoarch_mlp_s2",
+      "arch": "mlp",
+      "gold": 0.2
+    },
+    {
+      "cell": "ppoarch_mlp_s3",
+      "arch": "mlp",
+      "gold": 0.215
+    }
+  ]
+}
