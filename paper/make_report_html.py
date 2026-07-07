@@ -333,7 +333,7 @@ HTML = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   small RL agent get to perfect play, and what really makes it stronger?</b> We use Gin Rummy as a
   clean example, but the system and the lessons carry over to other games and to RL plus LLM agents
   in general.</p>
-  <div class="by">Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi &middot; University of Southern California</div>
+  <div class="by">Nima Kelidari &middot; Mohammadsaeed Haghi &middot; Mahdi Salmani &middot; University of Southern California</div>
   <div class="kpibar">
     <div class="k"><div class="v">{BEST:.0f}%</div><div class="l">best agent vs the<br/>perfect player</div></div>
     <div class="k"><div class="v">&lt;2%</div><div class="l">how often the perfect<br/>player gins</div></div>

@@ -231,7 +231,7 @@ python paper/make_figures.py && python paper/make_report_html.py
 ---
 
 <p align="center">
-  <b>Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi</b><br/>
+  <b>Nima Kelidari &middot; Mohammadsaeed Haghi &middot; Mahdi Salmani</b><br/>
   <sub>University of Southern California</sub>
 </p>
 
