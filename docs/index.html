@@ -99,7 +99,7 @@ ol li,ul li{margin:4px 0;}
 <div class="nav">
   <a href="#story">The story</a><a href="#challenge">The game</a><a href="#framework">What we built</a>
   <a href="#gold">Gold standard</a><a href="#regimes">Everything we tried</a><a href="#finding">Key finding</a>
-  <a href="#levers">What mattered</a><a href="#latest">Latest</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#venues">Publish</a><a href="#repro">Reproduce</a><a href="aiide_plan.html" target="_blank">AIIDE plan &#8599;</a>
+  <a href="#levers">What mattered</a><a href="#latest">Latest</a><a href="#play">Play it</a><a href="#bottom">Bottom line</a><a href="#roadmap">Roadmap</a><a href="#repro">Reproduce</a>
 </div>
 
 <div class="wrap">
@@ -409,95 +409,8 @@ ol li,ul li{margin:4px 0;}
     so the slow LLM is used once, not inside the training loop.</li>
     <li>Tighten the statistics on the headline runs (more seeds, paired confidence intervals) and turn
     the gold benchmark plus the curriculum harness into a small public benchmark suite.</li>
-    <li>Write the paper for one specific venue (see below).</li>
   </ol>
-  <div class="why"><b>The shortest path to a paper:</b> pick a venue, add real multi-game results and
-  one search-or-memory baseline, and frame the contribution as the universal pipeline, plus the
-  perfect-player benchmark, plus the honest study of what helps and what does not.</div>
-</section>
-
-<section id="venues">
-  <h2><span class="n">11</span>Where this can go: realistic publication targets</h2>
-  <p>It is mid-2026, so anything with a spring-2026 deadline is already closed. This is a focused
-  shortlist of six venues whose <b>deadline is still ahead</b> and whose topic is a real fit, listed
-  soonest first. The two game-AI homes (AIIDE and its EXAG workshop) are the best fit for the work,
-  with the WAGD workshop at AIIDE a further game-AI option;
-  AAMAS is the natural home on the multi-agent and reinforcement-learning side; AAAI and the NeurIPS
-  workshops are the broader, sooner shots that get you in front of people first.</p>
-  <div class="why"><b>Can you put it on arXiv first?</b> Yes, for all six. Every venue here allows
-  an arXiv preprint before or after you submit. For the double-blind ones (AIIDE and the main AAMAS
-  track), just keep the arXiv version from breaking anonymity in a way the reviewers would notice,
-  and do not label it "under review at [venue]". AAAI, EXAG, the NeurIPS workshops, and the ALA
-  workshop are open or non-archival, so a public preprint is completely fine. WAGD is the exception:
-  it archives to CEUR-WS, which AIIDE and AAAI main tracks count as a prior publication, so submit
-  there only if you are not also sending the same paper to an AAAI-proceedings venue.</div>
-  <table style="font-size:13px;">
-    <tr><th>#</th><th>Venue (link) and fit</th><th>Next deadline (soonest first)</th><th>Conference</th><th>Format and review</th><th>arXiv?</th></tr>
-    <tr>
-      <td><b>1</b></td>
-      <td><b><a href="https://sites.google.com/view/aiide2026/home">AIIDE 2026</a></b><br/><span class="good">best fit</span></td>
-      <td><b>abstract: Jun 26, 2026<br/>paper: Jul 3, 2026</b> <span class="good">(extended)</span><br/>notify: Aug 7, 2026</td>
-      <td>Belo Horizonte, Brazil<br/>Nov 9-13, 2026</td>
-      <td>9 pp + unlimited refs; AAAI two-column template; double-blind; published in the AAAI AIIDE proceedings (not CEUR)</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b>2</b></td>
-      <td><b><a href="https://aaai.org/conference/aaai/aaai-27/main-technical-track-call/">AAAI-27</a></b><br/><span class="mid">broad AI; realistic via the student-abstract or demo track</span></td>
-      <td><b>abstract: Jul 21, 2026<br/>paper: Jul 28, 2026</b> <span class="good">(confirmed)</span><br/>notify: Nov 30, 2026</td>
-      <td>Montreal, Canada<br/>Feb 16-23, 2027</td>
-      <td>AAAI 2-column template; double-blind; OpenReview</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b>3</b></td>
-      <td><b><a href="https://www.exag.org/">EXAG 2026</a></b> (Experimental AI in Games, at AIIDE)<br/><span class="good">best fit</span></td>
-      <td><b>paper: Aug 21, 2026</b> <span class="good">(confirmed)</span></td>
-      <td>Belo Horizonte, Brazil<br/>at AIIDE, Nov 9-13, 2026</td>
-      <td>~8 pp; AAAI template; non-archival workshop (work in progress welcome); light review</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b>4</b></td>
-      <td><b><a href="https://neurips.cc/Conferences/2026">NeurIPS 2026 workshops</a></b> (RL / LLM-agents)<br/><span class="good">realistic</span></td>
-      <td><b>papers: ~Aug 29, 2026</b> <span class="mid">(NeurIPS-suggested date; each accepted workshop sets its own, before the Sep 29 accept/reject)</span><br/>workshop list announced Jul 11, 2026</td>
-      <td>Dec 2026<br/>Sydney / Paris / Atlanta (multi-site)</td>
-      <td>short (4 to 9 pp); workshop template; non-archival; OpenReview</td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b>5</b></td>
-      <td><b><a href="https://smshields.github.io/AIIDE-2026-WAGD/#overview">WAGD 2026</a></b> (Workshop on Automated Game Design, at AIIDE)<br/><span class="mid">weak fit (game design, not agent training)</span></td>
-      <td><b>paper: Sep 18, 2026</b> <span class="good">(confirmed)</span></td>
-      <td>Belo Horizonte, Brazil<br/>at AIIDE, Nov 9-13, 2026</td>
-      <td>5-9 pp short / 10+ full; CEUR-WS template; peer-reviewed; <span class="bad">archival (CEUR-WS)</span></td>
-      <td class="good">yes</td>
-    </tr>
-    <tr>
-      <td><b>6</b></td>
-      <td><b><a href="https://warwick.ac.uk/fac/sci/dcs/aamas2027/">AAMAS 2027</a></b> + <a href="https://ala2024.github.io/">ALA workshop</a><br/><span class="good">strong fit</span></td>
-      <td><b>abstract: Oct 1, 2026<br/>paper: Oct 8, 2026</b> <span class="good">(confirmed)</span><br/>ALA: ~Feb 2027</td>
-      <td>Hanoi, Vietnam<br/>May 3-7, 2027</td>
-      <td>ACM template; main 8 to 9 pp double-blind; ALA 8 pp non-archival; OpenReview</td>
-      <td class="good">yes</td>
-    </tr>
-  </table>
-  <p style="font-size:13px;color:#5c6b73;">A date marked <b>(confirmed)</b> is taken from the official
-  call; a date marked <b>(expected)</b> is our estimate from prior years because that cycle's call is
-  not posted yet, so check the linked page before you plan around it. One thing to watch on NeurIPS:
-  the June 6, 2026 date on its call is the deadline for <b>organizers to propose a workshop</b>, not
-  for authors to submit a paper. The workshop list is announced on July 11, and author paper
-  deadlines land near the suggested August 29 date, so that route is still open. If the very near
-  deadlines are too tight, the game-AI and RL conferences come back around in early to mid 2027
-  (IEEE CoG, RLC, and the next AIIDE), and they are the strongest long-term fit.</p>
-  <div class="note"><b>Bottom line.</b> The single nearest deadline is <b>AIIDE 2026</b> (abstract
-  <b>June 26</b>, full paper <b>July 3, 2026</b>, both extended one week), and it is also our best-fit home (game AI, AAAI proceedings),
-  so it is the one to aim at first. If the paper is too tight, the <b>EXAG</b> workshop at AIIDE gives a second game-AI shot at the
-  same conference with a later deadline (paper August 21, 2026). Around it sit the <b>AAAI-27</b>
-  student or demo track (paper July 28, 2026), the NeurIPS 2026 workshops (author papers around
-  August 29, 2026), the <b>WAGD</b> workshop at AIIDE (paper September 18, 2026, but CEUR-archival), and <b>AAMAS 2027</b> (paper October 8, 2026). To reach an ICML, NeurIPS, or
-  ICLR main track, we would first need to pass the ceiling with a new method (search or memory), or
-  grow the pipeline and benchmark into something the community adopts.</div>
+  <div class="why"><b>In short:</b> the contribution is the universal pipeline, plus the perfect-player benchmark, plus the study of what helps and what does not.</div>
 </section>
 
 <section id="repro">

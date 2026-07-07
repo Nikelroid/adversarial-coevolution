@@ -26,3 +26,6 @@ AIIDE_paper/*.bbl
 AIIDE_paper/*.blg
 AIIDE_paper/*.log
 AIIDE_paper/*.out
+
+# Internal team materials (submission tracker, AIIDE plan) — never publish
+private/
