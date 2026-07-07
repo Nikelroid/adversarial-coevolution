@@ -20,7 +20,7 @@ SWEEP = os.path.join(HERE, "..", "sweep")
 RAW = ("https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/"
        "main/paper/figures")
 PDF = ("https://github.com/Nikelroid/adversarial-coevolution/blob/main/"
-       "paper/main.pdf")
+       "AIIDE_paper/main_arxiv.pdf")
 REPO = "https://github.com/Nikelroid/adversarial-coevolution"
 
 
@@ -662,7 +662,7 @@ python sweep/phase7_configs.py    && sbatch --array=0-8%6 --export=ALL,CFG_DIR=p
 
 # regenerate this report
 python paper/make_figures.py && python paper/make_report_html.py</pre>
-  <p>The typeset paper is <a href="{PDF}">paper/main.pdf</a>. Live training curves are on
+  <p>The typeset paper is <a href="{PDF}">the arXiv version</a>. Live training curves are on
   Weights &amp; Biases (groups <code>phase6-curriculum</code>, <code>phase7-ceiling</code>).</p>
 </section>
 

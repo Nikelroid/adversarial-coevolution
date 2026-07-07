@@ -55,3 +55,11 @@ midterm_template.tex
 *midterm*
 CSCI566*
 config/prompt copy.txt
+
+# old paper draft (superseded by AIIDE_paper/) + scratch notebook — keep local
+paper/main.tex
+paper/main.pdf
+paper/neurips_2024.sty
+paper/refs.bib
+paper/README.md
+notebook/
