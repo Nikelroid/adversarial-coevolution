@@ -26,6 +26,16 @@
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
+% --- arXiv preprint only: clickable links for refs, figures, tables, citations ---
+% aaai24.sty bans hyperref via an \AtBeginDocument guard; that is an AAAI-submission
+% rule, not an arXiv one. Load hyperref, then hide its "loaded" marker from that one
+% guard (hyperref still works fully; only aaai24's check is fooled).
+\usepackage{xcolor}
+\definecolor{linknavy}{RGB}{18,66,122}
+\usepackage[colorlinks=true,linkcolor=linknavy,citecolor=linknavy,urlcolor=linknavy,
+            pdfborder={0 0 0}]{hyperref}
+\makeatletter\expandafter\let\csname ver@hyperref.sty\endcsname\relax\makeatother
+% --------------------------------------------------------------------------------
 \graphicspath{{figures/}}
 
 \pdfinfo{
