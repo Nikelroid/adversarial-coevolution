@@ -1,31 +1,57 @@
+# ===== Python / envs =====
 .venv/
 Adversarial_CoEvoloution.egg-info/
-.vscode/
 dist/
+build/
 *.py[cod]
-wandb/
 __pycache__/
-logs/
 
-# notebooks, logs & runtime artifacts
-.ipynb_checkpoints/
-*.log
-app.log
+# ===== editors / OS cruft =====
+.vscode/
+.DS_Store
+**/.DS_Store
+*.swp
+
+# ===== logs, runtime, experiment tracking =====
+wandb/
+logs/
 slurm/logs/
 runtime/
+*.log
+app.log
+.ipynb_checkpoints/
+**/*-checkpoint.ipynb
 
-# local training scratch (large checkpoints; publish models deliberately)
+# ===== large local training scratch (publish models deliberately) =====
 sweep/llmplay/ckpts/
 
-# OS / editor
-.DS_Store
-*.swpAIIDE_paper/AuthorKit24-4.zip
+# ===== LaTeX build artifacts =====
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.toc
 AIIDE_paper/anonymous-submission-latex-2024.tex
-AIIDE_paper/*.aux
-AIIDE_paper/*.bbl
-AIIDE_paper/*.blg
-AIIDE_paper/*.log
-AIIDE_paper/*.out
+AIIDE_paper/AuthorKit24-4.zip
+AuthorKit*
 
-# Internal team materials (submission tracker, AIIDE plan) — never publish
+# ===== Internal / paper workflow — keep LOCAL, never publish =====
+# GitHub is for the code + framework, not the writing/submission process.
 private/
+GUZDIAL_ALIGNMENT.md
+AIIDE_paper/GUZDIAL_ALIGNMENT.md
+AIIDE_paper/README.md
+*ALIGNMENT*
+docs/reports/
+aiide_plan*.html
+*_plan.md
+*_PLAN.md
+*_notes.md
+goals.md
+midterm_template.tex
+*midterm*
+CSCI566*
+config/prompt copy.txt
