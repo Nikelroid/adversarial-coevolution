@@ -15,7 +15,7 @@
 
 <p align="center">
   &#128202; <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
-  &nbsp;&middot;&nbsp; &#128196; <b><a href="paper/main.pdf">PDF paper</a></b>
+  &nbsp;&middot;&nbsp; &#128196; <b><a href="AIIDE_paper/main_arxiv.pdf">PDF paper</a></b>
   &nbsp;&middot;&nbsp; &#127918; <b><a href="game/">Play the web game</a></b>
 </p>
 
@@ -195,7 +195,8 @@ train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
 <tr><td><code>sweep/</code></td><td>the experiment families: gold benchmark, algorithm (PPO vs TRPO), representation, the curriculum sweep + the keep-best/warm-start harness</td></tr>
 <tr><td><code>llm/</code>, <code>slurm/</code></td><td>distributed LLM master/worker/cache + the SLURM jobs (incl. the self-sustaining sweep watchdog)</td></tr>
 <tr><td><code>game/</code></td><td>zero-dependency human-vs-agent web client</td></tr>
-<tr><td><code>paper/</code>, <code>docs/</code></td><td>the paper (<code>main.tex</code>), figure + report generators, and the full HTML report</td></tr>
+<tr><td><code>AIIDE_paper/</code></td><td>the paper: <code>main.tex</code> (submission) and <code>main_arxiv.tex</code> (arXiv), with figures</td></tr>
+<tr><td><code>paper/</code>, <code>docs/</code></td><td>figure + report generators and the full HTML report</td></tr>
 </table>
 
 </div>
@@ -231,7 +232,7 @@ python paper/make_figures.py && python paper/make_report_html.py
 ---
 
 <p align="center">
-  <b>Nima Kelidari &middot; Mahdi Salmani &middot; Mohammadsaeed Haghi</b><br/>
+  <b>Nima Kelidari &middot; Mohammadsaeed Haghi &middot; Mahdi Salmani</b><br/>
   <sub>University of Southern California</sub>
 </p>
 
