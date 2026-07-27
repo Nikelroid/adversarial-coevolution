@@ -1,0 +1,72 @@
+{
+  "name": "_smk_attn_trpo",
+  "algo": "trpo",
+  "curriculum": "designed",
+  "sampling": "recent",
+  "init_model": "",
+  "arch": "attn",
+  "net_arch": null,
+  "activation": "tanh",
+  "reward": {
+    "knock": 0.5,
+    "gin": 0.5,
+    "win_scale": 1.0,
+    "loss_scale": 1.0,
+    "step_penalty": 0.0075,
+    "deadwood_coef": 0.05
+  },
+  "hp": {
+    "lr": 0.0003,
+    "ent_coef": 0.01,
+    "clip_range": 0.2,
+    "target_kl": 0.01,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "n_steps": 256
+  },
+  "steps": 6000,
+  "seed": 0,
+  "train_seconds": 1111.0436685085297,
+  "model_path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/_smk_attn_trpo/final.zip",
+  "best_model_path": "/scratch1/kelidari/advcoev_store/sweep_curriculum/_smk_attn_trpo/final.zip",
+  "best_step": 0,
+  "pool_size": 11,
+  "curve": [],
+  "best_vs_gold": 0.0,
+  "best_vs_champion": 0.0,
+  "final_vs_gold": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "mean_len": 59.0,
+    "n": 1
+  },
+  "final_vs_champion": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "mean_len": 51.0,
+    "n": 1
+  },
+  "vs_random": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "mean_len": 170.0,
+    "n": 1
+  },
+  "vs_champion": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "mean_len": 55.0,
+    "n": 1
+  },
+  "vs_gold": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "mean_len": 59.0,
+    "n": 1
+  }
+}

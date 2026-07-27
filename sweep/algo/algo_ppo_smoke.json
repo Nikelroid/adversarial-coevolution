@@ -1,0 +1,25 @@
+{
+  "algo": "ppo",
+  "tag": "ppo_smoke",
+  "seed": 0,
+  "rl_steps": 4000,
+  "train_seconds": 19.01116108894348,
+  "vs_random": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 20
+  },
+  "vs_champion": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 20
+  },
+  "vs_gold": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 20
+  }
+}

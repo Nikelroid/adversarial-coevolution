@@ -1,0 +1,24 @@
+{
+  "tag": "temporal_smoke",
+  "embedder": "/tmp/temporal_emb.pt",
+  "rl_steps": 3000,
+  "train_seconds": 16.384995460510254,
+  "vs_random": {
+    "win_rate": 0.15,
+    "gin_rate": 0.0,
+    "loss_rate": 0.85,
+    "n": 20
+  },
+  "vs_champion": {
+    "win_rate": 0.05,
+    "gin_rate": 0.0,
+    "loss_rate": 0.95,
+    "n": 20
+  },
+  "vs_gold": {
+    "win_rate": 0.05,
+    "gin_rate": 0.0,
+    "loss_rate": 0.95,
+    "n": 20
+  }
+}
