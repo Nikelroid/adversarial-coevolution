@@ -19,8 +19,7 @@ OUT = os.path.join(HERE, "..", "docs", "index.html")
 SWEEP = os.path.join(HERE, "..", "sweep")
 RAW = ("https://raw.githubusercontent.com/Nikelroid/adversarial-coevolution/"
        "main/paper/figures")
-PDF = ("https://github.com/Nikelroid/adversarial-coevolution/blob/main/"
-       "AIIDE_paper/main_arxiv.pdf")
+PDF = "https://arxiv.org/abs/2607.06854"
 REPO = "https://github.com/Nikelroid/adversarial-coevolution"
 
 

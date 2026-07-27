@@ -1,0 +1,24 @@
+{
+  "tag": "smoke_sparse",
+  "embedder": "sparse",
+  "rl_steps": 5000,
+  "train_seconds": 10.965417623519897,
+  "vs_random": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 10
+  },
+  "vs_champion": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 10
+  },
+  "vs_gold": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 10
+  }
+}

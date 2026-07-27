@@ -1,0 +1,24 @@
+{
+  "tag": "temporal_2M_d80",
+  "embedder": "/scratch1/kelidari/advcoev_store/embed/temporal_dataset_2M_embedder.pt",
+  "rl_steps": 2000000,
+  "train_seconds": 3602.099256515503,
+  "vs_random": {
+    "win_rate": 0.6525,
+    "gin_rate": 0.0125,
+    "loss_rate": 0.3475,
+    "n": 400
+  },
+  "vs_champion": {
+    "win_rate": 0.2025,
+    "gin_rate": 0.0025,
+    "loss_rate": 0.7975,
+    "n": 400
+  },
+  "vs_gold": {
+    "win_rate": 0.0925,
+    "gin_rate": 0.0025,
+    "loss_rate": 0.9075,
+    "n": 400
+  }
+}

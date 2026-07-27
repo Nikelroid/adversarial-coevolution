@@ -1,0 +1,25 @@
+{
+  "algo": "trpo",
+  "tag": "trpo_smoke",
+  "seed": 0,
+  "rl_steps": 4000,
+  "train_seconds": 18.80613374710083,
+  "vs_random": {
+    "win_rate": 0.05,
+    "gin_rate": 0.0,
+    "loss_rate": 0.95,
+    "n": 20
+  },
+  "vs_champion": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 20
+  },
+  "vs_gold": {
+    "win_rate": 0.0,
+    "gin_rate": 0.0,
+    "loss_rate": 1.0,
+    "n": 20
+  }
+}

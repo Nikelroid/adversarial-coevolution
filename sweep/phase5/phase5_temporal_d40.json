@@ -1,0 +1,24 @@
+{
+  "tag": "temporal_d40",
+  "embedder": "/scratch1/kelidari/advcoev_store/embed/temporal_embedder_d40.pt",
+  "rl_steps": 2000000,
+  "train_seconds": 3633.6698644161224,
+  "vs_random": {
+    "win_rate": 0.6575,
+    "gin_rate": 0.015,
+    "loss_rate": 0.3425,
+    "n": 400
+  },
+  "vs_champion": {
+    "win_rate": 0.2025,
+    "gin_rate": 0.005,
+    "loss_rate": 0.7975,
+    "n": 400
+  },
+  "vs_gold": {
+    "win_rate": 0.11,
+    "gin_rate": 0.0,
+    "loss_rate": 0.89,
+    "n": 400
+  }
+}

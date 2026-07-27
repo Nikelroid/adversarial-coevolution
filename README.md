@@ -1,11 +1,12 @@
 <h1 align="center">Adversarial Co-Evolution of RL and LLM Agents in Gin Rummy</h1>
 
 <p align="center">
-  <i>How close can a small, fast reinforcement-learning agent get to <b>perfect</b> Gin Rummy &mdash;<br/>
+  <i>How close can a small, fast reinforcement-learning agent get to a <b>gold-standard expert</b> at Gin Rummy &mdash;<br/>
   and which training ideas actually make it stronger? We built the whole framework to find out.</i>
 </p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2607.06854"><img src="https://img.shields.io/badge/arXiv-2607.06854-b31b1b"/></a>
   <img src="https://img.shields.io/badge/RL-masked%20PPO%20%2F%20TRPO-0b5b39"/>
   <img src="https://img.shields.io/badge/env-PettingZoo%20%2F%20RLCard-0b5b39"/>
   <img src="https://img.shields.io/badge/benchmark-gold--standard%20expert-d9a521"/>
@@ -15,7 +16,7 @@
 
 <p align="center">
   &#128202; <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
-  &nbsp;&middot;&nbsp; &#128196; <b><a href="AIIDE_paper/main_arxiv.pdf">PDF paper</a></b>
+  &nbsp;&middot;&nbsp; &#128196; <b><a href="https://arxiv.org/abs/2607.06854">arXiv paper</a></b>
   &nbsp;&middot;&nbsp; &#127918; <b><a href="game/">Play the web game</a></b>
 </p>
 
@@ -25,8 +26,8 @@
 
 <table align="center">
 <tr>
-  <td align="center"><b>34%</b><br/><sub>best agent vs the<br/>perfect player</sub></td>
-  <td align="center"><b>&lt;2%</b><br/><sub>how often the perfect<br/>player gins</sub></td>
+  <td align="center"><b>34%</b><br/><sub>best agent vs the<br/>gold-standard expert</sub></td>
+  <td align="center"><b>&lt;2%</b><br/><sub>how often the<br/>expert gins</sub></td>
   <td align="center"><b>100+</b><br/><sub>controlled<br/>experiments</sub></td>
   <td align="center"><b>62&times;</b><br/><sub>faster LLM serving<br/>(scratch vs NFS)</sub></td>
 </tr>
@@ -38,13 +39,13 @@
   Gin Rummy needs both short-horizon arithmetic (counting <i>deadwood</i>) and long-horizon planning
   (forming <i>melds</i>), and you never see the opponent's hand. Training an RL agent hits the
   <b>opponent bottleneck</b>: it is only as good as who it practises against. So we built a fast RL
-  player, a <b>provably optimal</b> opponent to grade everyone honestly, and a distributed system to
+  player, a fixed <b>gold-standard expert</b> to grade every agent, and a distributed system to
   put an LLM in the game &mdash; then ran 100+ experiments to see what truly helps.
 </p>
 
 <div align="center">
-  <img src="paper/figures/journey.png" width="520" alt="Win-rate vs the perfect player across the project"/>
-  <br/><sub>Our best agent climbed from the old champion's ~30% to <b>34%</b> against perfect play &mdash; through a systematic search, not luck.</sub>
+  <img src="paper/figures/journey.png" width="520" alt="Win-rate vs the expert across the project"/>
+  <br/><sub>Our best agent climbed from the old champion's ~30% to <b>34%</b> against the expert &mdash; through a systematic search, not luck.</sub>
 </div>
 
 ---
@@ -52,10 +53,10 @@
 <h2 align="center">The gold standard &mdash; and the surprise it revealed</h2>
 
 <p align="center">
-  We built a <b>perfect</b> Gin Rummy player (exact meld solving, no learning) to use as an honest
-  yardstick. It beats every trained agent <b>70&ndash;99%</b> of the time. The surprise: it
+  We built a strong, fixed, deterministic <b>expert</b> (exact meld solving, no learning) to use as
+  the yardstick. It beats every trained agent <b>70&ndash;99%</b> of the time. The surprise: it
   <b>gins under 2%</b> of games &mdash; it wins by <i>knocking early with low deadwood</i>, not by
-  chasing gin. That single fact reframed every reward experiment we ran.
+  chasing gin. That single fact shaped every reward experiment we ran.
 </p>
 
 <div align="center">
@@ -64,15 +65,15 @@
 
 ---
 
-<h2 align="center">Everything we tried, ranked vs the perfect player</h2>
+<h2 align="center">Everything we tried, ranked vs the expert</h2>
 
 <p align="center">
   We benchmarked nearly every reasonable way to make the agent stronger on one metric &mdash; win-rate
-  against the perfect player &mdash; and, for each, found <i>why</i> it lands where it does.
+  against the fixed expert &mdash; and, for each, found <i>why</i> it lands where it does.
 </p>
 
 <div align="center">
-  <img src="paper/figures/regimes.png" width="640" alt="Every regime ranked vs the perfect player"/>
+  <img src="paper/figures/regimes.png" width="640" alt="Every regime ranked vs the expert"/>
 </div>
 
 <div align="center">
@@ -82,7 +83,7 @@
 <tr><td>Keep the best checkpoint</td><td align="center">&#9989; helps</td><td>training drifts past its peak; saving the best recovers 2&ndash;3 pts for free</td></tr>
 <tr><td>Warm-start from the champion</td><td align="center">&#9989; helps</td><td>start strong, then specialise</td></tr>
 <tr><td>TRPO over PPO</td><td align="center">&#9989; helps</td><td>safer policy steps suit sparse, shifting self-play</td></tr>
-<tr><td>Reward knocking, not gin</td><td align="center">&#9989; helps</td><td>copies the optimal low-risk style</td></tr>
+<tr><td>Reward knocking, not gin</td><td align="center">&#9989; helps</td><td>copies the expert's low-risk style</td></tr>
 <tr><td>Rising opponent curriculum</td><td align="center">&#9989; helps</td><td>always a fair-but-harder challenge</td></tr>
 <tr><td>Paying 3&times; more for gin</td><td align="center">&#10134;&#65039; no effect</td><td>the agent refuses the bad habit at any bribe</td></tr>
 <tr><td>Learned state embeddings</td><td align="center">&#10060; hurts</td><td>a frozen bottleneck discards useful detail</td></tr>
@@ -96,7 +97,7 @@
 <p align="center">
   &#128161; <b>The clean result:</b> we tried to <i>bribe</i> the agent into ginning by paying three
   times more for a gin than a knock. Across 30 controlled runs it still gins under 1% of the time
-  &mdash; just like the perfect player, it discovers that chasing gin loses. You cannot pay a policy
+  &mdash; just like the expert, it discovers that chasing gin loses. You cannot pay a policy
   into a bad habit.
 </p>
 
@@ -165,7 +166,7 @@ train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
 <h2 align="center">Play the heroes &#127918;</h2>
 
 <p align="center">
-  A no-install browser game with a curated 5-rung ladder, easiest to perfect:
+  A no-install browser game with a curated 5-rung ladder, easiest to expert:
 </p>
 
 <div align="center">
@@ -174,9 +175,9 @@ train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
 <tr><th>Opponent</th><th>Strength</th><th>What it is</th></tr>
 <tr><td>&#127922; Rookie</td><td align="center">easiest</td><td>random legal moves &mdash; a warm-up</td></tr>
 <tr><td>&#129302; Self-Play Champion</td><td align="center">strong</td><td>our earlier best (~30% vs gold)</td></tr>
-<tr><td>&#127183; Curriculum Ace</td><td align="center">strongest</td><td>the final agent &mdash; <b>34%</b> vs the perfect player</td></tr>
+<tr><td>&#127183; Curriculum Ace</td><td align="center">strongest</td><td>the final agent &mdash; <b>34%</b> vs the expert</td></tr>
 <tr><td>&#128737;&#65039; League Tactician</td><td align="center">strongest</td><td>a close second (PFSP-trained)</td></tr>
-<tr><td>&#127942; Gold Standard</td><td align="center">perfect</td><td>the hand-coded expert &mdash; the wall everyone hits</td></tr>
+<tr><td>&#127942; Gold Standard</td><td align="center">expert</td><td>the hand-coded expert &mdash; the wall everyone hits</td></tr>
 </table>
 
 </div>
@@ -191,11 +192,10 @@ train(CoevConfig(env_fn=connect_four_v3.env, env_id="connect_four",
 <tr><th>Path</th><th>What</th></tr>
 <tr><td><code>coev/</code></td><td><b>the universal pipeline</b>: masked policy, opponent curriculum, and trainer for any PettingZoo AEC game (+ examples)</td></tr>
 <tr><td><code>ppo_train.py</code>, <code>gym_wrapper.py</code></td><td>the original Gin-Rummy-specific masked PPO/TRPO policy + wrapper</td></tr>
-<tr><td><code>agents/</code></td><td><code>GoldStandardAgent</code> (optimal benchmark), <code>PPOAgent</code> (masked-argmax), Random, LLM agents</td></tr>
+<tr><td><code>agents/</code></td><td><code>GoldStandardAgent</code> (the expert benchmark), <code>PPOAgent</code> (masked-argmax), Random, LLM agents</td></tr>
 <tr><td><code>sweep/</code></td><td>the experiment families: gold benchmark, algorithm (PPO vs TRPO), representation, the curriculum sweep + the keep-best/warm-start harness</td></tr>
 <tr><td><code>llm/</code>, <code>slurm/</code></td><td>distributed LLM master/worker/cache + the SLURM jobs (incl. the self-sustaining sweep watchdog)</td></tr>
 <tr><td><code>game/</code></td><td>zero-dependency human-vs-agent web client</td></tr>
-<tr><td><code>AIIDE_paper/</code></td><td>the paper: <code>main.tex</code> (submission) and <code>main_arxiv.tex</code> (arXiv), with figures</td></tr>
 <tr><td><code>paper/</code>, <code>docs/</code></td><td>figure + report generators and the full HTML report</td></tr>
 </table>
 
@@ -228,6 +228,26 @@ python paper/make_figures.py && python paper/make_report_html.py
   &#9888;&#65039; Load LLM worker weights from <b>scratch/BeeGFS</b>, not home NFS.
   Every figure regenerates from measured JSON results under <code>sweep/</code>.
 </p>
+
+---
+
+<h2 align="center">Paper</h2>
+
+<p align="center">
+  The full study is on arXiv:<br/>
+  <b><a href="https://arxiv.org/abs/2607.06854">A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong</a></b> (arXiv:2607.06854)
+</p>
+
+```bibtex
+@misc{kelidari2026goldstandard,
+  title={A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong},
+  author={Kelidari, Nima and Haghi, Mohammadsaeed and Salmani, Mahdi},
+  year={2026},
+  eprint={2607.06854},
+  archivePrefix={arXiv},
+  primaryClass={cs.LG}
+}
+```
 
 ---
 
