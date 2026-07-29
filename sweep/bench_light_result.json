@@ -1,0 +1,16 @@
+{
+  "model": "gin_ace (Curriculum Ace, headline agent)",
+  "torch_threads": 1,
+  "params": 243439,
+  "disk_mb": 1.93,
+  "moves_timed": 2000,
+  "ms_per_move_median": 0.29,
+  "ms_per_move_mean": 0.294,
+  "ms_per_move_p95": 0.3,
+  "moves_per_sec_1core": 3400,
+  "context": {
+    "ismcts_fair_r60_seconds_per_move": "0.8-1.6 (7482.8 eval_seconds / 300 games, mean_len 31.77)",
+    "llm_seconds_per_move": "9-27",
+    "cpu": "single thread, epyc-64-class login node"
+  }
+}
