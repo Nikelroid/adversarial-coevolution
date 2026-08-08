@@ -15,6 +15,10 @@
 </p>
 
 <p align="center">
+  &#127881; <b>Accepted at <a href="https://sites.google.com/view/aiide2026/home">AIIDE 2026</a></b> (poster) &mdash; Belo Horizonte, Brazil, Nov 9&ndash;13, 2026
+</p>
+
+<p align="center">
   &#128202; <b><a href="https://Nikelroid.github.io/adversarial-coevolution/">Full HTML report</a></b>
   &nbsp;&middot;&nbsp; &#128196; <b><a href="https://arxiv.org/abs/2607.06854">arXiv paper</a></b>
   &nbsp;&middot;&nbsp; &#127918; <b><a href="game/">Play the web game</a></b>
@@ -234,6 +238,7 @@ python paper/make_figures.py && python paper/make_report_html.py
 <h2 align="center">Paper</h2>
 
 <p align="center">
+  Accepted for poster presentation at <b>AIIDE 2026</b> (Belo Horizonte, Nov 9&ndash;13).<br/>
   The full study is on arXiv:<br/>
   <b><a href="https://arxiv.org/abs/2607.06854">A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong</a></b> (arXiv:2607.06854)
 </p>
