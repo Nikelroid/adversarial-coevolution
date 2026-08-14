@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://kelidari.com/adversarial-coevolution/explorer.html"><img src="https://img.shields.io/badge/▶_Explore_76_runs_live-0b5b39?style=flat"/></a>
   <a href="https://arxiv.org/abs/2607.06854"><img src="https://img.shields.io/badge/arXiv-2607.06854-b31b1b"/></a>
   <img src="https://img.shields.io/badge/RL-masked%20PPO%20%2F%20TRPO-0b5b39"/>
   <img src="https://img.shields.io/badge/env-PettingZoo%20%2F%20RLCard-0b5b39"/>
@@ -51,6 +52,14 @@
   <img src="paper/figures/journey.png" width="520" alt="Win-rate vs the expert across the project"/>
   <br/><sub>Our best agent climbed from the old champion's ~30% to <b>34%</b> against the expert &mdash; through a systematic search, not luck.</sub>
 </div>
+
+---
+
+<h2 align="center">Explore the runs yourself</h2>
+
+<p align="center"><b><a href="https://kelidari.com/adversarial-coevolution/explorer.html">kelidari.com/adversarial-coevolution/explorer</a></b></p>
+
+All 76 training runs, plotted live from the sweep results in this repository. Pick any run and you get three curves at once: win rate against a random opponent, against the previous champion, and against the gold-standard expert. The first is pinned near 100% and barely moves; the third is the one that actually measures progress. Reporting the first would have let us claim a 99% win rate for an agent that beats the expert 34% of the time.
 
 ---
 
