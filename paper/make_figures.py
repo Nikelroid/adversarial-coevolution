@@ -14,6 +14,7 @@ import os
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -31,15 +32,43 @@ C_GOLD = "#c9962b"
 C_GREY = "#9aa6a0"
 C_INK = "#16242d"
 OPP_COLORS = {"random": C_GREY, "champion": C_GREEN2, "gold": C_GOLD}
-plt.rcParams.update({"font.size": 11, "axes.titlesize": 12.5, "axes.labelsize": 11,
-                     "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 9.5,
-                     "axes.edgecolor": "#444", "axes.linewidth": 0.9,
+# Tinted fills with a saturated edge of the same hue: bars read as objects rather than slabs.
+C_GOLD_L, C_GREEN_L, C_GREEN2_L, C_GREY_L = "#f6e6bf", "#d6e6de", "#dceee6", "#e6eae8"
+FILL = {C_GOLD: C_GOLD_L, C_GREEN: C_GREEN_L, C_GREEN2: C_GREEN2_L, C_GREY: C_GREY_L}
+RULE, MUTED = "#ccd4d8", "#77878f"
+
+_SERIF = next((c for c in ("Nimbus Roman", "Nimbus Roman No9 L", "Liberation Serif",
+                           "FreeSerif", "DejaVu Serif")
+               if any(c == f.name for f in fm.fontManager.ttflist)), "DejaVu Serif")
+
+plt.rcParams.update({"font.size": 10.5, "axes.titlesize": 11.5, "axes.labelsize": 10,
+                     "xtick.labelsize": 9.5, "ytick.labelsize": 9.5, "legend.fontsize": 9,
+                     "axes.edgecolor": RULE, "axes.linewidth": 0.8,
                      "axes.spines.top": False, "axes.spines.right": False,
-                     "axes.titleweight": "bold", "axes.titlepad": 7,
+                     "axes.labelcolor": MUTED, "axes.titlecolor": C_INK,
+                     "xtick.color": MUTED, "ytick.color": MUTED,
+                     "xtick.major.size": 3, "ytick.major.size": 3,
+                     "xtick.major.width": 0.8, "ytick.major.width": 0.8,
+                     "axes.titleweight": "bold", "axes.titlelocation": "left",
+                     "axes.titlepad": 9, "axes.axisbelow": True,
+                     "grid.color": RULE, "grid.linewidth": 0.6, "grid.alpha": 0.9,
                      "legend.frameon": False, "figure.dpi": 200,
-                     "savefig.bbox": "tight", "savefig.pad_inches": 0.02,
-                     "lines.linewidth": 2.0, "lines.markersize": 6,
-                     "font.family": "serif", "mathtext.fontset": "dejavuserif"})
+                     "savefig.bbox": "tight", "savefig.pad_inches": 0.03,
+                     "lines.linewidth": 2.0, "lines.markersize": 5.5,
+                     "font.family": "serif", "font.serif": [_SERIF],
+                     "mathtext.fontset": "dejavuserif"})
+
+
+def _polish(ax, xgrid=False, ygrid=False):
+    """Shared finish: grid behind the data, ticks only where they carry meaning."""
+    if xgrid:
+        ax.xaxis.grid(True); ax.set_axisbelow(True)
+    if ygrid:
+        ax.yaxis.grid(True); ax.set_axisbelow(True)
+    ax.tick_params(length=3, pad=3)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(RULE)
+    return ax
 
 
 def _save(fig, name):
@@ -354,15 +383,25 @@ def fig_algo():
         return
     opps = ["random", "champion", "gold"]
     fig, ax = plt.subplots(figsize=(4.6, 3.4))     # matched to fig_reward_gin (paper Fig. 4)
-    x = np.arange(len(opps)); w = 0.36
+    x = np.arange(len(opps)); w = 0.34
     col = {"ppo": C_GREY, "trpo": C_GREEN}
     for i, a in enumerate(algos):
         m = [st.mean(by[a][o]) for o in opps]
         e = [st.pstdev(by[a][o]) for o in opps]
-        ax.bar(x + (i - 0.5) * w, m, w, yerr=e, capsize=3, label=a.upper(), color=col[a])
-    ax.set_xticks(x); ax.set_xticklabels([f"vs {o}" for o in opps])
+        pos = x + (i - 0.5) * w
+        ax.bar(pos, m, w, yerr=e, capsize=0, label=a.upper(),
+               color=FILL[col[a]], edgecolor=col[a], linewidth=1.1,
+               error_kw=dict(ecolor=col[a], elinewidth=1.1, capthick=1.1, capsize=2.5))
+        for px, mv, ev in zip(pos, m, e):
+            ax.text(px, mv + ev + 2.5, f"{mv:.0f}", ha="center", va="bottom",
+                    fontsize=8.8, fontweight="bold", color=col[a])
+    nice = {"random": "vs random", "champion": "vs champion", "gold": "vs the expert"}
+    ax.set_xticks(x); ax.set_xticklabels([nice.get(o, o) for o in opps], color=C_INK)
     ax.set_ylabel("win rate (%)"); ax.set_ylim(0, 100)
-    ax.set_title("TRPO beats PPO (2 seeds)"); ax.legend()
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.set_title("Trust-region updates win")
+    ax.legend(loc="upper right", handlelength=1.1, handleheight=1.1, borderpad=0.2)
+    _polish(ax, ygrid=True); ax.tick_params(axis="x", length=0)
     fig.tight_layout(); _save(fig, "algo_compare")
 
 
@@ -379,12 +418,18 @@ def fig_reward_gin():
         fig.tight_layout(); _save(fig, "reward_gin"); return
     x = np.arange(len(order))
     gin = [st.mean(by[c]["gin"]) for c, _ in order]
-    ax.bar(x, gin, 0.62, color=C_GREEN)
-    ax.axhline(GOLD_GIN, ls="--", lw=1.2, color=C_GOLD)
-    ax.text(len(order) - 0.5, GOLD_GIN + 0.04, "gold's gin rate", fontsize=8, ha="right", color=C_GOLD)
-    ax.set_xticks(x); ax.set_xticklabels([lab for _, lab in order])
-    ax.set_ylabel("gin rate vs gold (%)"); ax.set_ylim(0, 1.6)
-    ax.set_title("Rewarding gin does not make it gin")
+    ax.bar(x, gin, 0.58, color=C_GREEN_L, edgecolor=C_GREEN, linewidth=1.1)
+    for px, g in zip(x, gin):
+        ax.text(px, g + 0.03, f"{g:.2f}", ha="center", va="bottom",
+                fontsize=8.8, fontweight="bold", color=C_GREEN)
+    ax.axhline(GOLD_GIN, ls=(0, (4, 3)), lw=1.1, color=C_GOLD, zorder=1)
+    ax.text(len(order) - 0.55, GOLD_GIN + 0.02, "the expert's own gin rate",
+            fontsize=8.2, ha="right", va="bottom", color=C_GOLD)
+    ax.set_xticks(x); ax.set_xticklabels([lab for _, lab in order], color=C_INK)
+    top = max(max(gin), GOLD_GIN) * 1.35
+    ax.set_ylabel("gin rate against the expert (%)"); ax.set_ylim(0, top)
+    ax.set_title("No reward buys a losing habit")
+    _polish(ax, ygrid=True); ax.tick_params(axis="x", length=0)
     fig.tight_layout(); _save(fig, "reward_gin")
     print("  fig_reward_gin: ok")
 
@@ -509,48 +554,109 @@ def fig_curriculum_reward():
 
 
 def fig_architecture():
-    """Clean orthogonal system flowchart (PNG): a central spine
-    gold -- learner -- curriculum -- LLM, with the environment on the left and the game on the
-    right. Every arrow is strictly horizontal or vertical."""
+    """System overview: a measured flowchart.
+
+    Every box is sized from the rendered extent of its own label, so a longer label widens its
+    box instead of spilling out of it. The previous version hard-coded box widths, and editing
+    one label silently broke the drawing.
+    """
     from matplotlib.patches import FancyBboxPatch
-    fig, ax = plt.subplots(figsize=(7.6, 5.0)); ax.set_xlim(0, 100); ax.set_ylim(0, 100)
-    ax.axis("off")
+    from matplotlib.transforms import Bbox
 
-    def box(cx, cy, w, h, text, fc, tc="white", fs=10):
-        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
-                                    boxstyle="round,pad=0.4,rounding_size=2.2", fc=fc, ec="none"))
-        ax.text(cx, cy, text, ha="center", va="center", color=tc, fontsize=fs,
-                fontweight="bold", linespacing=1.35)
+    # Times-family text, to match the body of the paper rather than sit beside it.
+    for cand in ("Nimbus Roman", "Nimbus Roman No9 L", "Liberation Serif", "FreeSerif", "DejaVu Serif"):
+        if any(cand == f.name for f in fm.fontManager.ttflist):
+            serif = cand
+            break
+    else:
+        serif = "DejaVu Serif"
 
-    def harrow(x1, x2, y, c, two=False, label=None, ly=None):
-        ax.annotate("", xy=(x2, y), xytext=(x1, y),
-                    arrowprops=dict(arrowstyle="<|-|>" if two else "-|>", color=c, lw=1.7,
-                                    shrinkA=0, shrinkB=0))
-        if label:
-            ax.text((x1 + x2) / 2, ly, label, ha="center", va="bottom", fontsize=8.5, color=c)
-
-    def varrow(y1, y2, x, c, two=False, label=None, lx=None):
-        ax.annotate("", xy=(x, y2), xytext=(x, y1),
-                    arrowprops=dict(arrowstyle="<|-|>" if two else "-|>", color=c, lw=1.7,
-                                    shrinkA=0, shrinkB=0))
-        if label:
-            ax.text(lx, (y1 + y2) / 2, label, ha="left", va="center", fontsize=8.5, color=c)
-
+    INK   = "#16242d"
+    GREEN = "#0b5b39"
+    GREEN_L = "#e8f1ec"
+    GOLD  = "#a87a12"
+    GOLD_L = "#fbf2dc"
     SLATE = "#46606e"
-    ax.text(50, 97, "Framework overview", ha="center", fontsize=12, fontweight="bold", color=C_INK)
-    box(50, 86, 33, 12, "Gold standard\n(benchmark only)", C_GOLD, tc="#3a2e00")
-    box(15, 60, 24, 14, "Gin Rummy\nenvironment", C_GREEN)
-    box(50, 60, 27, 14, "RL learner\n(masked PPO / TRPO)", C_GREEN)
-    box(85, 60, 24, 14, "Web game\n(human vs agent)", SLATE)
-    box(50, 36, 34, 12, "Opponent curriculum\n(random → selves → strong)", C_GREEN)
-    box(50, 13, 31, 12, "Distributed LLM\n(master + GPU workers)", SLATE)
-    # central vertical spine + horizontal env/game arms -- all straight
-    varrow(80, 67, 50, C_GOLD, label="eval only", lx=52)            # learner -> gold (up)
-    harrow(27, 36.5, 60, C_GREEN, two=True)                         # env <-> learner (play loop)
-    harrow(63.5, 73, 60, SLATE)                                     # learner -> game
-    varrow(53, 42, 50, C_GREEN, two=True, label="opponents", lx=52)  # learner <-> curriculum
-    varrow(19, 30, 50, SLATE, label="LLM opponent", lx=52)         # LLM -> curriculum (up)
-    fig.tight_layout(); _save(fig, "architecture")
+    SLATE_L = "#eef2f4"
+    RULE  = "#c3ced4"
+
+    fig, ax = plt.subplots(figsize=(7.4, 4.5))
+    ax.set_xlim(-4, 104); ax.set_ylim(-5, 104); ax.axis("off")
+    fig.canvas.draw()
+    rend = fig.canvas.get_renderer()
+    inv = ax.transData.inverted()
+
+    def measure(text, fs, weight):
+        t = ax.text(0, -500, text, fontsize=fs, fontweight=weight, fontname=serif,
+                    ha="center", va="center", linespacing=1.4)
+        bb = t.get_window_extent(renderer=rend)
+        t.remove()
+        p0 = inv.transform((bb.x0, bb.y0)); p1 = inv.transform((bb.x1, bb.y1))
+        return abs(p1[0] - p0[0]), abs(p1[1] - p0[1])
+
+    def node(cx, cy, title, sub, edge, fill, padx=4.2, pady=3.0):
+        """Draw a box sized to its own text. Returns (left, right, bottom, top) in data units."""
+        label = title if not sub else f"{title}\n{sub}"
+        w, h = measure(label, 9.6, "bold")
+        W, H = w + 2 * padx, h + 2 * pady
+        ax.add_patch(FancyBboxPatch((cx - W / 2, cy - H / 2), W, H,
+                                    boxstyle="round,pad=0,rounding_size=1.6",
+                                    fc=fill, ec=edge, lw=1.15, zorder=3))
+        ax.text(cx, cy + (h / 2 - measure(title, 9.6, "bold")[1] / 2) if sub else cy, title,
+                ha="center", va="center", fontsize=9.6, fontweight="bold",
+                fontname=serif, color=edge, zorder=4)
+        if sub:
+            ax.text(cx, cy - h / 2 + measure(sub, 8.6, "normal")[1] / 2, sub,
+                    ha="center", va="center", fontsize=8.6, fontname=serif,
+                    color=edge, alpha=0.85, zorder=4)
+        return cx - W / 2, cx + W / 2, cy - H / 2, cy + H / 2
+
+    def arrow(p, q, color, two=False, label=None, side="right", gap=1.6, at=0.5):
+        ax.annotate("", xy=q, xytext=p,
+                    arrowprops=dict(arrowstyle="<|-|>" if two else "-|>", color=color,
+                                    lw=1.4, shrinkA=0, shrinkB=0,
+                                    mutation_scale=11), zorder=2)
+        if label:
+            mx = p[0] + (q[0] - p[0]) * at
+            my = p[1] + (q[1] - p[1]) * at
+            if p[0] == q[0]:
+                ax.text(mx + (gap if side == "right" else -gap), my, label, fontsize=8.2,
+                        fontname=serif, color=color, va="center",
+                        ha="left" if side == "right" else "right", zorder=4)
+            else:
+                ax.text(mx, my + gap, label, fontsize=8.2, fontname=serif,
+                        color=color, ha="center", va="bottom", zorder=4)
+
+    ax.text(50, 99, "Framework overview", ha="center", va="center", fontsize=11.5,
+            fontweight="bold", fontname=serif, color=INK)
+    ax.plot([33, 67], [94.5, 94.5], color=RULE, lw=0.9, zorder=1)
+
+    gold  = node(50, 84, "Gold standard", "benchmark only", GOLD, GOLD_L)
+    envb  = node(15, 55, "Gin Rummy", "environment", GREEN, GREEN_L)
+    learn = node(50, 55, "RL learner", "masked PPO / TRPO", GREEN, GREEN_L)
+    webb  = node(85, 55, "Web game", "human vs agent", SLATE, SLATE_L)
+    curr  = node(50, 28, "Opponent curriculum",
+                 "random, then a pool of past\ncheckpoints, then self-play", GREEN, GREEN_L)
+    llm   = node(50, 4, "Distributed LLM", "master and GPU workers", SLATE, SLATE_L)
+
+    # One dashed rule carries the paper's methodological point: the expert lives above the line
+    # and never touches anything below it.
+    yline = (gold[2] + learn[3]) / 2
+    ax.plot([-1, 101], [yline, yline], color=RULE, lw=0.9, ls=(0, (5, 4)), zorder=0)
+    ax.text(-1, yline + 1.6, "evaluation", fontsize=8.0, fontname=serif,
+            color="#8b979d", ha="left", va="bottom", zorder=1)
+    ax.text(-1, yline - 1.6, "training", fontsize=8.0, fontname=serif,
+            color="#8b979d", ha="left", va="top", zorder=1)
+
+    # label sits high on the arrow so it clears the evaluation/training rule
+    arrow((50, learn[3]), (50, gold[2]), GOLD, label="eval only", side="right", at=0.78)
+    arrow((envb[1], 55), (learn[0], 55), GREEN, two=True)
+    arrow((learn[1], 55), (webb[0], 55), SLATE)
+    arrow((50, learn[2]), (50, curr[3]), GREEN, two=True, label="opponents", side="right")
+    arrow((50, llm[3]), (50, curr[2]), SLATE, label="LLM opponent", side="right")
+
+    fig.tight_layout()
+    _save(fig, "architecture")
     print("  fig_architecture: ok")
 
 
@@ -575,22 +681,35 @@ def fig_gold_bench():
     order = [("random", "Random"), ("winrate", "Win-rate PPO"), ("reward", "Reward PPO"),
              ("pool", "Pool PPO"), ("llm_full", "LLM-tutored"), ("champion", "Self-play champion")]
     order = [(k, lab) for k, lab in order if k in d]
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 3.4), gridspec_kw={"width_ratios": [1.55, 1]})
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 3.3),
+                                 gridspec_kw={"width_ratios": [1.7, 1], "wspace": 0.10})
     y = np.arange(len(order))
     wins = [d[k]["a_win_rate"] * 100 for k, _ in order]
-    a1.barh(y, wins, color=C_GOLD)
+    a1.barh(y, wins, height=0.62, color=C_GOLD_L, edgecolor=C_GOLD, linewidth=1.1)
     for i, w in enumerate(wins):
-        a1.text(w - 2, i, f"{w:.0f}%", va="center", ha="right", color="#3a2e00", fontsize=8.5, fontweight="bold")
-    a1.set_yticks(y); a1.set_yticklabels([lab for _, lab in order])
-    a1.set_xlabel("gold's win rate vs this agent (%)"); a1.set_xlim(0, 100)
-    a1.set_title("The gold expert beats every learned agent")
-    # gin-rate panel: gold's own gin-rate is tiny everywhere
+        a1.text(w + 1.5, i, f"{w:.0f}%", va="center", ha="left",
+                color=C_GOLD, fontsize=9, fontweight="bold")
+    a1.set_yticks(y); a1.set_yticklabels([lab for _, lab in order], color=C_INK)
+    a1.set_xlabel("win rate against this agent (%)"); a1.set_xlim(0, 112)
+    a1.set_xticks([0, 25, 50, 75, 100])
+    a1.set_title("Beats every agent we trained")
+    _polish(a1, xgrid=True); a1.tick_params(axis="y", length=0)
+
+    # gin-rate panel: the expert's own gin rate is tiny everywhere, so the axis stops at 3
     gins = [d[k]["a_gin_rate"] * 100 for k, _ in order]
-    a2.barh(y, gins, color=C_GREEN)
-    a2.set_yticks(y); a2.set_yticklabels([]); a2.set_xlim(0, 5)
-    a2.axvline(2, ls="--", lw=1, color="#444"); a2.text(2.1, len(order) - 0.6, "2%", fontsize=8, color="#444")
-    a2.set_xlabel("gold's gin rate (%)")
-    a2.set_title("...yet gins under 2%: it knocks low")
+    a2.barh(y, gins, height=0.62, color=C_GREEN_L, edgecolor=C_GREEN, linewidth=1.1)
+    for i, g in enumerate(gins):
+        a2.text(g + 0.06, i, f"{g:.1f}", va="center", ha="left",
+                color=C_GREEN, fontsize=9, fontweight="bold")
+    a2.set_yticks(y); a2.set_yticklabels([]); a2.set_xlim(0, 3)
+    a2.set_xticks([0, 1, 2, 3])
+    a2.axvline(2, ls=(0, (4, 3)), lw=0.9, color=MUTED, zorder=1)
+    a2.text(2 - 0.08, len(order) - 0.75, "2%", fontsize=8.5, color=MUTED, ha="right", va="top")
+    a2.set_xlabel("its own gin rate (%)")
+    a2.set_title("yet it almost never gins")
+    _polish(a2, xgrid=True); a2.tick_params(axis="y", length=0)
+    for ax in (a1, a2):
+        ax.set_ylim(-0.6, len(order) - 0.4)
     fig.tight_layout(); _save(fig, "gold_bench")
     print("  fig_gold_bench: ok")
 
@@ -671,38 +790,115 @@ def fig_journey():
 
 
 def fig_learning_curves():
-    """How the curriculum drives learning: win-rate vs the champion over training steps for a few
-    representative runs, with the curriculum stage boundaries (random -> +pool -> +self -> +strong)
-    marked. Reads the per-run learning curve saved in sweep/curriculum/*.json."""
-    runs = [("01_base_trpo_s0", "TRPO baseline", C_GREEN),
-            ("05_rew_R4_earlyknk_s0", "early-knock reward", C_GREEN2),
-            ("12_ppo_ent_hi_s0", "PPO", C_GREY)]
-    fig, ax = plt.subplots(figsize=(6.8, 3.7))
-    drew = False
-    for name, lab, c in runs:
-        p = os.path.join(ROOT, "sweep", "curriculum", name + ".json")
-        if not os.path.exists(p):
+    """Two views of training, each answering one claim in the text.
+
+    (a) The curriculum climb: win-rate against the champion for three recipes, every seed used,
+        line = mean over seeds and band = their range.
+    (b) Why keep-the-best is worth points: the phase-7 runs evaluate every million steps rather
+        than every three, so the peak and the drift after it are visible rather than asserted.
+        The gap between each run's best checkpoint and its last one is the quantity the text
+        quotes, so it is measured here and printed on the panel.
+    """
+    import statistics as st
+
+    def curves(pattern, key):
+        out = []
+        for path in sorted(glob.glob(os.path.join(ROOT, "sweep", "curriculum", pattern))):
+            try:
+                c = json.load(open(path)).get("curve", [])
+            except Exception:  # noqa: BLE001
+                continue
+            if len(c) >= 3:
+                out.append((os.path.basename(path)[:-5],
+                            [s_["step"] / 1e6 for s_ in c],
+                            [s_[key]["win"] * 100 for s_ in c]))
+        return out
+
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(7.6, 3.3),
+                                   gridspec_kw={"width_ratios": [1, 1], "wspace": 0.28})
+
+    # ---------------- (a) the curriculum climb, mean and range over seeds
+    cells = [("01_base_trpo", "TRPO baseline", C_GREEN),
+             ("05_rew_R4_earlyknk", "early-knock reward", C_GREEN2),
+             ("12_ppo_ent_hi", "PPO", C_GREY)]
+    drawn = []
+    for cell, lab, c in cells:
+        runs = [dict(zip(xs, ys)) for _, xs, ys in curves(cell + "_s*.json", "champion")]
+        if not runs:
             continue
-        curve = json.load(open(p)).get("curve", [])
-        if not curve:
+        xs = [x for x in sorted(set().union(*[set(r) for r in runs])) if all(x in r for r in runs)]
+        if not xs:
             continue
-        xs = [s["step"] / 1e6 for s in curve]
-        ys = [s["champion"]["win"] * 100 for s in curve]
-        ax.plot(xs, ys, "-o", color=c, lw=2.2, ms=5, label=lab); drew = True
-    if not drew:
-        ax.text(0.5, 0.5, "learning curves pending", ha="center", va="center")
-        ax.axis("off"); fig.tight_layout(); _save(fig, "learning_curves"); return
-    ax.set_ylim(0, 60); ax.set_xlim(0, 12.3)
-    for frac, lab in [(0.25, "+ pool"), (0.45, "+ self"), (0.70, "+ strong")]:
-        x = frac * 12
-        ax.axvline(x, ls=":", lw=1, color="#9aa6a0")
-        ax.text(x + 0.1, 57, lab, fontsize=8, color="#5c6b73", va="top")
-    ax.text(0.2, 57, "vs random", fontsize=8, color="#5c6b73", va="top")
-    ax.set_xlabel("training steps (millions)"); ax.set_ylabel("win rate vs champion (%)")
-    ax.set_title("Skill rises as the curriculum adds tougher opponents")
-    ax.legend(loc="lower right"); ax.grid(ls=":", alpha=0.4)
+        mean = [sum(r[x] for r in runs) / len(runs) for x in xs]
+        lows = [min(r[x] for r in runs) for x in xs]
+        highs = [max(r[x] for r in runs) for x in xs]
+        if len(runs) > 1:
+            axL.fill_between(xs, lows, highs, color=c, alpha=0.16, lw=0, zorder=2)
+        axL.plot(xs, mean, "-", color=c, lw=1.9, label=f"{lab} ({len(runs)})", zorder=3)
+        axL.plot(xs, mean, "o", color="white", mec=c, mew=1.3, ms=4.4, zorder=4)
+        drawn.append((lows, highs))
+
+    if drawn:
+        lo = min(min(l) for l, _ in drawn); hi = max(max(h) for _, h in drawn)
+        span = hi - lo
+        axL.set_ylim(lo - span * 0.34, hi + span * 0.50)
+        axL.set_xlim(2.35, 12.65)
+        bounds = [0.0, 0.25, 0.45, 0.70, 1.0]
+        names = ["random", "+ pool", "+ self", "+ strong"]
+        ylo, xl = axL.get_ylim()[0], axL.get_xlim()[0]
+        for i, (f0, f1, lab) in enumerate(zip(bounds[:-1], bounds[1:], names)):
+            x0, x1 = max(f0 * 12, xl), min(f1 * 12, 12.65)
+            if i % 2 == 1:
+                axL.axvspan(x0, x1, color=RULE, alpha=0.20, lw=0, zorder=0)
+            # The random stage is almost entirely off the left of the axis. In a half-width
+            # panel its label collides with the next one, and it marks a stage the reader
+            # cannot see, so only the three visible transitions are named.
+            if f0 * 12 < xl:
+                continue
+            axL.text((x0 + x1) / 2, ylo + span * 0.03, lab, fontsize=7.8,
+                     color=MUTED, ha="center", va="bottom")
+        axL.set_xticks([3, 6, 9, 12])
+        axL.legend(loc="upper left", ncol=1, handlelength=1.4, borderpad=0.0,
+                   borderaxespad=0.3, labelspacing=0.25, fontsize=8.2)
+    axL.set_xlabel("training steps (millions)")
+    axL.set_ylabel("win rate vs champion (%)")
+    axL.set_title("(a) The curriculum climb")
+    _polish(axL, ygrid=True)
+
+    # ---------------- (b) drift past the peak, evaluated every million steps
+    dense = curves("p7_*_s*.json", "gold")
+    dense = [d for d in dense if len(d[1]) >= 8]
+    gaps = []
+    for _, xs, ys in dense:
+        # The individual runs are context, not the message: they stay faint so the mean
+        # reads cleanly through the tangle.
+        axR.plot(xs, ys, "-", color=C_GREEN, lw=0.8, alpha=0.20, zorder=2)
+        k = ys.index(max(ys))
+        axR.plot([xs[k]], [ys[k]], "o", color="white", mec=C_GOLD, mew=1.3, ms=4.6, zorder=4)
+        gaps.append(max(ys) - ys[-1])
+    if dense:
+        common = [x for x in sorted(set().union(*[set(d[1]) for d in dense]))
+                  if all(x in d[1] for d in dense)]
+        m = [st.mean([d[2][d[1].index(x)] for d in dense]) for x in common]
+        # A white casing under the mean separates it from the runs it passes through.
+        axR.plot(common, m, "-", color="white", lw=4.4, solid_capstyle="round", zorder=5)
+        axR.plot(common, m, "-", color=C_GREEN, lw=2.4, solid_capstyle="round", zorder=6)
+        axR.text(common[-1], m[-1] - 0.5, "mean ", color=C_GREEN, fontsize=8.4,
+                 fontweight="bold", va="top", ha="right", zorder=7)
+        axR.text(0.035, 0.06,
+                 f"best checkpoint beats the last by\n{st.mean(gaps):.1f} points on average "
+                 f"({len(gaps)} runs)",
+                 transform=axR.transAxes, fontsize=8.4, color=C_INK, va="bottom", ha="left")
+        axR.plot([], [], "o", color="white", mec=C_GOLD, mew=1.3, ms=4.6, label="each run's peak")
+        axR.legend(loc="upper right", handlelength=1.0, borderpad=0.0, borderaxespad=0.3,
+                   fontsize=8.2)
+    axR.set_xlabel("training steps (millions)")
+    axR.set_ylabel("win rate vs the expert (%)")
+    axR.set_title("(b) Training drifts past its peak")
+    _polish(axR, ygrid=True)
+
     fig.tight_layout(); _save(fig, "learning_curves")
-    print("  fig_learning_curves: ok")
+    print(f"  fig_learning_curves: ok (a: {len(drawn)} recipes, b: {len(dense)} dense runs)")
 
 
 # ----- Phase-8: architecture comparison with IQM + 95% stratified bootstrap CIs (rliable-style)
@@ -853,33 +1049,46 @@ def fig_archbase():
     structured = {"conv1d", "deepsets", "attn", "attn_deep", "deepsets_big"}
     cols = [C_GOLD if r[5] in structured else C_GREEN for r in rows]
     for y, r, c in zip(ys, rows, cols):
-        axL.errorbar(r[1], y, xerr=[[r[1] - r[2]], [r[3] - r[1]]], fmt="o", color=c,
-                     ecolor=C_GREY, capsize=3, ms=6, lw=1.4, zorder=3)
+        axL.errorbar(r[1], y, xerr=[[r[1] - r[2]], [r[3] - r[1]]], fmt="none",
+                     ecolor=c, elinewidth=1.3, capsize=2.5, capthick=1.1, alpha=0.55, zorder=3)
+        axL.plot(r[1], y, "o", color="white", mec=c, mew=1.6, ms=6.0, zorder=4)
     anchor = next((r[1] for r in rows if r[5] == "mlp_default"), None)
     if anchor is not None:
-        axL.axvline(anchor, ls="--", color=C_INK, lw=1, alpha=0.6)
+        axL.axvline(anchor, ls=(0, (4, 3)), color=MUTED, lw=0.9, zorder=1)
+        axL.text(anchor + 0.12, len(rows) - 0.35, "MLP anchor", fontsize=9.0,
+                 color=MUTED, ha="left", va="top")
     axL.set_yticks(ys)
-    axL.set_yticklabels([f"{r[0]}" for r in rows])
-    axL.set_xlabel("win rate vs the expert (%)")
-    axL.set_title("(a) Architecture is not the lever")
-    axL.grid(ls=":", axis="x", alpha=0.45)
-    axL.margins(y=0.03)
+    axL.set_yticklabels([f"{r[0]}" for r in rows], color=C_INK)
+    axL.set_xlabel("win rate against the expert (%)")
+    # The intervals overlap throughout, so the title reports the null rather than asserting
+    # that architecture cannot matter.
+    axL.set_title("(a) No encoder pulls clear of the rest")
+    _polish(axL, xgrid=True); axL.tick_params(axis="y", length=0)
+    axL.margins(y=0.05)
 
     # RIGHT: ISMCTS fair vs oracle
-    if orac:
-        xs = sorted(orac)
-        axR.plot(xs, [orac[x] for x in xs], "-o", color=C_GOLD, label="oracle (peeks)")
-    if fair:
-        xs = sorted(fair)
-        axR.plot(xs, [fair[x] for x in xs], "-o", color=C_GREEN, label="fair (hidden)")
-    axR.axhline(34.2, ls="--", lw=1.2, color=C_INK, alpha=0.7)
-    axR.text(0.98, 0.40, "best trained agent", transform=axR.transAxes, fontsize=8.5,
-             ha="right", color=C_INK)
+    xmax = max([*orac, *fair] or [120])
+    for data, col, lab in ((orac, C_GOLD, "oracle\n(sees the cards)"),
+                           (fair, C_GREEN, "fair\n(cards hidden)")):
+        if not data:
+            continue
+        xs = sorted(data)
+        ys_ = [data[x] for x in xs]
+        axR.plot(xs, ys_, "-", color=col, lw=2.0, zorder=3)
+        axR.plot(xs, ys_, "o", color="white", mec=col, mew=1.5, ms=5.2, zorder=4)
+        # named at the end of its own line, as in the curriculum figure, so neither panel
+        # needs a key
+        axR.text(xs[-1] + xmax * 0.05, ys_[-1], lab, color=col, fontsize=8.8,
+                 fontweight="bold", va="center", ha="left", linespacing=1.25)
+    axR.set_xlim(0, xmax * 1.62)
+    axR.axhline(34.2, ls=(0, (4, 3)), lw=0.9, color=MUTED, zorder=1)
+    axR.text(xmax * 0.02, 35.6, "best trained agent", fontsize=9.0,
+             ha="left", va="bottom", color=MUTED)
     axR.set_xlabel("search rollouts per move")
-    axR.set_ylabel("win rate vs the expert (%)")
-    axR.set_title("(b) A fair search is weak")
-    axR.grid(ls=":", alpha=0.45)
-    axR.legend(loc="center right")
+    axR.set_ylabel("win rate against the expert (%)")
+    axR.set_xticks([0, 40, 80, 120])
+    axR.set_title("(b) Only an oracle search gets ahead")
+    _polish(axR, ygrid=True)
     fig.tight_layout(w_pad=2.0)
     _save(fig, "archbase")
     print(f"  fig_archbase: ok (arch={len(rows)}, fair={len(fair)}, oracle={len(orac)})")
